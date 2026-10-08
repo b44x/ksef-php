@@ -1,0 +1,95 @@
+{
+    "name": "b44x/ksef-php",
+    "description": "Framework-agnostic PHP SDK for the Polish National e-Invoice System (KSeF) API 2.0: authentication, FA(3) invoices, online sessions, status polling and UPO retrieval.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "ksef",
+        "e-invoice",
+        "e-invoicing",
+        "invoice",
+        "poland",
+        "fa3",
+        "xades",
+        "psr-18"
+    ],
+    "homepage": "https://github.com/b44x/ksef-php",
+    "authors": [
+        {
+            "name": "Michell Hoduń",
+            "homepage": "https://github.com/b44x"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/b44x/ksef-php/issues",
+        "source": "https://github.com/b44x/ksef-php"
+    },
+    "require": {
+        "php": "^8.2",
+        "ext-dom": "*",
+        "ext-json": "*",
+        "ext-libxml": "*",
+        "ext-openssl": "*",
+        "phpseclib/phpseclib": "^3.0.43",
+        "psr/clock": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1 || ^2.0",
+        "psr/log": "^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "guzzlehttp/guzzle": "^7.9",
+        "nyholm/psr7": "^1.8",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "A ready-to-use PSR-18 HTTP client",
+        "symfony/http-client": "Another PSR-18 capable HTTP client (with nyholm/psr7 or guzzlehttp/psr7 for PSR-17 factories)",
+        "monolog/monolog": "PSR-3 logger implementation for request diagnostics"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ksef\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ksef\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --testsuite unit,integration",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "test:live": "phpunit --testsuite live",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "lint": "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
+        "fix": "php-cs-fixer fix --allow-risky=yes",
+        "check": [
+            "@composer validate --strict",
+            "@lint",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "scripts-descriptions": {
+        "test": "Run the unit and integration test suites (no network access).",
+        "test:live": "Run the optional live tests against the KSeF TEST environment (requires KSEF_LIVE=1).",
+        "analyse": "Run PHPStan static analysis.",
+        "lint": "Check coding standards without modifying files.",
+        "fix": "Fix coding standard violations.",
+        "check": "Run every quality gate used by CI."
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "allow-plugins": {}
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

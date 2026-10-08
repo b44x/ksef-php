@@ -1,0 +1,17 @@
+/vendor/
+/composer.lock
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/.phpstan.cache/
+/build/
+/.idea/
+/.vscode/
+.DS_Store
+# Local credentials must never be committed.
+/.env
+/.env.local
+*.pem
+*.key
+*.p12
+*.pfx
+!tests/Fixtures/**/*.pem

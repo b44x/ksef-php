@@ -1,0 +1,28 @@
+name: Live (KSeF TEST)
+
+# Optional end-to-end tests against the public KSeF TEST environment.
+# Never runs on pull requests; trigger it manually or on a schedule.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, json, libxml, openssl, mbstring
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Run live tests
+        env:
+          KSEF_LIVE: '1'
+        run: composer test:live
