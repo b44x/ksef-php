@@ -82,10 +82,12 @@ final class TestPki
             throw new RuntimeException('Cannot sign the certificate: ' . openssl_error_string());
         }
 
-        $privateKeyPem = '';
-        $certificatePem = '';
-        openssl_pkey_export($key, $privateKeyPem, null, ['config' => self::config()]);
-        openssl_x509_export($certificate, $certificatePem);
+        $exportedKey = '';
+        $exportedCertificate = '';
+        openssl_pkey_export($key, $exportedKey, null, ['config' => self::config()]);
+        openssl_x509_export($certificate, $exportedCertificate);
+        $privateKeyPem = \is_string($exportedKey) ? $exportedKey : throw new RuntimeException('Key export failed.');
+        $certificatePem = \is_string($exportedCertificate) ? $exportedCertificate : throw new RuntimeException('Certificate export failed.');
 
         $der = base64_decode(trim((string) preg_replace('/-----[A-Z ]+-----|\s+/', '', $certificatePem)), true);
 
