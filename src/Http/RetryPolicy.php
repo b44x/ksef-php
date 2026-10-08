@@ -37,7 +37,7 @@ final readonly class RetryPolicy
     /**
      * Delay before the next attempt, or null when the wait would exceed the allowed maximum.
      *
-     * @param int<1, max> $attempt the attempt that just failed (1-based)
+     * @param int $attempt the attempt that just failed (1-based)
      * @param int|null $retryAfter value of the Retry-After header in seconds, if any
      */
     public function delayBefore(int $attempt, ?int $retryAfter = null): ?float
