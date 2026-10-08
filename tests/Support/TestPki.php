@@ -98,7 +98,7 @@ final class TestPki
     {
         if (self::$config === null) {
             $path = sys_get_temp_dir() . '/ksef-php-test-openssl.cnf';
-            file_put_contents($path, "[req]\ndistinguished_name = dn\nprompt = no\n[dn]\n");
+            file_put_contents($path, "[req]\ndefault_bits = 2048\ndistinguished_name = dn\nprompt = no\n[dn]\n");
             self::$config = $path;
         }
 
