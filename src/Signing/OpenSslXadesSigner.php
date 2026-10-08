@@ -9,8 +9,10 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use Ksef\Crypto\Digest;
+use Ksef\Exception\SerializationException;
 use Ksef\Exception\SigningException;
 use Ksef\Support\SystemClock;
+use Ksef\Xml\SafeXml;
 use OpenSSLAsymmetricKey;
 use phpseclib3\File\X509;
 use phpseclib3\Math\BigInteger;
@@ -95,16 +97,13 @@ final class OpenSslXadesSigner implements XadesSigner
 
     public function sign(string $xml): string
     {
-        $document = new DOMDocument('1.0', 'UTF-8');
-        $document->preserveWhiteSpace = true;
-        if (!@$document->loadXML($xml, LIBXML_NONET | LIBXML_NOBLANKS) || $document->documentElement === null) {
-            throw new SigningException('The document to sign is not well-formed XML.');
-        }
-        if ($document->doctype !== null) {
-            throw new SigningException('Documents with a DOCTYPE are refused.');
+        try {
+            $document = SafeXml::load($xml);
+        } catch (SerializationException $e) {
+            throw new SigningException('The document to sign cannot be loaded: ' . $e->getMessage(), 0, $e);
         }
 
-        $root = $document->documentElement;
+        $root = $document->documentElement ?? throw new SigningException('The document to sign has no root element.');
         $uuid = bin2hex(random_bytes(8));
         $signatureId = 'Signature-' . $uuid;
         $propertiesId = 'SignedProperties-' . $uuid;
@@ -202,7 +201,7 @@ final class OpenSslXadesSigner implements XadesSigner
     private function derToFixedEcdsa(string $der): string
     {
         $offset = 2;
-        if (\ord($der[1]) & 0x80) {
+        if ((\ord($der[1]) & 0x80) !== 0) {
             $offset += \ord($der[1]) & 0x7F;
         }
 

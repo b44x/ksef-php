@@ -43,6 +43,8 @@ jobs:
   tests:
     name: Tests (PHP ${{ matrix.php }}, ${{ matrix.dependencies }})
     runs-on: ubuntu-latest
+    # The newest PHP release is allowed to fail until the toolchain has caught up with it.
+    continue-on-error: ${{ matrix.php == '8.5' }}
     strategy:
       fail-fast: false
       matrix:

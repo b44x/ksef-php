@@ -29,6 +29,7 @@
         "ext-dom": "*",
         "ext-json": "*",
         "ext-libxml": "*",
+        "ext-mbstring": "*",
         "ext-openssl": "*",
         "phpseclib/phpseclib": "^3.0.43",
         "psr/clock": "^1.0",

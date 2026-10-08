@@ -151,7 +151,7 @@ final class Transport
                 'status' => $status,
                 'attempt' => $attempt,
                 'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
-                'trace_id' => $response->getHeaderLine('X-Request-Id') ?: null,
+                'request_id' => $response->hasHeader('X-Request-Id') ? $response->getHeaderLine('X-Request-Id') : null,
             ]);
 
             if ($status >= 200 && $status < 300) {

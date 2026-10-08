@@ -18,7 +18,7 @@ search. Your code works with domain objects, not with endpoints, XML or cryptogr
 ## Requirements
 
 - PHP 8.2 or newer
-- Extensions: `dom`, `json`, `libxml`, `openssl`
+- Extensions: `dom`, `json`, `libxml`, `mbstring`, `openssl`
 - A PSR-18 HTTP client plus PSR-17 factories (for example Guzzle, or Symfony HttpClient with `nyholm/psr7`)
 
 ## Installation

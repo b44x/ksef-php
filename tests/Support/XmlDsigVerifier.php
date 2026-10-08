@@ -77,7 +77,7 @@ final class XmlDsigVerifier
             return [...$problems, 'Embedded certificate cannot be read.'];
         }
 
-        if (str_contains((string) $method, 'ecdsa')) {
+        if (str_contains($method, 'ecdsa')) {
             $half = intdiv(\strlen($value), 2);
             $value = self::fixedToDer(substr($value, 0, $half), substr($value, $half));
         }
