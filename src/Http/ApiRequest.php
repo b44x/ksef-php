@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ksef\Http;
 
+use SensitiveParameter;
+
 /**
  * A request to the KSeF API, described independently of any HTTP library.
  *
@@ -24,7 +26,22 @@ final readonly class ApiRequest
         public RetryMode $retry = RetryMode::Safe,
         public string $contentType = 'application/json',
         public string $accept = 'application/json',
+        /** @var array<string, string> */
+        public array $headers = [],
     ) {}
+
+    public function withBearerToken(#[SensitiveParameter] string $token): self
+    {
+        return new self($this->method, $this->path, $this->query, $this->body, $token, $this->retry, $this->contentType, $this->accept, $this->headers);
+    }
+
+    /**
+     * @param array<string, string> $headers
+     */
+    public function withHeaders(array $headers): self
+    {
+        return new self($this->method, $this->path, $this->query, $this->body, $this->bearerToken, $this->retry, $this->contentType, $this->accept, $headers + $this->headers);
+    }
 
     /**
      * @param array<string, scalar|null> $query

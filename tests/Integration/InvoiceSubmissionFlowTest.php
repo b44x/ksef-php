@@ -1,0 +1,409 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ksef\Tests\Integration;
+
+use DateTimeImmutable;
+use Ksef\Exception\ApiException;
+use Ksef\Exception\ConfigurationException;
+use Ksef\Exception\InvoiceRejectedException;
+use Ksef\Exception\MalformedResponseException;
+use Ksef\Exception\PollingTimeoutException;
+use Ksef\Exception\SessionException;
+use Ksef\Exception\SubmissionOutcomeUnknownException;
+use Ksef\Exception\ValidationException;
+use Ksef\Invoice\InvoiceDocument;
+use Ksef\KsefClient;
+use Ksef\Polling\PollingPolicy;
+use Ksef\Tests\Support\Fixtures;
+use Ksef\Tests\Support\Http;
+use Psr\Http\Message\RequestInterface;
+
+final class InvoiceSubmissionFlowTest extends KsefTestCase
+{
+    private const KSEF_NUMBER = '5265877635-20260601-0100001AF629-15';
+
+    public function testSendingAnInvoiceEncryptsItAndYieldsAnAcceptedForProcessingSubmission(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+
+        $invoice = Fixtures::standardInvoice();
+        $submission = $this->client()->sendInvoice($invoice);
+
+        self::assertSame('sess-1', $submission->sessionReference);
+        self::assertSame('inv-1', $submission->invoiceReference);
+
+        // The session declares FA (3) and wraps the AES key for the Ministry.
+        self::assertNotNull($this->openedSession);
+        self::assertSame(['systemCode' => 'FA (3)', 'schemaVersion' => '1-0E', 'value' => 'FA'], $this->openedSession['formCode']);
+        $encryption = $this->openedSession['encryption'];
+        self::assertIsArray($encryption);
+        self::assertSame('symmetric-key', $encryption['publicKeyId']);
+
+        // KSeF can decrypt the payload and the hashes/sizes describe plaintext and ciphertext exactly.
+        $send = $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0];
+        $xml = $this->decryptInvoice($send);
+        $body = \Ksef\Tests\Support\FakeKsef::body($send);
+        self::assertStringContainsString('<P_2>FV/2026/06/001</P_2>', $xml);
+        self::assertSame(base64_encode(hash('sha256', $xml, true)), $body['invoiceHash']);
+        self::assertSame(\strlen($xml), $body['invoiceSize']);
+        self::assertIsString($body['encryptedInvoiceContent']);
+        $cipher = (string) base64_decode($body['encryptedInvoiceContent'], true);
+        self::assertSame(base64_encode(hash('sha256', $cipher, true)), $body['encryptedInvoiceHash']);
+        self::assertSame(\strlen($cipher), $body['encryptedInvoiceSize']);
+        self::assertSame($submission->invoiceHash, $body['invoiceHash']);
+
+        // The session is closed after a one-shot send, and everything used a bearer token.
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/close'));
+        self::assertSame('Bearer access-1', $send->getHeaderLine('Authorization'));
+    }
+
+    public function testWaitingForTheVerdictPollsUntilAccepted(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(100, 'Accepted for processing'));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(150, 'Processing'));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(200, 'Success', self::KSEF_NUMBER));
+
+        $client = $this->client();
+        $result = $client->waitForInvoice($client->sendInvoice(Fixtures::standardInvoice()))->assertAccepted();
+
+        self::assertSame(self::KSEF_NUMBER, $result->ksefNumber);
+        self::assertTrue($result->status->isAccepted());
+        self::assertCount(3, $this->ksef->requestsTo('GET', '/sessions/sess-1/invoices/inv-1'));
+    }
+
+    public function testRejectedInvoicesRaiseWithTheKsefExplanation(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(450, 'Semantic validation error', null, ['Invalid P_2']));
+
+        $client = $this->client();
+        $result = $client->waitForInvoice($client->sendInvoice(Fixtures::standardInvoice()));
+
+        self::assertTrue($result->status->isRejected());
+        try {
+            $result->assertAccepted();
+            self::fail('Expected InvoiceRejectedException');
+        } catch (InvoiceRejectedException $e) {
+            self::assertSame(450, $e->status?->code);
+            self::assertStringContainsString('Invalid P_2', $e->getMessage());
+        }
+    }
+
+    public function testDuplicateStatusPointsAtTheOriginalDocument(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-2']);
+        $status = $this->invoiceStatus(440, 'Duplicate invoice', null, [], ['originalKsefNumber' => self::KSEF_NUMBER, 'originalSessionReferenceNumber' => 'sess-0']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-2', 200, $status);
+
+        $client = $this->client();
+        $result = $client->waitForInvoice($client->sendInvoice(Fixtures::standardInvoice()));
+
+        self::assertTrue($result->status->isDuplicate());
+        self::assertSame(self::KSEF_NUMBER, $result->status->originalKsefNumber());
+        $this->expectException(InvoiceRejectedException::class);
+        $this->expectExceptionMessage('already stored as ' . self::KSEF_NUMBER);
+        $result->assertAccepted();
+    }
+
+    public function testNetworkFailureWhileSendingIsNeverRetriedAndReportsAnUnknownOutcome(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError('read timeout'));
+
+        try {
+            $this->client()->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected SubmissionOutcomeUnknownException');
+        } catch (SubmissionOutcomeUnknownException $e) {
+            self::assertSame('sess-1', $e->sessionReference);
+            self::assertNotSame('', $e->invoiceHash);
+            self::assertStringContainsString('read timeout', $e->getMessage());
+        }
+
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'A possibly delivered invoice must not be re-sent automatically.');
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/close'), 'The session is still closed.');
+    }
+
+    public function testServerErrorWhileSendingAlsoMeansUnknownOutcome(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 503, ['title' => 'Service Unavailable']);
+
+        $this->expectException(SubmissionOutcomeUnknownException::class);
+        $this->client()->sendInvoice(Fixtures::standardInvoice());
+    }
+
+    public function testAfterAnUnknownOutcomeTheDocumentCanBeFoundByItsHash(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError());
+        $client = $this->client();
+
+        try {
+            $client->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected SubmissionOutcomeUnknownException');
+        } catch (SubmissionOutcomeUnknownException $unknown) {
+            $other = $this->invoiceStatus(200, 'Success', self::KSEF_NUMBER);
+            $other['invoiceHash'] = 'differentHash=';
+            $other['referenceNumber'] = 'inv-x';
+            $mine = $this->invoiceStatus(100, 'Accepted', null);
+            $mine['invoiceHash'] = $unknown->invoiceHash;
+            $mine['referenceNumber'] = 'inv-found';
+
+            $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['continuationToken' => 'page2', 'invoices' => [$other]]);
+            $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['invoices' => [$mine]]);
+
+            $found = $client->findSubmission($unknown->sessionReference, $unknown->invoiceHash);
+
+            self::assertNotNull($found);
+            self::assertSame('inv-found', $found->invoiceReference);
+            self::assertSame('page2', $this->ksef->requestsTo('GET', '/sessions/sess-1/invoices')[1]->getHeaderLine('x-continuation-token'));
+        }
+    }
+
+    public function testRateLimitedSendsAreRetriedBecauseNothingWasProcessed(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(429, ['title' => 'Too Many Requests'], ['Retry-After' => '2']));
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(202, ['referenceNumber' => 'inv-1']));
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-1', $submission->invoiceReference);
+        self::assertContains(2.0, $this->sleeper->sleeps);
+    }
+
+    public function testInvalidInvoicesNeverReachTheNetwork(): void
+    {
+        $this->expectException(ValidationException::class);
+        try {
+            $this->client()->sendInvoice('<Faktura/>');
+        } finally {
+            self::assertSame([], $this->ksef->requests);
+        }
+    }
+
+    public function testAnExpiredAccessTokenIsRefreshedBeforeTheCall(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->json('POST', '/auth/token/refresh', 200, ['accessToken' => ['token' => 'access-2', 'validUntil' => '2026-06-01T11:00:00+00:00']]);
+        $client = $this->client();
+        $client->openOnlineSession();
+
+        $this->clock->set('2026-06-01T10:14:30+00:00');
+        $client->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('Bearer access-2', $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0]->getHeaderLine('Authorization'));
+    }
+
+    public function testA401AnswerTriggersOneReauthenticationAndRetry(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(401, ['title' => 'Unauthorized']));
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(202, ['referenceNumber' => 'inv-1']));
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-1', $submission->invoiceReference);
+        self::assertCount(2, $this->ksef->requestsTo('POST', '/auth/ksef-token'), 'tokens were discarded and re-issued');
+    }
+
+    public function testApiRejectionOfTheSendRequestPropagatesUnchanged(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 400, ['title' => 'Bad Request', 'errors' => [['code' => 21405, 'description' => 'Validation error']]]);
+
+        try {
+            $this->client()->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected ApiException');
+        } catch (ApiException $e) {
+            self::assertSame(21405, $e->ksefCode());
+        }
+    }
+
+    public function testClosingFailureDoesNotMaskTheOriginalError(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 400, ['title' => 'Bad Request', 'errors' => [['code' => 21405, 'description' => 'Validation error']]]);
+        $this->ksef->routesReset('POST', '/sessions/online/sess-1/close');
+        $this->ksef->json('POST', '/sessions/online/sess-1/close', 500, ['title' => 'boom']);
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Validation error');
+        $this->client()->sendInvoice(Fixtures::standardInvoice());
+    }
+
+    public function testSessionCannotBeUsedAfterClosingOrExpiry(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $session = $this->client()->openOnlineSession();
+        $session->send(Fixtures::standardInvoice());
+        $session->close();
+        $session->close(); // idempotent
+
+        $this->expectException(SessionException::class);
+        $session->send(Fixtures::standardInvoice());
+    }
+
+    public function testExpiredSessionsAreRejectedLocally(): void
+    {
+        $this->routeSession();
+        $session = $this->client()->openOnlineSession();
+        $this->clock->set('2026-06-02T00:00:00+00:00');
+
+        $this->expectException(SessionException::class);
+        $this->expectExceptionMessage('expired');
+        $session->send(Fixtures::standardInvoice());
+    }
+
+    public function testPollingGivesUpAfterTheConfiguredBudget(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(150, 'Processing'));
+        $client = $this->client();
+        $submission = $client->sendInvoice(Fixtures::standardInvoice());
+
+        $this->expectException(PollingTimeoutException::class);
+        $client->waitForInvoice($submission, new PollingPolicy(1.0, 2.0, 2.0, 10.0));
+    }
+
+    public function testRawXmlAndPreparedDocumentsAreAccepted(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $client = $this->client();
+        $document = InvoiceDocument::fromInvoice(Fixtures::standardInvoice(), $this->clock);
+
+        self::assertSame($document->hash(), $client->sendInvoice($document->xml)->invoiceHash);
+        self::assertSame($document->hash(), $client->sendInvoice($document)->invoiceHash);
+    }
+
+    public function testInvoiceUpoIsDownloadedAndItsHashVerified(): void
+    {
+        $upo = '<Potwierdzenie>signed</Potwierdzenie>';
+        $this->ksef->on('GET', '/sessions/sess-1/invoices/inv-1/upo', static fn() => Http::raw(200, $upo, ['x-ms-meta-hash' => base64_encode(hash('sha256', $upo, true))]));
+
+        $result = $this->client()->invoiceUpo(new \Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
+
+        self::assertSame($upo, $result->xml);
+        self::assertTrue($result->verifyHash());
+        self::assertSame('application/xml', $this->ksef->requestsTo('GET', '/sessions/sess-1/invoices/inv-1/upo')[0]->getHeaderLine('Accept'));
+    }
+
+    public function testTamperedUpoIsRejected(): void
+    {
+        $this->ksef->on('GET', '/sessions/sess-1/invoices/inv-1/upo', static fn() => Http::raw(200, '<tampered/>', ['x-ms-meta-hash' => base64_encode(hash('sha256', 'something else', true))]));
+
+        $this->expectException(MalformedResponseException::class);
+        $this->client()->invoiceUpo(new \Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
+    }
+
+    public function testDownloadedInvoicesAreHashChecked(): void
+    {
+        $xml = InvoiceDocument::fromInvoice(Fixtures::standardInvoice(), $this->clock)->xml;
+        $this->ksef->on('GET', '/invoices/ksef/' . self::KSEF_NUMBER, static fn() => Http::raw(200, $xml, ['x-ms-meta-hash' => base64_encode(hash('sha256', $xml, true))]));
+
+        $downloaded = $this->client()->downloadInvoice(self::KSEF_NUMBER);
+
+        self::assertSame($xml, $downloaded->xml);
+        self::assertTrue($downloaded->verifyHash());
+
+        $this->expectException(ValidationException::class);
+        $this->client()->downloadInvoice('5265877635-20260601-0100001AF629-00');
+    }
+
+    public function testInvoiceSearchSendsFiltersAndParsesMetadata(): void
+    {
+        $this->ksef->on('POST', '/invoices/query/metadata', fn(RequestInterface $request) => Http::json(200, [
+            'hasMore' => false,
+            'isTruncated' => false,
+            'invoices' => [[
+                'ksefNumber' => self::KSEF_NUMBER,
+                'invoiceNumber' => 'FV/1',
+                'issueDate' => '2026-06-01',
+                'invoicingDate' => '2026-06-01T10:00:00+00:00',
+                'acquisitionDate' => '2026-06-01T10:00:01+00:00',
+                'permanentStorageDate' => '2026-06-01T10:00:02+00:00',
+                'seller' => ['nip' => '5265877635', 'name' => 'Seller'],
+                'buyer' => ['identifier' => ['type' => 'Nip', 'value' => '1234563218'], 'name' => 'Buyer'],
+                'netAmount' => 100.5,
+                'grossAmount' => 123.62,
+                'vatAmount' => 23.12,
+                'currency' => 'PLN',
+                'invoicingMode' => 'Online',
+                'invoiceType' => 'Vat',
+                'formCode' => ['systemCode' => 'FA (3)', 'schemaVersion' => '1-0E', 'value' => 'FA'],
+                'isSelfInvoicing' => false,
+                'hasAttachment' => false,
+                'invoiceHash' => 'hash=',
+            ]],
+        ]));
+
+        $page = $this->client()->searchInvoices(
+            \Ksef\Api\InvoiceSubjectType::Buyer,
+            \Ksef\Api\InvoiceDateType::PermanentStorage,
+            new DateTimeImmutable('2026-05-01T00:00:00+02:00'),
+            new DateTimeImmutable('2026-06-01T00:00:00Z'),
+        );
+
+        $request = $this->ksef->requestsTo('POST', '/invoices/query/metadata')[0];
+        self::assertSame(['subjectType' => 'Subject2', 'dateRange' => ['dateType' => 'PermanentStorage', 'from' => '2026-04-30T22:00:00Z', 'to' => '2026-06-01T00:00:00Z']], \Ksef\Tests\Support\FakeKsef::body($request));
+        self::assertSame('pageOffset=0&pageSize=100&sortOrder=Asc', $request->getUri()->getQuery());
+        self::assertCount(1, $page->invoices);
+        self::assertSame('100.50', $page->invoices[0]->netAmount->toString(2));
+        self::assertSame('Nip', $page->invoices[0]->buyerIdentifierType);
+    }
+
+    public function testBuilderListsEverythingThatIsMissing(): void
+    {
+        try {
+            KsefClient::builder()->build();
+            self::fail('Expected ConfigurationException');
+        } catch (ConfigurationException $e) {
+            self::assertStringContainsString('environment() or baseUrl()', $e->getMessage());
+            self::assertStringContainsString('httpClient()', $e->getMessage());
+            self::assertStringContainsString('context()', $e->getMessage());
+            self::assertStringContainsString('credentials()', $e->getMessage());
+        }
+    }
+
+    public function testSecretsNeverAppearInExceptionMessages(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 400, ['title' => 'Bad Request']);
+
+        try {
+            $this->client()->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected ApiException');
+        } catch (ApiException $e) {
+            self::assertStringNotContainsString('secret-ksef-token', (string) $e);
+            self::assertStringNotContainsString('access-1', $e->getMessage());
+        }
+    }
+
+    /**
+     * @param list<string> $details
+     * @param array<string, mixed> $extensions
+     *
+     * @return array<string, mixed>
+     */
+    private function invoiceStatus(int $code, string $description, ?string $ksefNumber = null, array $details = [], array $extensions = []): array
+    {
+        return [
+            'ordinalNumber' => 1,
+            'referenceNumber' => 'inv-1',
+            'invoiceHash' => 'hash=',
+            'invoicingDate' => '2026-06-01T10:00:00+00:00',
+            'status' => ['code' => $code, 'description' => $description, 'details' => $details] + ($extensions !== [] ? ['extensions' => $extensions] : []),
+        ] + ($ksefNumber !== null ? ['ksefNumber' => $ksefNumber, 'acquisitionDate' => '2026-06-01T10:00:05+00:00', 'permanentStorageDate' => '2026-06-01T10:00:06+00:00'] : []);
+    }
+}

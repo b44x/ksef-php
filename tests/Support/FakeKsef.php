@@ -57,6 +57,14 @@ final class FakeKsef
         return $this;
     }
 
+    /** Forgets the handlers registered for a route (to replace an earlier default). */
+    public function routesReset(string $method, string $path): self
+    {
+        unset($this->routes[$method . ' ' . $path]);
+
+        return $this;
+    }
+
     /**
      * @param array<array-key, mixed> $data
      */

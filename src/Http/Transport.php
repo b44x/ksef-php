@@ -89,6 +89,9 @@ final class Transport
             ->withHeader('User-Agent', $this->userAgent)
             ->withHeader('X-Error-Format', 'problem-details');
 
+        foreach ($request->headers as $name => $value) {
+            $psr = $psr->withHeader($name, $value);
+        }
         if ($request->bearerToken !== null) {
             $psr = $psr->withHeader('Authorization', 'Bearer ' . $request->bearerToken);
         }
