@@ -6,6 +6,7 @@ namespace Ksef;
 
 use Ksef\Api\InvoiceApi;
 use Ksef\Api\SessionApi;
+use Ksef\Api\TokenApi;
 use Ksef\Auth\AccessTokenProvider;
 use Ksef\Auth\AllowedIps;
 use Ksef\Auth\AuthApi;
@@ -207,6 +208,7 @@ final class KsefClientBuilder
         return new KsefClient(
             new SessionApi($authorized),
             new InvoiceApi($authorized),
+            new TokenApi($authorized),
             $keys,
             new InvoiceFactory($clock),
             $poller,

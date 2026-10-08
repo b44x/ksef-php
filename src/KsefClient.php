@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Ksef;
 
 use DateTimeInterface;
+use Ksef\Api\GeneratedToken;
 use Ksef\Api\InvoiceApi;
 use Ksef\Api\InvoiceDateType;
 use Ksef\Api\InvoiceMetadataPage;
 use Ksef\Api\InvoiceSubjectType;
 use Ksef\Api\SessionApi;
+use Ksef\Api\TokenApi;
+use Ksef\Api\TokenPermission;
+use Ksef\Api\TokenStatus;
 use Ksef\Crypto\PublicKeyProvider;
 use Ksef\Crypto\SessionEncryption;
+use Ksef\Exception\InvoiceNotAvailableException;
 use Ksef\Exception\KsefException;
 use Ksef\Invoice\FormCode;
 use Ksef\Invoice\Invoice;
@@ -56,6 +61,7 @@ final class KsefClient
     public function __construct(
         private readonly SessionApi $sessions,
         private readonly InvoiceApi $invoices,
+        private readonly TokenApi $tokenApi,
         private readonly PublicKeyProvider $keys,
         private readonly InvoiceFactory $factory,
         private readonly Poller $poller,
@@ -167,11 +173,34 @@ final class KsefClient
     /**
      * Downloads an invoice stored in KSeF. The content hash announced by KSeF is verified.
      *
+     * A just-accepted invoice is not downloadable for a short moment (see {@see InvoiceNotAvailableException}).
+     * Pass a polling policy to wait for it instead of handling that exception yourself.
+     *
      * @throws Exception\ValidationException when the KSeF number is malformed
+     * @throws InvoiceNotAvailableException when the invoice is not stored yet and no wait policy was given
+     * @throws Exception\PollingTimeoutException when the wait policy is exhausted
      */
-    public function downloadInvoice(string $ksefNumber): DownloadedInvoice
+    public function downloadInvoice(string $ksefNumber, ?PollingPolicy $waitWhileUnavailable = null): DownloadedInvoice
     {
-        return $this->invoices->download(KsefNumber::of($ksefNumber));
+        $number = KsefNumber::of($ksefNumber);
+        if ($waitWhileUnavailable === null) {
+            return $this->invoices->download($number);
+        }
+
+        $downloaded = $this->poller->poll(
+            function () use ($number): ?DownloadedInvoice {
+                try {
+                    return $this->invoices->download($number);
+                } catch (InvoiceNotAvailableException) {
+                    return null;
+                }
+            },
+            static fn(?DownloadedInvoice $invoice): bool => $invoice !== null,
+            $waitWhileUnavailable,
+            \sprintf('invoice %s to become downloadable', $number->value),
+        );
+
+        return $downloaded ?? throw new InvoiceNotAvailableException('The invoice is not available.', 406);
     }
 
     /**
@@ -186,6 +215,33 @@ final class KsefClient
         int $pageSize = 100,
     ): InvoiceMetadataPage {
         return $this->invoices->queryMetadata($subject, $dateType, $from, $to, $pageOffset, $pageSize);
+    }
+
+    /**
+     * Creates a KSeF token for the current context (requires credential-management permission).
+     * The secret is returned only once; use it with {@see Auth\KsefTokenCredentials}.
+     *
+     * @param non-empty-list<TokenPermission> $permissions
+     */
+    public function generateToken(array $permissions, string $description): GeneratedToken
+    {
+        return $this->tokenApi->generate($permissions, $description);
+    }
+
+    /** Waits until a generated token is Active (or reached a failure state). */
+    public function waitForToken(string $tokenReference, ?PollingPolicy $policy = null): TokenStatus
+    {
+        return $this->poller->poll(
+            fn(): TokenStatus => $this->tokenApi->status($tokenReference),
+            static fn(TokenStatus $status): bool => $status->isFinal(),
+            $policy ?? $this->polling,
+            \sprintf('token %s to become active', $tokenReference),
+        );
+    }
+
+    public function revokeToken(string $tokenReference): void
+    {
+        $this->tokenApi->revoke($tokenReference);
     }
 
     private function closeAfterFailure(OnlineSession $session): void

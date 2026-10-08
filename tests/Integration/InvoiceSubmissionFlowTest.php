@@ -321,6 +321,29 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         $this->client()->downloadInvoice('5265877635-20260601-0100001AF629-00');
     }
 
+    public function testDownloadWaitsWhileTheInvoiceIsNotStoredYet(): void
+    {
+        $xml = InvoiceDocument::fromInvoice(Fixtures::standardInvoice(), $this->clock)->xml;
+        $path = '/invoices/ksef/' . self::KSEF_NUMBER;
+        $this->ksef->on('GET', $path, static fn() => Http::json(406, ['title' => 'Not Acceptable']));
+        $this->ksef->on('GET', $path, static fn() => Http::json(406, ['title' => 'Not Acceptable']));
+        $this->ksef->on('GET', $path, static fn() => Http::raw(200, $xml, ['x-ms-meta-hash' => base64_encode(hash('sha256', $xml, true))]));
+        $client = $this->client();
+
+        $downloaded = $client->downloadInvoice(self::KSEF_NUMBER, new PollingPolicy(1.0, 2.0, 1.0, 30.0));
+
+        self::assertSame($xml, $downloaded->xml);
+        self::assertCount(3, $this->ksef->requestsTo('GET', $path));
+    }
+
+    public function testDownloadWithoutWaitSurfacesTheNotAvailableCondition(): void
+    {
+        $this->ksef->on('GET', '/invoices/ksef/' . self::KSEF_NUMBER, static fn() => Http::json(406, ['title' => 'Not Acceptable']));
+
+        $this->expectException(\Ksef\Exception\InvoiceNotAvailableException::class);
+        $this->client()->downloadInvoice(self::KSEF_NUMBER);
+    }
+
     public function testInvoiceSearchSendsFiltersAndParsesMetadata(): void
     {
         $this->ksef->on('POST', '/invoices/query/metadata', fn(RequestInterface $request) => Http::json(200, [

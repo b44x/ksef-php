@@ -38,6 +38,15 @@ final readonly class SessionInvoice
     }
 
     /**
+     * True once KSeF has permanently stored the invoice. Only then can it be downloaded; an
+     * accepted invoice (status 200) is briefly "not stored yet".
+     */
+    public function isPermanentlyStored(): bool
+    {
+        return $this->permanentStorageDate !== null;
+    }
+
+    /**
      * @throws \Ksef\Exception\InvoiceRejectedException when the invoice was not accepted
      * @throws \Ksef\Exception\InvoiceException when processing has not finished yet
      */

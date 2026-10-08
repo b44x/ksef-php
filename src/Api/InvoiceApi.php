@@ -7,6 +7,8 @@ namespace Ksef\Api;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
+use Ksef\Exception\ApiException;
+use Ksef\Exception\InvoiceNotAvailableException;
 use Ksef\Exception\MalformedResponseException;
 use Ksef\Http\ApiRequest;
 use Ksef\Http\AuthorizedClient;
@@ -22,7 +24,21 @@ final class InvoiceApi
 
     public function download(KsefNumber $ksefNumber): DownloadedInvoice
     {
-        $response = $this->client->send(ApiRequest::get('/invoices/ksef/' . rawurlencode($ksefNumber->value), null, [], 'application/xml'));
+        try {
+            $response = $this->client->send(ApiRequest::get('/invoices/ksef/' . rawurlencode($ksefNumber->value), null, [], 'application/xml'));
+        } catch (ApiException $e) {
+            if ($e->httpStatus === 406) {
+                throw new InvoiceNotAvailableException(
+                    \sprintf('Invoice %s is not available for download yet (HTTP 406). It is usually still being stored; retry shortly.', $ksefNumber->value),
+                    406,
+                    $e->errors,
+                    $e->traceId,
+                    $e,
+                );
+            }
+
+            throw $e;
+        }
         $hash = $response->header('x-ms-meta-hash');
         if ($hash === null) {
             throw new MalformedResponseException('KSeF did not send the invoice hash header (x-ms-meta-hash).');
