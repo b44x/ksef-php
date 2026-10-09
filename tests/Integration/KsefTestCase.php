@@ -9,6 +9,7 @@ use Ksef\Auth\KsefTokenCredentials;
 use Ksef\Environment;
 use Ksef\Http\RetryPolicy;
 use Ksef\KsefClient;
+use Ksef\Session\SubmissionRecoveryPolicy;
 use Ksef\Tests\Support\ClockSleeper;
 use Ksef\Tests\Support\FakeKsef;
 use Ksef\Tests\Support\Http;
@@ -51,7 +52,7 @@ abstract class KsefTestCase extends TestCase
         ]);
     }
 
-    protected function client(?RetryPolicy $retry = null): KsefClient
+    protected function client(?RetryPolicy $retry = null, ?SubmissionRecoveryPolicy $recovery = null): KsefClient
     {
         return KsefClient::builder()
             ->environment(Environment::Test)
@@ -62,6 +63,7 @@ abstract class KsefTestCase extends TestCase
             ->clock($this->clock)
             ->sleeper($this->sleeper)
             ->retryPolicy($retry ?? new RetryPolicy(jitterRatio: 0.0))
+            ->submissionRecovery($recovery ?? new SubmissionRecoveryPolicy())
             ->build();
     }
 

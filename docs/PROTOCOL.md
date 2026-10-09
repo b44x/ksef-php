@@ -49,18 +49,25 @@ Every request sends `X-Error-Format: problem-details`; the parser also understan
   Rates 23/22, 8/7 share one header field each, so they cannot be mixed on one invoice.
 - NIP checksums are verified locally by default; KSeF itself only verifies them on production.
 
-## Duplicate protection
+## Duplicate protection and submission recovery
 
 KSeF rejects duplicates globally with status `440` (key: seller NIP + `RodzajFaktury` + `P_2`) for ten full
-years and returns `originalKsefNumber`/`originalSessionReferenceNumber`. The SDK relies on this instead of a
-client-side idempotency key, and never retries a submission after an ambiguous failure.
+years and returns `originalKsefNumber`/`originalSessionReferenceNumber`. This is the idempotency mechanism
+the API offers, and the SDK builds on it instead of inventing a client-side key:
 
-## Observed behaviour not covered by the OpenAPI contract
+1. ambiguous failure (transport error or 5xx while sending) -> search the session list for the document hash;
+2. not found -> re-send the byte-identical document (bounded, with backoff). Worst case KSeF answers 440;
+3. still inconclusive -> `SubmissionOutcomeUnknownException`.
 
-- **HTTP 406 on `GET /invoices/ksef/{number}`**: an invoice that just reached status 200 has no
-  `permanentStorageDate` yet and cannot be downloaded for a few seconds. Mapped to
-  `InvoiceNotAvailableException`; `downloadInvoice($number, $policy)` waits for it. (Seen repeatedly on TEST.)
-- The TEST environment accepts self-signed certificates and the `/testdata/*` helpers used by the live tests.
+A failing lookup is not fatal (it falls back to the re-send). 4xx answers are never treated as ambiguous.
+
+## Readiness for download
+
+The documented readiness signal is `permanentStorageDate` in the session invoice status: it stays empty
+for a few seconds after status 200. `waitForInvoice(..., untilStored: true)` polls for it.
+
+Additionally observed on TEST, and not part of the OpenAPI contract: `GET /invoices/ksef/{number}` answers
+HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a safety net only.
 
 ## Known limitations
 

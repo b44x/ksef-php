@@ -18,5 +18,12 @@ final readonly class InvoiceSubmission
         public string $sessionReference,
         public string $invoiceReference,
         public string $invoiceHash,
+        /** True when the SDK had to look the document up or re-send it after an ambiguous failure. Use `assertStored()` on the result. */
+        public bool $recovered = false,
     ) {}
+
+    public function markRecovered(): self
+    {
+        return new self($this->sessionReference, $this->invoiceReference, $this->invoiceHash, true);
+    }
 }

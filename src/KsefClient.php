@@ -18,6 +18,8 @@ use Ksef\Crypto\PublicKeyProvider;
 use Ksef\Crypto\SessionEncryption;
 use Ksef\Exception\InvoiceNotAvailableException;
 use Ksef\Exception\KsefException;
+use Ksef\Http\NativeSleeper;
+use Ksef\Http\Sleeper;
 use Ksef\Invoice\FormCode;
 use Ksef\Invoice\Invoice;
 use Ksef\Invoice\InvoiceDocument;
@@ -25,6 +27,7 @@ use Ksef\Polling\Poller;
 use Ksef\Polling\PollingPolicy;
 use Ksef\Session\InvoiceFactory;
 use Ksef\Session\OnlineSession;
+use Ksef\Session\SubmissionRecoveryPolicy;
 use Ksef\Status\DownloadedInvoice;
 use Ksef\Status\InvoiceSubmission;
 use Ksef\Status\SessionInvoice;
@@ -68,6 +71,8 @@ final class KsefClient
         private readonly PollingPolicy $polling,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
+        private readonly SubmissionRecoveryPolicy $recovery = new SubmissionRecoveryPolicy(),
+        private readonly Sleeper $sleeper = new NativeSleeper(),
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -87,7 +92,7 @@ final class KsefClient
 
         $this->logger->info('KSeF online session opened.', ['session' => $opened->referenceNumber]);
 
-        return new OnlineSession($opened->referenceNumber, $opened->validUntil, $formCode, $encryption, $this->sessions, $this->factory, $this->poller, $this->polling, $this->clock, $this->logger);
+        return new OnlineSession($opened->referenceNumber, $opened->validUntil, $formCode, $encryption, $this->sessions, $this->factory, $this->poller, $this->polling, $this->clock, $this->logger, $this->recovery, $this->sleeper);
     }
 
     /**
@@ -127,15 +132,16 @@ final class KsefClient
     }
 
     /**
-     * Polls until KSeF finished processing the invoice (accepted or rejected).
+     * Polls until KSeF finished processing the invoice (accepted or rejected). With `$untilStored`
+     * an accepted invoice is returned only once it is permanently stored and therefore downloadable.
      *
      * @throws Exception\PollingTimeoutException when it takes longer than the policy allows
      */
-    public function waitForInvoice(InvoiceSubmission $submission, ?PollingPolicy $policy = null): SessionInvoice
+    public function waitForInvoice(InvoiceSubmission $submission, ?PollingPolicy $policy = null, bool $untilStored = false): SessionInvoice
     {
         return $this->poller->poll(
             fn(): SessionInvoice => $this->invoiceStatus($submission),
-            static fn(SessionInvoice $invoice): bool => $invoice->status->isTerminal(),
+            static fn(SessionInvoice $invoice): bool => $invoice->isSettled($untilStored),
             $policy ?? $this->polling,
             \sprintf('invoice %s to be processed', $submission->invoiceReference),
         );

@@ -25,6 +25,7 @@ use Ksef\Http\Transport;
 use Ksef\Polling\Poller;
 use Ksef\Polling\PollingPolicy;
 use Ksef\Session\InvoiceFactory;
+use Ksef\Session\SubmissionRecoveryPolicy;
 use Ksef\Support\SystemClock;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Client\ClientInterface;
@@ -52,12 +53,14 @@ final class KsefClientBuilder
     private PollingPolicy $authenticationPolling;
     private ?AllowedIps $allowedIps = null;
     private ?PublicKeyProvider $keyProvider = null;
+    private SubmissionRecoveryPolicy $recovery;
     private string $userAgent = 'ksef-php';
 
     public function __construct()
     {
         $this->retryPolicy = new RetryPolicy();
         $this->pollingPolicy = new PollingPolicy();
+        $this->recovery = new SubmissionRecoveryPolicy();
         // Qualified certificates may need a while for OCSP/CRL checks on PRE/PROD.
         $this->authenticationPolling = new PollingPolicy(1.0, 5.0, 1.5, 180.0);
     }
@@ -164,6 +167,17 @@ final class KsefClientBuilder
         return $this;
     }
 
+    /**
+     * Controls the automatic reconciliation after an ambiguous submission failure.
+     * `SubmissionRecoveryPolicy::disabled()` surfaces every such failure immediately.
+     */
+    public function submissionRecovery(SubmissionRecoveryPolicy $policy): self
+    {
+        $this->recovery = $policy;
+
+        return $this;
+    }
+
     public function userAgent(string $userAgent): self
     {
         $this->userAgent = $userAgent;
@@ -215,6 +229,8 @@ final class KsefClientBuilder
             $this->pollingPolicy,
             $clock,
             $logger,
+            $this->recovery,
+            $sleeper,
         );
     }
 }

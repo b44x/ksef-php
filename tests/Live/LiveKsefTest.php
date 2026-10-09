@@ -70,14 +70,15 @@ final class LiveKsefTest extends TestCase
         $submission = $client->sendInvoice($invoice);
         self::assertNotSame('', $submission->invoiceReference);
 
-        $result = $client->waitForInvoice($submission, new PollingPolicy(2.0, 5.0, 1.5, 120.0))->assertAccepted();
+        $result = $client->waitForInvoice($submission, new PollingPolicy(2.0, 5.0, 1.5, 120.0), true)->assertAccepted();
         self::assertNotNull($result->ksefNumber);
 
         $upo = $client->invoiceUpo($submission);
         self::assertTrue($upo->verifyHash());
         self::assertStringContainsString('<', $upo->xml);
 
-        $downloaded = $client->downloadInvoice($result->ksefNumber, new PollingPolicy(1.0, 3.0, 1.5, 60.0));
+        // waitForInvoice(..., untilStored) already guarantees the document is downloadable: no 406 handling needed.
+        $downloaded = $client->downloadInvoice($result->ksefNumber);
         self::assertTrue($downloaded->verifyHash());
         self::assertStringContainsString('<P_2>' . $invoice->number . '</P_2>', $downloaded->xml);
 

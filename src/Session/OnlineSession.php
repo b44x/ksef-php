@@ -13,6 +13,8 @@ use Ksef\Exception\SessionException;
 use Ksef\Exception\SubmissionOutcomeUnknownException;
 use Ksef\Exception\TransportException;
 use Ksef\Exception\ValidationException;
+use Ksef\Http\NativeSleeper;
+use Ksef\Http\Sleeper;
 use Ksef\Invoice\FormCode;
 use Ksef\Invoice\Invoice;
 use Ksef\Invoice\InvoiceDocument;
@@ -33,10 +35,11 @@ use Throwable;
  * can hold up to 10,000 invoices and must be closed to trigger the aggregate UPO.
  *
  * Submission semantics (important): {@see self::send()} only tells that KSeF *accepted the
- * document for asynchronous processing*. It never retries after a network failure, because the
- * document may have been received. In that case a {@see SubmissionOutcomeUnknownException} is
- * thrown; use {@see self::findSubmission()} or send the same document again (KSeF answers
- * duplicates with status 440 instead of storing them twice).
+ * document for asynchronous processing*. When the network fails or KSeF answers 5xx mid-send, the
+ * document may or may not have arrived. The session then reconciles on its own (see
+ * {@see SubmissionRecoveryPolicy}): it searches the session for the document's hash and, if absent,
+ * re-sends the identical document, which KSeF's duplicate detection (status 440) makes safe. Only if
+ * that stays inconclusive a {@see SubmissionOutcomeUnknownException} is thrown.
  */
 final class OnlineSession
 {
@@ -56,6 +59,8 @@ final class OnlineSession
         private readonly PollingPolicy $polling,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
+        private readonly SubmissionRecoveryPolicy $recovery = new SubmissionRecoveryPolicy(),
+        private readonly Sleeper $sleeper = new NativeSleeper(),
     ) {}
 
     /**
@@ -89,21 +94,58 @@ final class OnlineSession
             'encryptedInvoiceContent' => base64_encode($encrypted),
         ];
 
-        try {
-            $invoiceReference = $this->api->sendInvoice($this->referenceNumber, $payload);
-        } catch (TransportException $e) {
-            throw $this->unknownOutcome($document->hash(), $e);
-        } catch (ApiException $e) {
-            if ($e->httpStatus >= 500) {
-                throw $this->unknownOutcome($document->hash(), $e);
+        $hash = $document->hash();
+        $resends = 0;
+
+        while (true) {
+            try {
+                $invoiceReference = $this->api->sendInvoice($this->referenceNumber, $payload);
+                $this->logger->info('Invoice accepted by KSeF for processing.', ['session' => $this->referenceNumber, 'invoice_reference' => $invoiceReference, 'resends' => $resends]);
+
+                return new InvoiceSubmission($this->referenceNumber, $invoiceReference, $hash, $resends > 0);
+            } catch (TransportException $e) {
+                $failure = $e;
+            } catch (ApiException $e) {
+                if ($e->httpStatus < 500) {
+                    throw $e; // KSeF refused it before processing: definitely not stored.
+                }
+                $failure = $e;
             }
 
-            throw $e;
+            $this->logger->warning('Invoice submission outcome unknown; reconciling.', ['session' => $this->referenceNumber, 'error' => $failure::class, 'resends' => $resends]);
+
+            if (!$this->recovery->isEnabled()) {
+                throw $this->unknownOutcome($hash, $failure);
+            }
+
+            $found = $this->lookUp($hash);
+            if ($found !== null) {
+                $this->logger->notice('KSeF already has the invoice; no re-send needed.', ['session' => $this->referenceNumber, 'invoice_reference' => $found->invoiceReference]);
+
+                return $found;
+            }
+            if ($resends >= $this->recovery->maxResends) {
+                throw $this->unknownOutcome($hash, $failure);
+            }
+
+            ++$resends;
+            $this->sleeper->sleep($this->recovery->delayBeforeResend($resends));
         }
+    }
 
-        $this->logger->info('Invoice accepted by KSeF for processing.', ['session' => $this->referenceNumber, 'invoice_reference' => $invoiceReference]);
+    /**
+     * Looks the document up in the session. A failing lookup is not conclusive and not fatal:
+     * the caller then falls back to re-sending, which KSeF's duplicate detection makes safe.
+     */
+    private function lookUp(string $hash): ?InvoiceSubmission
+    {
+        try {
+            return $this->findSubmission($hash)?->markRecovered();
+        } catch (TransportException | ApiException $e) {
+            $this->logger->warning('Could not search the session for the invoice.', ['session' => $this->referenceNumber, 'error' => $e::class]);
 
-        return new InvoiceSubmission($this->referenceNumber, $invoiceReference, $document->hash());
+            return null;
+        }
     }
 
     /** Current processing state of a submitted invoice (one request, no waiting). */
@@ -115,16 +157,18 @@ final class OnlineSession
     /**
      * Polls until KSeF has finished processing the invoice. The result may be a rejection:
      * check `$result->status->isAccepted()` or call `SessionInvoice::assertAccepted()`.
+     * With `$untilStored` an accepted invoice is only returned once it is permanently stored
+     * (`permanentStorageDate` set), i.e. when it can be downloaded.
      *
      * @throws \Ksef\Exception\PollingTimeoutException
      */
-    public function waitForInvoice(InvoiceSubmission|string $submission, ?PollingPolicy $policy = null): SessionInvoice
+    public function waitForInvoice(InvoiceSubmission|string $submission, ?PollingPolicy $policy = null, bool $untilStored = false): SessionInvoice
     {
         $reference = \is_string($submission) ? $submission : $submission->invoiceReference;
 
         return $this->poller->poll(
             fn(): SessionInvoice => $this->api->invoice($this->referenceNumber, $reference),
-            static fn(SessionInvoice $invoice): bool => $invoice->status->isTerminal(),
+            static fn(SessionInvoice $invoice): bool => $invoice->isSettled($untilStored),
             $policy ?? $this->polling,
             \sprintf('invoice %s to be processed', $reference),
         );

@@ -81,7 +81,7 @@ KSeF processing is **asynchronous**, and the SDK models that honestly:
 | Request created | `Invoice` validated, XML built, XSD-checked | `Invoice::builder()->build()`, `InvoiceDocument` |
 | Request sent / accepted | KSeF returned HTTP 202: *accepted for processing* | `InvoiceSubmission` |
 | Processed | status 200 and a KSeF number, or a rejection (4xx codes) | `waitForInvoice()` → `SessionInvoice` |
-| Stored | `permanentStorageDate` set; the document can be downloaded | `isPermanentlyStored()`, `downloadInvoice($n, $wait)` |
+| Stored | `permanentStorageDate` set; the document can be downloaded | `waitForInvoice(..., untilStored: true)`, `isPermanentlyStored()` |
 | UPO available | signed confirmation of receipt | `invoiceUpo()` |
 
 ## Configuration
@@ -185,14 +185,24 @@ RSA key (OAEP, SHA-256). Hashes and sizes of plaintext and ciphertext are comput
 
 ### Reliability: timeouts, retries and duplicates
 
-- A **timeout or 5xx while sending an invoice never proves that it was not received.** The SDK does
-  *not* retry such a request. It throws `SubmissionOutcomeUnknownException` carrying the session
-  reference and invoice hash. Resolve it with `$ksef->findSubmission($sessionRef, $hash)`, or send the
-  identical document again: KSeF detects duplicates globally by *seller NIP + invoice type + invoice
-  number* and answers with status `440` plus `originalKsefNumber` instead of storing it twice.
-- Only HTTP 429 is retried for mutating calls (the request was rejected before processing; `Retry-After`
-  is honoured up to a cap). Read-only calls are also retried on network errors and 500/502/503/504.
-- Polling is always bounded (`PollingPolicy`); a `PollingTimeoutException` means "unknown yet", not "failed".
+A timeout or 5xx while an invoice is being sent never proves that KSeF did not receive it. The SDK
+therefore reconciles automatically instead of guessing (`SubmissionRecoveryPolicy`, on by default):
+
+1. it searches the session for the document's hash; if KSeF has it, the submission is returned with
+   `$submission->recovered === true` and nothing is sent again;
+2. otherwise the *identical* document is re-sent (default: up to 2 times, 1 s then 2 s backoff). This
+   cannot create a second invoice: KSeF detects duplicates globally by *seller NIP + invoice type +
+   invoice number* and answers `440` with `originalKsefNumber`;
+3. if that stays inconclusive, `SubmissionOutcomeUnknownException` is thrown (session reference and hash
+   included; `findSubmission()` can still resolve it later).
+
+A refusal (4xx) at any point is final and propagates unchanged. Tune or switch off with
+`->submissionRecovery(new SubmissionRecoveryPolicy(maxResends: 3))` / `SubmissionRecoveryPolicy::disabled()`.
+For recovered submissions use `assertStored()` (also accepts a 440 duplicate: the document is in KSeF).
+
+Other calls: only HTTP 429 is retried for mutating requests (`Retry-After` honoured up to a cap);
+read-only calls are also retried on network errors and 500/502/503/504. Polling is always bounded
+(`PollingPolicy`); a `PollingTimeoutException` means "unknown yet", not "failed".
 
 ## Checking status
 
@@ -204,6 +214,10 @@ $invoice->status->isAccepted();                        // code 200
 $invoice->status->isRejected();                        // code >= 400
 $invoice->status->isDuplicate();                       // 440 -> originalKsefNumber()
 $invoice->assertAccepted();                            // throws InvoiceRejectedException with KSeF's explanation
+$invoice->assertStored();                              // like assertAccepted(), but a 440 duplicate counts (already in KSeF)
+
+// An accepted invoice becomes downloadable once `permanentStorageDate` is set:
+$ksef->waitForInvoice($submission, null, untilStored: true);
 ```
 
 ## Retrieving UPO, invoices and searching
@@ -212,8 +226,10 @@ $invoice->assertAccepted();                            // throws InvoiceRejected
 $upo = $ksef->invoiceUpo($submission);                 // hash announced by KSeF is verified ($upo->verifyHash())
 $status = $ksef->sessionStatus($sessionRef);           // $status->upoPages -> $ksef->sessionUpo($sessionRef, $page->referenceNumber)
 
-$invoice = $ksef->downloadInvoice($ksefNumber, new PollingPolicy(timeoutSeconds: 60.0));
-//        ^ a just-accepted invoice answers HTTP 406 for a few seconds; passing a policy waits for it
+$invoice = $ksef->downloadInvoice($ksefNumber);
+//   Wait with waitForInvoice(..., untilStored: true) first. As a safety net, a download that still answers
+//   HTTP 406 (observed for a few seconds after acceptance) raises InvoiceNotAvailableException, or is awaited
+//   when you pass a PollingPolicy as second argument.
 
 $page = $ksef->searchInvoices(InvoiceSubjectType::Buyer, InvoiceDateType::PermanentStorage, $from, $to);
 ```
@@ -227,7 +243,7 @@ All exceptions extend `Ksef\Exception\KsefException`.
 | `ValidationException` (`SerializationException`) | Local validation failed; **nothing was sent**; `->violations` lists all problems | Fix the data |
 | `ApiException` + `AuthenticationException` (401), `AuthorizationException` (403, `->reasonCode`), `RateLimitException` (429, `->retryAfterSeconds`), `ServerException` (5xx) | KSeF answered with an error; `->httpStatus`, `->ksefCode()`, `->errors`, `->traceId` | Per status; report `traceId` to KSeF support |
 | `InvoiceRejectedException` | Processing ended with a failure status (`->status`) | Correct the invoice; for 440 look at `originalKsefNumber()` |
-| `SubmissionOutcomeUnknownException` | Network/5xx during submission | `findSubmission()` or re-send identical document |
+| `SubmissionOutcomeUnknownException` | Network/5xx during submission and automatic reconciliation was inconclusive | `findSubmission()` later, or re-send the identical document |
 | `TransportException` / `MalformedResponseException` | No usable HTTP answer / contract violation | Retry read operations later |
 | `PollingTimeoutException` | Waiting budget exhausted; operation may still complete | Poll again later |
 | `InvoiceNotAvailableException` | Accepted invoice not stored yet (HTTP 406) | Wait and retry |

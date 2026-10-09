@@ -13,9 +13,12 @@ use Ksef\Exception\PollingTimeoutException;
 use Ksef\Exception\SessionException;
 use Ksef\Exception\SubmissionOutcomeUnknownException;
 use Ksef\Exception\ValidationException;
+use Ksef\Http\RetryPolicy;
 use Ksef\Invoice\InvoiceDocument;
 use Ksef\KsefClient;
 use Ksef\Polling\PollingPolicy;
+use Ksef\Session\SubmissionRecoveryPolicy;
+use Ksef\Tests\Support\FakeKsef;
 use Ksef\Tests\Support\Fixtures;
 use Ksef\Tests\Support\Http;
 use Psr\Http\Message\RequestInterface;
@@ -45,7 +48,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         // KSeF can decrypt the payload and the hashes/sizes describe plaintext and ciphertext exactly.
         $send = $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0];
         $xml = $this->decryptInvoice($send);
-        $body = \Ksef\Tests\Support\FakeKsef::body($send);
+        $body = FakeKsef::body($send);
         self::assertStringContainsString('<P_2>FV/2026/06/001</P_2>', $xml);
         self::assertSame(base64_encode(hash('sha256', $xml, true)), $body['invoiceHash']);
         self::assertSame(\strlen($xml), $body['invoiceSize']);
@@ -112,13 +115,13 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         $result->assertAccepted();
     }
 
-    public function testNetworkFailureWhileSendingIsNeverRetriedAndReportsAnUnknownOutcome(): void
+    public function testWithRecoveryDisabledAnAmbiguousFailureIsSurfacedImmediately(): void
     {
         $this->routeSession();
         $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError('read timeout'));
 
         try {
-            $this->client()->sendInvoice(Fixtures::standardInvoice());
+            $this->client(null, SubmissionRecoveryPolicy::disabled())->sendInvoice(Fixtures::standardInvoice());
             self::fail('Expected SubmissionOutcomeUnknownException');
         } catch (SubmissionOutcomeUnknownException $e) {
             self::assertSame('sess-1', $e->sessionReference);
@@ -126,45 +129,110 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
             self::assertStringContainsString('read timeout', $e->getMessage());
         }
 
-        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'A possibly delivered invoice must not be re-sent automatically.');
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'));
         self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/close'), 'The session is still closed.');
     }
 
-    public function testServerErrorWhileSendingAlsoMeansUnknownOutcome(): void
+    public function testLostResponseIsReconciledByFindingTheDocumentInTheSession(): void
+    {
+        $this->routeSession();
+        // The first attempt reaches KSeF but the response is lost.
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError('connection reset'));
+        $this->ksef->on('GET', '/sessions/sess-1/invoices', function (RequestInterface $request) {
+            $hash = FakeKsef::body($this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0])['invoiceHash'];
+            $mine = $this->invoiceStatus(150, 'Processing');
+            $mine['invoiceHash'] = $hash;
+            $mine['referenceNumber'] = 'inv-found';
+
+            return Http::json(200, ['invoices' => [$mine]]);
+        });
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-found', $submission->invoiceReference);
+        self::assertTrue($submission->recovered);
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'No re-send is needed when KSeF already has the document.');
+    }
+
+    public function testDocumentThatNeverArrivedIsResentAfterABackoff(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError('timeout'));
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(202, ['referenceNumber' => 'inv-1']));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['invoices' => []]);
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-1', $submission->invoiceReference);
+        self::assertTrue($submission->recovered);
+        $sends = $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices');
+        self::assertCount(2, $sends);
+        self::assertSame(FakeKsef::body($sends[0])['invoiceHash'], FakeKsef::body($sends[1])['invoiceHash'], 'The identical document is re-sent.');
+        self::assertContains(1.0, $this->sleeper->sleeps);
+    }
+
+    public function testRecoveryGivesUpAfterTheConfiguredResendsAndReportsAnUnknownOutcome(): void
     {
         $this->routeSession();
         $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 503, ['title' => 'Service Unavailable']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['invoices' => []]);
 
-        $this->expectException(SubmissionOutcomeUnknownException::class);
-        $this->client()->sendInvoice(Fixtures::standardInvoice());
+        try {
+            $this->client()->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected SubmissionOutcomeUnknownException');
+        } catch (SubmissionOutcomeUnknownException $e) {
+            self::assertSame('sess-1', $e->sessionReference);
+        }
+
+        self::assertCount(3, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'one attempt plus two re-sends');
+        self::assertSame([1.0, 2.0], \array_slice($this->sleeper->sleeps, -2));
     }
 
-    public function testAfterAnUnknownOutcomeTheDocumentCanBeFoundByItsHash(): void
+    public function testAFailingLookupDoesNotPreventTheResend(): void
     {
         $this->routeSession();
         $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError());
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(202, ['referenceNumber' => 'inv-1']));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices', 500, ['title' => 'boom']);
+
+        self::assertSame('inv-1', $this->client(new RetryPolicy(maxAttempts: 1))->sendInvoice(Fixtures::standardInvoice())->invoiceReference);
+    }
+
+    public function testRefusalDuringAResendIsNotMistakenForAnAmbiguousOutcome(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError());
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::json(400, ['title' => 'Bad Request', 'errors' => [['code' => 21405, 'description' => 'Validation error']]]));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['invoices' => []]);
+
+        $this->expectException(ApiException::class);
+        $this->client()->sendInvoice(Fixtures::standardInvoice());
+    }
+
+    public function testDuplicateAfterARecoveredSubmissionCountsAsStored(): void
+    {
+        $status = $this->invoiceStatus(440, 'Duplicate invoice', null, [], ['originalKsefNumber' => self::KSEF_NUMBER]);
+        $invoice = \Ksef\Status\SessionInvoice::fromPayload(new \Ksef\Http\Payload($status));
+
+        self::assertSame(self::KSEF_NUMBER, $invoice->resolvedKsefNumber());
+        self::assertSame($invoice, $invoice->assertStored());
+        $this->expectException(InvoiceRejectedException::class);
+        $invoice->assertAccepted();
+    }
+
+    public function testWaitingUntilStoredKeepsPollingWhileThePermanentStorageDateIsMissing(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(200, 'Success', self::KSEF_NUMBER, [], [], false));
+        $this->ksef->json('GET', '/sessions/sess-1/invoices/inv-1', 200, $this->invoiceStatus(200, 'Success', self::KSEF_NUMBER));
         $client = $this->client();
+        $submission = $client->sendInvoice(Fixtures::standardInvoice());
 
-        try {
-            $client->sendInvoice(Fixtures::standardInvoice());
-            self::fail('Expected SubmissionOutcomeUnknownException');
-        } catch (SubmissionOutcomeUnknownException $unknown) {
-            $other = $this->invoiceStatus(200, 'Success', self::KSEF_NUMBER);
-            $other['invoiceHash'] = 'differentHash=';
-            $other['referenceNumber'] = 'inv-x';
-            $mine = $this->invoiceStatus(100, 'Accepted', null);
-            $mine['invoiceHash'] = $unknown->invoiceHash;
-            $mine['referenceNumber'] = 'inv-found';
+        $result = $client->waitForInvoice($submission, null, true);
 
-            $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['continuationToken' => 'page2', 'invoices' => [$other]]);
-            $this->ksef->json('GET', '/sessions/sess-1/invoices', 200, ['invoices' => [$mine]]);
-
-            $found = $client->findSubmission($unknown->sessionReference, $unknown->invoiceHash);
-
-            self::assertNotNull($found);
-            self::assertSame('inv-found', $found->invoiceReference);
-            self::assertSame('page2', $this->ksef->requestsTo('GET', '/sessions/sess-1/invoices')[1]->getHeaderLine('x-continuation-token'));
-        }
+        self::assertTrue($result->isPermanentlyStored());
+        self::assertCount(2, $this->ksef->requestsTo('GET', '/sessions/sess-1/invoices/inv-1'));
     }
 
     public function testRateLimitedSendsAreRetriedBecauseNothingWasProcessed(): void
@@ -379,7 +447,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         );
 
         $request = $this->ksef->requestsTo('POST', '/invoices/query/metadata')[0];
-        self::assertSame(['subjectType' => 'Subject2', 'dateRange' => ['dateType' => 'PermanentStorage', 'from' => '2026-04-30T22:00:00Z', 'to' => '2026-06-01T00:00:00Z']], \Ksef\Tests\Support\FakeKsef::body($request));
+        self::assertSame(['subjectType' => 'Subject2', 'dateRange' => ['dateType' => 'PermanentStorage', 'from' => '2026-04-30T22:00:00Z', 'to' => '2026-06-01T00:00:00Z']], FakeKsef::body($request));
         self::assertSame('pageOffset=0&pageSize=100&sortOrder=Asc', $request->getUri()->getQuery());
         self::assertCount(1, $page->invoices);
         self::assertSame('100.50', $page->invoices[0]->netAmount->toString(2));
@@ -419,7 +487,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
      *
      * @return array<string, mixed>
      */
-    private function invoiceStatus(int $code, string $description, ?string $ksefNumber = null, array $details = [], array $extensions = []): array
+    private function invoiceStatus(int $code, string $description, ?string $ksefNumber = null, array $details = [], array $extensions = [], bool $stored = true): array
     {
         return [
             'ordinalNumber' => 1,
@@ -427,6 +495,6 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
             'invoiceHash' => 'hash=',
             'invoicingDate' => '2026-06-01T10:00:00+00:00',
             'status' => ['code' => $code, 'description' => $description, 'details' => $details] + ($extensions !== [] ? ['extensions' => $extensions] : []),
-        ] + ($ksefNumber !== null ? ['ksefNumber' => $ksefNumber, 'acquisitionDate' => '2026-06-01T10:00:05+00:00', 'permanentStorageDate' => '2026-06-01T10:00:06+00:00'] : []);
+        ] + ($ksefNumber !== null ? ['ksefNumber' => $ksefNumber, 'acquisitionDate' => '2026-06-01T10:00:05+00:00'] + ($stored ? ['permanentStorageDate' => '2026-06-01T10:00:06+00:00'] : []) : []);
     }
 }
