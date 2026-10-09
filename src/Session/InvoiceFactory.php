@@ -7,6 +7,7 @@ namespace B4x\Ksef\Session;
 use B4x\Ksef\Invoice\Fa3Serializer;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Rr\RrInvoice;
 use B4x\Ksef\Xml\SchemaValidator;
 use Psr\Clock\ClockInterface;
 
@@ -23,11 +24,12 @@ final class InvoiceFactory
         private readonly SchemaValidator $validator = new SchemaValidator(),
     ) {}
 
-    public function document(Invoice|InvoiceDocument|string $invoice): InvoiceDocument
+    public function document(Invoice|RrInvoice|InvoiceDocument|string $invoice): InvoiceDocument
     {
         return match (true) {
             $invoice instanceof InvoiceDocument => $invoice,
             $invoice instanceof Invoice => InvoiceDocument::fromInvoice($invoice, $this->clock, $this->serializer, $this->validator),
+            $invoice instanceof RrInvoice => InvoiceDocument::fromRrInvoice($invoice, $this->clock, validator: $this->validator),
             default => InvoiceDocument::fromXml($invoice, $this->validator),
         };
     }

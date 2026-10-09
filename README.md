@@ -37,7 +37,7 @@ php examples/01-send-invoice.php
 ```
 
 This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
-use Guzzle, a dev dependency). See [examples/](examples/README.md) for the ten guided examples and
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the eleven guided examples and
 [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
 
 ## Quick start
@@ -168,6 +168,12 @@ Supported: standard (`VAT`) and correction (`KOR`) invoices, one seller, one buy
 foreign tax id or none), all common VAT treatments (23/22/8/7/5 %, 0 % variants, `zw`, `oo`, `np`),
 GTU codes, payment details, annotations and a footer. Corrections: mark the original state with
 `InvoiceLine::asBefore()` and add the corrected lines; totals become differences automatically.
+
+**Other invoice forms.** Besides FA(3) the SDK handles FA_RR (1) farmer purchase invoices with a typed model
+(`RrInvoice`, see `examples/11-farmer-rr-invoice.php`) and accepts Peppol documents (PEF (3) invoices and PEF_KOR (3)
+credit notes) as verified raw XML: `InvoiceDocument::fromXml($ublXml)` recognises the form from the root element
+and checks it against the bundled schema. The PEF path is validated against the official XSD but, unlike FA(3) and
+FA_RR, was not exercised end to end against KSeF (it needs a Peppol service provider setup).
 
 Additional parties (`Podmiot3`: recipient, payer, factor, ...) are added with `addThirdParty(ThirdParty::of(ThirdPartyRole::Recipient, ...))`.
 

@@ -19,6 +19,7 @@ use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Rr\RrInvoice;
 use B4x\Ksef\Status\InvoiceSubmission;
 use B4x\Ksef\Status\SessionInvoice;
 use B4x\Ksef\Status\SessionStatus;
@@ -72,7 +73,7 @@ final class OnlineSession
      * @throws SubmissionOutcomeUnknownException when the outcome cannot be determined
      * @throws SessionException when the session is closed or expired
      */
-    public function send(Invoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
+    public function send(Invoice|RrInvoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
     {
         if ($this->closed) {
             throw new SessionException('The session has already been closed.');

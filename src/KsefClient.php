@@ -65,6 +65,7 @@ use B4x\Ksef\Permissions\SubunitPermission;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Qr\OfflineCertificate;
+use B4x\Ksef\Rr\RrInvoice;
 use B4x\Ksef\Session\InvoiceFactory;
 use B4x\Ksef\Session\OnlineSession;
 use B4x\Ksef\Session\SendOptions;
@@ -155,14 +156,14 @@ final class KsefClient
      * The returned submission means "accepted for processing". Wait for the verdict with
      * {@see self::waitForInvoice()}. For many invoices open a session yourself and reuse it.
      *
-     * @param Invoice|InvoiceDocument|string $invoice typed invoice, verified document or raw FA(3) XML
+     * @param Invoice|RrInvoice|InvoiceDocument|string $invoice typed invoice, verified document or raw FA(3) / FA_RR (1) XML
      * @param SendOptions|null $options offline mode / technical correction flags
      *
      * @throws Exception\ValidationException the invoice is invalid; nothing was sent
      * @throws Exception\SubmissionOutcomeUnknownException the network failed mid-submission; see its documentation
      * @throws Exception\ApiException KSeF refused the request
      */
-    public function sendInvoice(Invoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
+    public function sendInvoice(Invoice|RrInvoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
     {
         $document = $this->factory->document($invoice);
         $session = $this->openOnlineSession($document->formCode);
@@ -230,18 +231,23 @@ final class KsefClient
      * with {@see self::sessionInvoices()}; correlate them via {@see BatchSubmission::$invoiceHashes}.
      * Requires ext-zip.
      *
-     * @param iterable<Invoice|InvoiceDocument|string> $invoices
+     * @param iterable<Invoice|RrInvoice|InvoiceDocument|string> $invoices
      */
     public function sendBatch(iterable $invoices, int $maxPartBytes = BatchPackager::DEFAULT_MAX_PART_BYTES, ?FormCode $formCode = null, bool $offline = false): BatchSubmission
     {
         $sender = $this->batches ?? throw new ConfigurationException('Batch support is not configured.');
-        $documents = (function () use ($invoices): Generator {
+        $formCode ??= FormCode::fa3();
+        $documents = (function () use ($invoices, $formCode): Generator {
             foreach ($invoices as $invoice) {
-                yield $this->factory->document($invoice);
+                $document = $this->factory->document($invoice);
+                if (!$document->formCode->equals($formCode)) {
+                    throw new Exception\ValidationException(\sprintf('A batch holds one schema only: %s was declared but an invoice uses %s. Pass the matching $formCode.', $formCode->systemCode, $document->formCode->systemCode));
+                }
+                yield $document;
             }
         })();
 
-        return $sender->send($documents, $formCode ?? FormCode::fa3(), $maxPartBytes, $offline);
+        return $sender->send($documents, $formCode, $maxPartBytes, $offline);
     }
 
     /**

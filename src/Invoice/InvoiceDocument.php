@@ -7,6 +7,8 @@ namespace B4x\Ksef\Invoice;
 use B4x\Ksef\Crypto\Digest;
 use B4x\Ksef\Exception\SerializationException;
 use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Rr\RrInvoice;
+use B4x\Ksef\Rr\RrSerializer;
 use B4x\Ksef\Support\SystemClock;
 use B4x\Ksef\Xml\SafeXml;
 use B4x\Ksef\Xml\SchemaValidator;
@@ -45,7 +47,22 @@ final readonly class InvoiceDocument
     }
 
     /**
-     * Wraps an existing FA(3) document after verifying it.
+     * @throws ValidationException when the invoice fails the schema or a size limit after serialization
+     */
+    public static function fromRrInvoice(
+        RrInvoice $invoice,
+        ?ClockInterface $clock = null,
+        RrSerializer $serializer = new RrSerializer(),
+        SchemaValidator $validator = new SchemaValidator(),
+    ): self {
+        $xml = $serializer->serialize($invoice, ($clock ?? new SystemClock())->now());
+
+        return self::fromXml($xml, $validator);
+    }
+
+    /**
+     * Wraps an existing document after verifying it against the bundled schema: FA(3), FA_RR (1), PEF (3) or
+     * PEF_KOR (3). The form is recognised from the root element. FA(2) is not supported.
      *
      * @throws SerializationException|ValidationException
      */
@@ -68,13 +85,20 @@ final readonly class InvoiceDocument
         }
         self::assertNoProcessingInstructions($document);
 
-        if ($document->documentElement?->namespaceURI !== FormCode::FA3_NAMESPACE || $document->documentElement->localName !== 'Faktura') {
-            throw new SerializationException('Only FA(3) invoices (namespace ' . FormCode::FA3_NAMESPACE . ') are supported.');
-        }
+        $schemas = __DIR__ . '/../../resources/schemas';
+        $element = $document->documentElement ?? throw new SerializationException('The invoice XML has no root element.');
+        $root = ($element->namespaceURI ?? '') . '#' . $element->localName;
+        [$schema, $formCode] = match ($root) {
+            FormCode::FA3_NAMESPACE . '#Faktura' => [$schemas . '/fa3/schemat_FA3_v1-0E.xsd', FormCode::fa3()],
+            FormCode::RR_NAMESPACE . '#Faktura' => [$schemas . '/rr/schemat_FA_RR1_v1-1E.xsd', FormCode::rr()],
+            FormCode::PEF_INVOICE_NAMESPACE . '#Invoice' => [$schemas . '/pef/Schemat_PEF3_v2-1.xsd', FormCode::pef()],
+            FormCode::PEF_CREDIT_NOTE_NAMESPACE . '#CreditNote' => [$schemas . '/pef/Schemat_PEF_KOR3_v2-1.xsd', FormCode::pefCorrection()],
+            default => throw new SerializationException('Unsupported invoice document. Supported: FA(3) (namespace ' . FormCode::FA3_NAMESPACE . '), FA_RR (1) (namespace ' . FormCode::RR_NAMESPACE . '), PEF (3) (UBL Invoice-2) and PEF_KOR (3) (UBL CreditNote-2).'),
+        };
 
-        $validator->assertValid($xml, __DIR__ . '/../../resources/schemas/fa3/schemat_FA3_v1-0E.xsd');
+        $validator->assertValid($xml, $schema);
 
-        return new self($xml, FormCode::fa3());
+        return new self($xml, $formCode);
     }
 
     /** SHA-256 of the XML, Base64 encoded, as KSeF expects. */
