@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Support;
+namespace B4x\Ksef\Tests\Support;
 
-use Ksef\Invoice\Address;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceBuilder;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Seller;
-use Ksef\Invoice\VatRate;
-use Ksef\Support\Nip;
+use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceBuilder;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Seller;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\Support\Nip;
 
 /** Reusable sample domain objects. All identifiers are fictitious. */
 final class Fixtures

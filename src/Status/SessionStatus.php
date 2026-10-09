@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
+use B4x\Ksef\Http\Payload;
 use DateTimeImmutable;
-use Ksef\Http\Payload;
 
 /**
  * State of an online session.

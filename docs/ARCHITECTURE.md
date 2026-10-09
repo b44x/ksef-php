@@ -8,16 +8,16 @@ knowledge of frameworks, databases, queues or configuration systems.
 
 | Namespace | Responsibility | Depends on |
 | --- | --- | --- |
-| `Ksef\KsefClient`, `KsefClientBuilder` | Public facade and wiring. Contains no protocol logic. | everything below |
-| `Ksef\Session` | `OnlineSession`: encrypt, submit, poll, close. Encodes the submission safety rules. | `Api`, `Crypto`, `Invoice`, `Polling` |
-| `Ksef\Api` | Thin typed wrappers around endpoints (`SessionApi`, `InvoiceApi`, `TokenApi`). Map JSON to value objects. | `Http`, `Status` |
-| `Ksef\Auth` | Authentication flow (`Authenticator`), token lifecycle (`AccessTokenProvider`), credentials, `AuthApi`. | `Http`, `Crypto`, `Signing`, `Polling` |
-| `Ksef\Invoice` | Domain model (`Invoice`, `Seller`, `Buyer`, `InvoiceLine`, `Money`, ...), validation, FA(3) serialization, `InvoiceDocument`. Pure PHP, no I/O. | `Support`, `Xml` |
-| `Ksef\Crypto` | KSeF public keys (cached, rotation aware), RSA-OAEP, AES-256-CBC session encryption, digests. | `Http` (key download only) |
-| `Ksef\Signing` | `XadesSigner` interface and the OpenSSL based implementation. | `ext-openssl`, `ext-dom` |
-| `Ksef\Http` | PSR-18 `Transport` (URL/headers, JSON, retries, error mapping, redacted logging), `AuthorizedClient`. | PSR-7/17/18, PSR-3 |
-| `Ksef\Polling` | `PollingPolicy`, `Poller`: bounded waiting with backoff. | PSR-20 clock, `Sleeper` |
-| `Ksef\Status`, `Ksef\Exception`, `Ksef\Support`, `Ksef\Xml` | Result value objects, exception hierarchy, `Decimal`/`Nip`/`KsefNumber`, safe XML loading and XSD validation. | - |
+| `B4x\Ksef\KsefClient`, `KsefClientBuilder` | Public facade and wiring. Contains no protocol logic. | everything below |
+| `B4x\Ksef\Session` | `OnlineSession`: encrypt, submit, poll, close. Encodes the submission safety rules. | `Api`, `Crypto`, `Invoice`, `Polling` |
+| `B4x\Ksef\Api` | Thin typed wrappers around endpoints (`SessionApi`, `InvoiceApi`, `TokenApi`). Map JSON to value objects. | `Http`, `Status` |
+| `B4x\Ksef\Auth` | Authentication flow (`Authenticator`), token lifecycle (`AccessTokenProvider`), credentials, `AuthApi`. | `Http`, `Crypto`, `Signing`, `Polling` |
+| `B4x\Ksef\Invoice` | Domain model (`Invoice`, `Seller`, `Buyer`, `InvoiceLine`, `Money`, ...), validation, FA(3) serialization, `InvoiceDocument`. Pure PHP, no I/O. | `Support`, `Xml` |
+| `B4x\Ksef\Crypto` | KSeF public keys (cached, rotation aware), RSA-OAEP, AES-256-CBC session encryption, digests. | `Http` (key download only) |
+| `B4x\Ksef\Signing` | `XadesSigner` interface and the OpenSSL based implementation. | `ext-openssl`, `ext-dom` |
+| `B4x\Ksef\Http` | PSR-18 `Transport` (URL/headers, JSON, retries, error mapping, redacted logging), `AuthorizedClient`. | PSR-7/17/18, PSR-3 |
+| `B4x\Ksef\Polling` | `PollingPolicy`, `Poller`: bounded waiting with backoff. | PSR-20 clock, `Sleeper` |
+| `B4x\Ksef\Status`, `B4x\Ksef\Exception`, `B4x\Ksef\Support`, `B4x\Ksef\Xml` | Result value objects, exception hierarchy, `Decimal`/`Nip`/`KsefNumber`, safe XML loading and XSD validation. | - |
 
 Dependencies point inwards: the `Invoice` domain never touches HTTP, and `Http` never knows about
 invoices. Each abstraction exists because something varies:

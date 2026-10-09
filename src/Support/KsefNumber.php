@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Support;
+namespace B4x\Ksef\Support;
 
-use Ksef\Exception\ValidationException;
+use B4x\Ksef\Exception\ValidationException;
 
 /**
  * KSeF invoice number: `NIP-YYYYMMDD-XXXXXXXXXXXX-CC` (35 characters), where `CC` is a CRC-8

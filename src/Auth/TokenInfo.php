@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
+use B4x\Ksef\Exception\MalformedResponseException;
 use DateTimeImmutable;
 use Exception;
-use Ksef\Exception\MalformedResponseException;
 use SensitiveParameter;
 
 /** A bearer token with its expiry. The token string is a secret and is hidden from dumps. */

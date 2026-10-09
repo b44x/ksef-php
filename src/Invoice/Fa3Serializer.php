@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
+use B4x\Ksef\Exception\SerializationException;
 use DateTimeImmutable;
 use DateTimeZone;
 use DOMDocument;
 use DOMElement;
-use Ksef\Exception\SerializationException;
 
 /**
  * Serializes an {@see Invoice} into an FA(3) XML document.

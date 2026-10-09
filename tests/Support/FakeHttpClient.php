@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Support;
+namespace B4x\Ksef\Tests\Support;
 
 use LogicException;
 use Psr\Http\Client\ClientExceptionInterface;

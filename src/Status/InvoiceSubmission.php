@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
 /**
  * Proof that KSeF *accepted a document for processing* (HTTP 202). This is not an approval.

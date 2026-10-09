@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
+use B4x\Ksef\Crypto\Digest;
+use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Support\SystemClock;
+use B4x\Ksef\Xml\SafeXml;
+use B4x\Ksef\Xml\SchemaValidator;
 use DOMNode;
-use Ksef\Crypto\Digest;
-use Ksef\Exception\SerializationException;
-use Ksef\Exception\ValidationException;
-use Ksef\Support\SystemClock;
-use Ksef\Xml\SafeXml;
-use Ksef\Xml\SchemaValidator;
 use Psr\Clock\ClockInterface;
 
 /**

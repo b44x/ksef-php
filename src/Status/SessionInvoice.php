@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
+use B4x\Ksef\Http\Payload;
 use DateTimeImmutable;
-use Ksef\Http\Payload;
 
 /** An invoice as reported by the session endpoints. */
 final readonly class SessionInvoice
@@ -60,7 +60,7 @@ final readonly class SessionInvoice
      * Like {@see self::assertAccepted()}, but also succeeds for a duplicate (440): the document is then
      * already stored in KSeF, which is the desired end state after a recovered submission.
      *
-     * @throws \Ksef\Exception\InvoiceRejectedException when the document is not stored in KSeF
+     * @throws \B4x\Ksef\Exception\InvoiceRejectedException when the document is not stored in KSeF
      */
     public function assertStored(): self
     {
@@ -81,16 +81,16 @@ final readonly class SessionInvoice
     }
 
     /**
-     * @throws \Ksef\Exception\InvoiceRejectedException when the invoice was not accepted
-     * @throws \Ksef\Exception\InvoiceException when processing has not finished yet
+     * @throws \B4x\Ksef\Exception\InvoiceRejectedException when the invoice was not accepted
+     * @throws \B4x\Ksef\Exception\InvoiceException when processing has not finished yet
      */
     public function assertAccepted(): self
     {
         if ($this->status->isRejected()) {
-            throw \Ksef\Exception\InvoiceRejectedException::fromStatus($this->status, $this->referenceNumber);
+            throw \B4x\Ksef\Exception\InvoiceRejectedException::fromStatus($this->status, $this->referenceNumber);
         }
         if (!$this->status->isAccepted()) {
-            throw new \Ksef\Exception\InvoiceException(\sprintf('Invoice %s is still being processed (status %d).', $this->referenceNumber, $this->status->code), $this->status);
+            throw new \B4x\Ksef\Exception\InvoiceException(\sprintf('Invoice %s is still being processed (status %d).', $this->referenceNumber, $this->status->code), $this->status);
         }
 
         return $this;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
+use B4x\Ksef\Exception\EncryptionException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\Transport;
 use DateTimeImmutable;
 use JsonException;
-use Ksef\Exception\EncryptionException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\Transport;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
-use Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\ConfigurationException;
 
 /** Exponential backoff with optional jitter; honours the Retry-After header up to a cap. */
 final readonly class RetryPolicy

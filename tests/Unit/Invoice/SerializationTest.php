@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Invoice;
+namespace B4x\Ksef\Tests\Unit\Invoice;
 
+use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\Annotations;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\CorrectedInvoice;
+use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\CorrectionType;
+use B4x\Ksef\Invoice\Fa3Serializer;
+use B4x\Ksef\Invoice\FormCode;
+use B4x\Ksef\Invoice\Gtu;
+use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Payment;
+use B4x\Ksef\Invoice\PaymentMethod;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\Tests\Support\Fixtures;
+use B4x\Ksef\Tests\Support\MutableClock;
+use B4x\Ksef\Xml\SchemaValidator;
 use DateTimeImmutable;
 use DOMDocument;
 use DOMXPath;
-use Ksef\Exception\SerializationException;
-use Ksef\Invoice\Address;
-use Ksef\Invoice\Annotations;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\CorrectedInvoice;
-use Ksef\Invoice\Correction;
-use Ksef\Invoice\CorrectionType;
-use Ksef\Invoice\Fa3Serializer;
-use Ksef\Invoice\FormCode;
-use Ksef\Invoice\Gtu;
-use Ksef\Invoice\InvoiceDocument;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Payment;
-use Ksef\Invoice\PaymentMethod;
-use Ksef\Invoice\VatRate;
-use Ksef\Tests\Support\Fixtures;
-use Ksef\Tests\Support\MutableClock;
-use Ksef\Xml\SchemaValidator;
 use PHPUnit\Framework\TestCase;
 
 final class SerializationTest extends TestCase
@@ -85,7 +85,7 @@ final class SerializationTest extends TestCase
             ->payment(Payment::dueOn(new DateTimeImmutable('2026-06-15'), PaymentMethod::BankTransfer, ['PL61109010140000071219812874']))
             ->annotations(new Annotations(cashAccounting: true, splitPayment: true, exemptionBasis: 'Art. 43 ust. 1 pkt 37 ustawy'))
             ->footer('Registered in the commercial register.')
-            ->addLine((new InvoiceLine('Goods', \Ksef\Support\Decimal::of('2.5'), 'kg', \Ksef\Invoice\Money::of('10.123456', 'PLN'), VatRate::Rate5, Gtu::Gtu01, '01.11.1', '0101', '5901234123457', 'SKU-1')))
+            ->addLine((new InvoiceLine('Goods', \B4x\Ksef\Support\Decimal::of('2.5'), 'kg', \B4x\Ksef\Invoice\Money::of('10.123456', 'PLN'), VatRate::Rate5, Gtu::Gtu01, '01.11.1', '0101', '5901234123457', 'SKU-1')))
             ->addLine(InvoiceLine::of('Financial service', '1', null, '100.00', VatRate::Exempt))
             ->addLine(InvoiceLine::of('Export', '1', null, '10.00', VatRate::ZeroExport))
             ->addLine(InvoiceLine::of('Outside Poland', '1', null, '10.00', VatRate::NotSubjectOutsideTerritory))

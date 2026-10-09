@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Http;
+namespace B4x\Ksef\Tests\Unit\Http;
 
-use Ksef\Exception\ApiException;
-use Ksef\Exception\AuthenticationException;
-use Ksef\Exception\AuthorizationException;
-use Ksef\Exception\ConfigurationException;
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Exception\RateLimitException;
-use Ksef\Exception\ServerException;
-use Ksef\Exception\TransportException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\RetryPolicy;
-use Ksef\Http\Transport;
-use Ksef\Tests\Support\FakeHttpClient;
-use Ksef\Tests\Support\Http;
-use Ksef\Tests\Support\RecordingSleeper;
+use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Exception\AuthorizationException;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Exception\RateLimitException;
+use B4x\Ksef\Exception\ServerException;
+use B4x\Ksef\Exception\TransportException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\RetryPolicy;
+use B4x\Ksef\Http\Transport;
+use B4x\Ksef\Tests\Support\FakeHttpClient;
+use B4x\Ksef\Tests\Support\Http;
+use B4x\Ksef\Tests\Support\RecordingSleeper;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;

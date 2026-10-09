@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
+use B4x\Ksef\Exception\EncryptionException;
 use DateTimeImmutable;
 use Exception;
-use Ksef\Exception\EncryptionException;
 
 /** An X.509 certificate published by KSeF that carries a public key used for client-side encryption. */
 final readonly class PublicKeyCertificate

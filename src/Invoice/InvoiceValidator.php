@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
+use B4x\Ksef\Support\Decimal;
 use DateTimeImmutable;
-use Ksef\Support\Decimal;
 
 /**
  * Checks invoice invariants that do not need KSeF.

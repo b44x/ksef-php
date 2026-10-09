@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Signing;
+namespace B4x\Ksef\Signing;
 
 /**
  * Produces an enveloped XAdES signature for an XML document.
@@ -17,7 +17,7 @@ interface XadesSigner
      *
      * @return string the same document with an enveloped ds:Signature as the last child of the root
      *
-     * @throws \Ksef\Exception\SigningException
+     * @throws \B4x\Ksef\Exception\SigningException
      */
     public function sign(string $xml): string;
 

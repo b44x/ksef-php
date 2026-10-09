@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Xml;
+namespace B4x\Ksef\Xml;
 
+use B4x\Ksef\Exception\SerializationException;
 use DOMDocument;
-use Ksef\Exception\SerializationException;
 
 /**
  * Hardened XML loading.

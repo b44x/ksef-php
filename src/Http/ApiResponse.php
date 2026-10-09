@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
+use B4x\Ksef\Exception\MalformedResponseException;
 use JsonException;
-use Ksef\Exception\MalformedResponseException;
 
 /** A successful (2xx) answer from the KSeF API. */
 final readonly class ApiResponse

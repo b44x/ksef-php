@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use Ksef\Exception\InvoiceRejectedException;
-use Ksef\Exception\SubmissionOutcomeUnknownException;
-use Ksef\Exception\ValidationException;
-use Ksef\Invoice\Address;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Payment;
-use Ksef\Invoice\PaymentMethod;
-use Ksef\Invoice\Seller;
-use Ksef\Invoice\VatRate;
-use Ksef\Polling\PollingPolicy;
-use Ksef\Support\Nip;
+use B4x\Ksef\Exception\InvoiceRejectedException;
+use B4x\Ksef\Exception\SubmissionOutcomeUnknownException;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Payment;
+use B4x\Ksef\Invoice\PaymentMethod;
+use B4x\Ksef\Invoice\Seller;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Support\Nip;
 
 require __DIR__ . '/bootstrap.php';
 

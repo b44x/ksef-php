@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** Role of a line on a correction invoice. Standard invoices only contain {@see self::Current}. */
 enum LineState

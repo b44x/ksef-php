@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
+use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\InvoiceNotAvailableException;
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\AuthorizedClient;
+use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Status\DownloadedInvoice;
+use B4x\Ksef\Support\KsefNumber;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
-use Ksef\Exception\ApiException;
-use Ksef\Exception\InvoiceNotAvailableException;
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\AuthorizedClient;
-use Ksef\Http\Payload;
-use Ksef\Http\RetryMode;
-use Ksef\Status\DownloadedInvoice;
-use Ksef\Support\KsefNumber;
 
 /** Typed wrapper over the invoice retrieval and search endpoints. */
 final class InvoiceApi

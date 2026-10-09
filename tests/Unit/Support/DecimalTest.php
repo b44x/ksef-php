@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Support;
+namespace B4x\Ksef\Tests\Unit\Support;
 
-use Ksef\Exception\ValidationException;
-use Ksef\Support\Decimal;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Support\Decimal;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

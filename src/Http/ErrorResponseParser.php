@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
+use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Exception\AuthorizationException;
+use B4x\Ksef\Exception\RateLimitException;
+use B4x\Ksef\Exception\ServerException;
 use JsonException;
-use Ksef\Exception\ApiException;
-use Ksef\Exception\AuthenticationException;
-use Ksef\Exception\AuthorizationException;
-use Ksef\Exception\RateLimitException;
-use Ksef\Exception\ServerException;
 
 /**
  * Turns an error response into the matching exception.

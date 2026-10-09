@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Ksef\Api\InvoiceDateType;
-use Ksef\Api\InvoiceSubjectType;
-use Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Api\InvoiceDateType;
+use B4x\Ksef\Api\InvoiceSubjectType;
+use B4x\Ksef\Polling\PollingPolicy;
 
 require __DIR__ . '/bootstrap.php';
 

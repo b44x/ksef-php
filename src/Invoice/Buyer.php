@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** The recipient of the invoice (`Podmiot2`). */
 final readonly class Buyer

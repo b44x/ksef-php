@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
-use Ksef\Exception\ConfigurationException;
-use Ksef\Signing\OpenSslXadesSigner;
-use Ksef\Signing\XadesSigner;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Signing\OpenSslXadesSigner;
+use B4x\Ksef\Signing\XadesSigner;
 use SensitiveParameter;
 
 /**

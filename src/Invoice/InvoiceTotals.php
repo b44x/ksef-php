@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Decimal;
+use B4x\Ksef\Support\Decimal;
 
 /**
  * Amounts derived from the lines: per-bucket net and tax, and the gross total (`P_15`).

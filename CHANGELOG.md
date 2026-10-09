@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-09
+
 ### Added
 
+- Root namespace `B4x\Ksef` (package `b44x/ksef-php`).
+- Automatic reconciliation of ambiguous submissions (`SubmissionRecoveryPolicy`): session lookup by hash, then bounded re-send of the identical document; `InvoiceSubmission::$recovered`, `SessionInvoice::assertStored()`.
+- `waitForInvoice(..., untilStored: true)` waits for the documented `permanentStorageDate` before an accepted invoice is considered downloadable.
 - `KsefClient` facade and builder (PSR-18 / PSR-17 / PSR-3 / PSR-20 based, no framework dependency).
 - Authentication against KSeF API 2.0 with XAdES certificates and KSeF tokens, automatic token refresh.
 - Per-session AES-256-CBC encryption with RSA-OAEP (SHA-256) key wrapping and rotation-aware public key cache.
@@ -17,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive sessions, bounded status polling, UPO retrieval, invoice download and metadata search.
 - KSeF token management (generate, wait, revoke).
 - Safe retry semantics and `SubmissionOutcomeUnknownException` with `findSubmission()` reconciliation.
-- Exception hierarchy rooted at `Ksef\Exception\KsefException`.
+- Exception hierarchy rooted at `B4x\Ksef\Exception\KsefException`.
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
+
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/b44x/ksef-php/releases/tag/v0.1.0

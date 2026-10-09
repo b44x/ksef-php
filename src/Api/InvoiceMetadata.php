@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
+use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Support\Decimal;
 use DateTimeImmutable;
-use Ksef\Http\Payload;
-use Ksef\Support\Decimal;
 
 /** Metadata of one invoice stored in KSeF. */
 final readonly class InvoiceMetadata

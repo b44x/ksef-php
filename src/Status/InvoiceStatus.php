@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
-use Ksef\Http\Payload;
+use B4x\Ksef\Http\Payload;
 
 /**
  * Processing status of one invoice inside a session.

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Exception\TransportException;
 use JsonException;
-use Ksef\Exception\ConfigurationException;
-use Ksef\Exception\SerializationException;
-use Ksef\Exception\TransportException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -49,7 +49,7 @@ final class Transport
     }
 
     /**
-     * @throws \Ksef\Exception\ApiException on an HTTP error status
+     * @throws \B4x\Ksef\Exception\ApiException on an HTTP error status
      * @throws TransportException when no usable response was received
      */
     public function send(ApiRequest $request): ApiResponse

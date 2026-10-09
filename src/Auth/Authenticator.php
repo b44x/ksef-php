@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
-use Ksef\Crypto\KsefTokenEncryptor;
-use Ksef\Exception\AuthenticationException;
-use Ksef\Exception\ConfigurationException;
-use Ksef\Http\ApiError;
-use Ksef\Polling\Poller;
-use Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Crypto\KsefTokenEncryptor;
+use B4x\Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Http\ApiError;
+use B4x\Ksef\Polling\Poller;
+use B4x\Ksef\Polling\PollingPolicy;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -35,7 +35,7 @@ final class Authenticator
 
     /**
      * @throws AuthenticationException when KSeF refuses the identity or the operation fails
-     * @throws \Ksef\Exception\PollingTimeoutException when KSeF does not finish verifying in time
+     * @throws \B4x\Ksef\Exception\PollingTimeoutException when KSeF does not finish verifying in time
      */
     public function authenticate(ContextIdentifier $context, Credentials $credentials, ?AllowedIps $allowedIps = null): AuthTokens
     {

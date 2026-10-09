@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Live;
+namespace B4x\Ksef\Tests\Live;
 
+use B4x\Ksef\Api\TokenPermission;
+use B4x\Ksef\Api\TokenStatus;
+use B4x\Ksef\Auth\CertificateCredentials;
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Auth\KsefTokenCredentials;
+use B4x\Ksef\Environment;
+use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Seller;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\KsefClient;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Support\Nip;
+use B4x\Ksef\Tests\Support\TestPki;
 use DateTimeImmutable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
-use Ksef\Api\TokenPermission;
-use Ksef\Api\TokenStatus;
-use Ksef\Auth\CertificateCredentials;
-use Ksef\Auth\ContextIdentifier;
-use Ksef\Auth\KsefTokenCredentials;
-use Ksef\Environment;
-use Ksef\Invoice\Address;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Seller;
-use Ksef\Invoice\VatRate;
-use Ksef\KsefClient;
-use Ksef\Polling\PollingPolicy;
-use Ksef\Support\Nip;
-use Ksef\Tests\Support\TestPki;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -96,7 +96,7 @@ final class LiveKsefTest extends TestCase
         $this->createTestTaxpayer($http, $factory, $nip);
 
         $pki = TestPki::personal($nip);
-        $builder = static fn(\Ksef\Auth\Credentials $credentials): KsefClient => KsefClient::builder()
+        $builder = static fn(\B4x\Ksef\Auth\Credentials $credentials): KsefClient => KsefClient::builder()
             ->environment(Environment::Test)
             ->httpClient($http, $factory, $factory)
             ->context(ContextIdentifier::nip($nip))

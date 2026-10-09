@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** `FormaPlatnosci`. Case values are the FA(3) codes. */
 enum PaymentMethod: int

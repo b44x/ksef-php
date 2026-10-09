@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
-use Ksef\Exception\ValidationException;
+use B4x\Ksef\Exception\ValidationException;
 
 /**
  * Optional IP allow-list bound to the issued access token (KSeF `AuthorizationPolicy`).

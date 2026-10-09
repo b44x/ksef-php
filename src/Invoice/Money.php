@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Exception\ValidationException;
-use Ksef\Support\Decimal;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Support\Decimal;
 
 /** An amount in a specific currency (ISO 4217 code). */
 final readonly class Money

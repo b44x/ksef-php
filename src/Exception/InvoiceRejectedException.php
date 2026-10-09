@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
-use Ksef\Status\InvoiceStatus;
+use B4x\Ksef\Status\InvoiceStatus;
 
 /**
  * KSeF finished processing an invoice with a failure status. The invoice has no KSeF number.

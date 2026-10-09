@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\AuthorizedClient;
-use Ksef\Http\Payload;
-use Ksef\Http\RetryMode;
-use Ksef\Invoice\FormCode;
-use Ksef\Status\OpenedSession;
-use Ksef\Status\SessionInvoice;
-use Ksef\Status\SessionInvoicesPage;
-use Ksef\Status\SessionStatus;
-use Ksef\Status\Upo;
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\AuthorizedClient;
+use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Invoice\FormCode;
+use B4x\Ksef\Status\OpenedSession;
+use B4x\Ksef\Status\SessionInvoice;
+use B4x\Ksef\Status\SessionInvoicesPage;
+use B4x\Ksef\Status\SessionStatus;
+use B4x\Ksef\Status\Upo;
 
 /**
  * Typed wrapper over the interactive-session and status endpoints. No flow logic lives here.

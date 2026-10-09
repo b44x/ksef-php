@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Support;
+namespace B4x\Ksef\Support;
 
 use DateTimeImmutable;
 use DateTimeZone;

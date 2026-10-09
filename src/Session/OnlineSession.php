@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Session;
+namespace B4x\Ksef\Session;
 
+use B4x\Ksef\Api\SessionApi;
+use B4x\Ksef\Crypto\Digest;
+use B4x\Ksef\Crypto\SessionEncryption;
+use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\SessionException;
+use B4x\Ksef\Exception\SubmissionOutcomeUnknownException;
+use B4x\Ksef\Exception\TransportException;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Http\NativeSleeper;
+use B4x\Ksef\Http\Sleeper;
+use B4x\Ksef\Invoice\FormCode;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Polling\Poller;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Status\InvoiceSubmission;
+use B4x\Ksef\Status\SessionInvoice;
+use B4x\Ksef\Status\SessionStatus;
+use B4x\Ksef\Status\Upo;
 use DateTimeImmutable;
-use Ksef\Api\SessionApi;
-use Ksef\Crypto\Digest;
-use Ksef\Crypto\SessionEncryption;
-use Ksef\Exception\ApiException;
-use Ksef\Exception\SessionException;
-use Ksef\Exception\SubmissionOutcomeUnknownException;
-use Ksef\Exception\TransportException;
-use Ksef\Exception\ValidationException;
-use Ksef\Http\NativeSleeper;
-use Ksef\Http\Sleeper;
-use Ksef\Invoice\FormCode;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceDocument;
-use Ksef\Polling\Poller;
-use Ksef\Polling\PollingPolicy;
-use Ksef\Status\InvoiceSubmission;
-use Ksef\Status\SessionInvoice;
-use Ksef\Status\SessionStatus;
-use Ksef\Status\Upo;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -160,7 +160,7 @@ final class OnlineSession
      * With `$untilStored` an accepted invoice is only returned once it is permanently stored
      * (`permanentStorageDate` set), i.e. when it can be downloaded.
      *
-     * @throws \Ksef\Exception\PollingTimeoutException
+     * @throws \B4x\Ksef\Exception\PollingTimeoutException
      */
     public function waitForInvoice(InvoiceSubmission|string $submission, ?PollingPolicy $policy = null, bool $untilStored = false): SessionInvoice
     {
@@ -208,7 +208,7 @@ final class OnlineSession
     /**
      * Polls until the (closed) session reached a final state and returns it.
      *
-     * @throws \Ksef\Exception\PollingTimeoutException
+     * @throws \B4x\Ksef\Exception\PollingTimeoutException
      */
     public function waitUntilFinished(?PollingPolicy $policy = null): SessionStatus
     {

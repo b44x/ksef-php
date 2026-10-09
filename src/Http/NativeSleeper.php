@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
 /** Blocks the current process using usleep(). */
 final class NativeSleeper implements Sleeper

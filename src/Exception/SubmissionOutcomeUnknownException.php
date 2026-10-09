@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
 use Throwable;
 

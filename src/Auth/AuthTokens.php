@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
 /** The access/refresh token pair obtained after a successful authentication. */
 final readonly class AuthTokens

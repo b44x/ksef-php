@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
-use Ksef\Auth\AccessTokenProvider;
-use Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Auth\AccessTokenProvider;
+use B4x\Ksef\Exception\AuthenticationException;
 
 /**
  * Sends requests with a valid access token.

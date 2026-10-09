@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Crypto;
+namespace B4x\Ksef\Tests\Unit\Crypto;
 
-use Ksef\Crypto\ApiPublicKeyProvider;
-use Ksef\Crypto\KeyUsage;
-use Ksef\Exception\EncryptionException;
-use Ksef\Http\RetryPolicy;
-use Ksef\Http\Transport;
-use Ksef\Tests\Support\FakeHttpClient;
-use Ksef\Tests\Support\Http;
-use Ksef\Tests\Support\MutableClock;
-use Ksef\Tests\Support\TestPki;
+use B4x\Ksef\Crypto\ApiPublicKeyProvider;
+use B4x\Ksef\Crypto\KeyUsage;
+use B4x\Ksef\Exception\EncryptionException;
+use B4x\Ksef\Http\RetryPolicy;
+use B4x\Ksef\Http\Transport;
+use B4x\Ksef\Tests\Support\FakeHttpClient;
+use B4x\Ksef\Tests\Support\Http;
+use B4x\Ksef\Tests\Support\MutableClock;
+use B4x\Ksef\Tests\Support\TestPki;
 use PHPUnit\Framework\TestCase;
 
 final class ApiPublicKeyProviderTest extends TestCase

@@ -30,3 +30,9 @@ never run by default (`KSEF_LIVE=1 composer test:live`).
 - Never log or expose secrets (tokens, private keys, passwords).
 - Network behaviour must be covered with deterministic PSR-18 fakes, not live calls.
 - Follow Semantic Versioning and update `CHANGELOG.md`.
+
+## Branching
+
+- `main` holds released code and is tagged (`vX.Y.Z`).
+- `develop` is the integration branch; open pull requests against it.
+- Use short topic branches (`feat/...`, `fix/...`, `docs/...`).

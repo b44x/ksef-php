@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
 /**
  * The invoice exists but cannot be downloaded yet (HTTP 406).

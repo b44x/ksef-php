@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Nip;
+use B4x\Ksef\Support\Nip;
 
 /** The issuer of the invoice (`Podmiot1`). */
 final readonly class Seller

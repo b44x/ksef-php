@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef;
+namespace B4x\Ksef;
 
 /**
  * Public KSeF API 2.0 environments.

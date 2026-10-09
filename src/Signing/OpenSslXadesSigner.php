@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Signing;
+namespace B4x\Ksef\Signing;
 
+use B4x\Ksef\Crypto\Digest;
+use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Exception\SigningException;
+use B4x\Ksef\Support\SystemClock;
+use B4x\Ksef\Xml\SafeXml;
 use DateTimeZone;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
-use Ksef\Crypto\Digest;
-use Ksef\Exception\SerializationException;
-use Ksef\Exception\SigningException;
-use Ksef\Support\SystemClock;
-use Ksef\Xml\SafeXml;
 use OpenSSLAsymmetricKey;
 use phpseclib3\File\X509;
 use phpseclib3\Math\BigInteger;

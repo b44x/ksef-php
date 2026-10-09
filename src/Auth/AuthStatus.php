@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
 /**
  * Status of an authentication operation.

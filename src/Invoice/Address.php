@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /**
  * A postal address in the free-form two-line layout of FA(3) (`TAdres`).

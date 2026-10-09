@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Support;
+namespace B4x\Ksef\Support;
 
-use Ksef\Exception\ValidationException;
+use B4x\Ksef\Exception\ValidationException;
 
 /** Polish tax identification number (NIP): ten digits with a modulo-11 check digit. */
 final readonly class Nip

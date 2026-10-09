@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
 /**
  * The HTTP exchange failed below the API level (connection error, timeout, unusable response).

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** Effective date of a correction (`TypKorekty`). */
 enum CorrectionType: int

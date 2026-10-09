@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
 /** How KSeF identifies the signer of an AuthTokenRequest. */
 enum SubjectIdentifierType: string

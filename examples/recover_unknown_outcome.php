@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Polling\PollingPolicy;
 
 require __DIR__ . '/bootstrap.php';
 

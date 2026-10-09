@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
-use Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Exception\AuthenticationException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

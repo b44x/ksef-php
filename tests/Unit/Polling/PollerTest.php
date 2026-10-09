@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Polling;
+namespace B4x\Ksef\Tests\Unit\Polling;
 
-use Ksef\Exception\ConfigurationException;
-use Ksef\Exception\PollingTimeoutException;
-use Ksef\Http\RetryPolicy;
-use Ksef\Polling\Poller;
-use Ksef\Polling\PollingPolicy;
-use Ksef\Tests\Support\ClockSleeper;
-use Ksef\Tests\Support\MutableClock;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\PollingTimeoutException;
+use B4x\Ksef\Http\RetryPolicy;
+use B4x\Ksef\Polling\Poller;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Tests\Support\ClockSleeper;
+use B4x\Ksef\Tests\Support\MutableClock;
 use PHPUnit\Framework\TestCase;
 
 final class PollerTest extends TestCase

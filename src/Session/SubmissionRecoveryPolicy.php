@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Session;
+namespace B4x\Ksef\Session;
 
-use Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\ConfigurationException;
 
 /**
  * What the SDK does on its own when a submission ends without a definitive answer

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** Goods and services designation codes (`GTU_01` … `GTU_13`) used for JPK_VAT reporting. */
 enum Gtu: string

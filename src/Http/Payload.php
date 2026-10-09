@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
+use B4x\Ksef\Exception\MalformedResponseException;
 use DateTimeImmutable;
 use Exception;
-use Ksef\Exception\MalformedResponseException;
 
 /**
  * Typed accessor over a decoded JSON object. Every getter fails with a
@@ -64,18 +64,18 @@ final readonly class Payload
     }
 
     /** A JSON number or numeric string as an exact decimal; JSON floats are rounded to two places (monetary values). */
-    public function decimal(string $key): \Ksef\Support\Decimal
+    public function decimal(string $key): \B4x\Ksef\Support\Decimal
     {
         $value = $this->data[$key] ?? null;
         if (\is_int($value) || \is_string($value)) {
             try {
-                return \Ksef\Support\Decimal::of($value);
-            } catch (\Ksef\Exception\ValidationException $e) {
+                return \B4x\Ksef\Support\Decimal::of($value);
+            } catch (\B4x\Ksef\Exception\ValidationException $e) {
                 throw new MalformedResponseException(\sprintf('Field "%s.%s" is not a valid number.', $this->context, $key), 0, $e);
             }
         }
         if (\is_float($value)) {
-            return \Ksef\Support\Decimal::of(number_format($value, 2, '.', ''));
+            return \B4x\Ksef\Support\Decimal::of(number_format($value, 2, '.', ''));
         }
 
         throw $this->invalid($key, 'a number');

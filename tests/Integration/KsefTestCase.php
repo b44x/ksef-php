@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Integration;
+namespace B4x\Ksef\Tests\Integration;
 
-use Ksef\Auth\ContextIdentifier;
-use Ksef\Auth\KsefTokenCredentials;
-use Ksef\Environment;
-use Ksef\Http\RetryPolicy;
-use Ksef\KsefClient;
-use Ksef\Session\SubmissionRecoveryPolicy;
-use Ksef\Tests\Support\ClockSleeper;
-use Ksef\Tests\Support\FakeKsef;
-use Ksef\Tests\Support\Http;
-use Ksef\Tests\Support\MutableClock;
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Auth\KsefTokenCredentials;
+use B4x\Ksef\Environment;
+use B4x\Ksef\Http\RetryPolicy;
+use B4x\Ksef\KsefClient;
+use B4x\Ksef\Session\SubmissionRecoveryPolicy;
+use B4x\Ksef\Tests\Support\ClockSleeper;
+use B4x\Ksef\Tests\Support\FakeKsef;
+use B4x\Ksef\Tests\Support\Http;
+use B4x\Ksef\Tests\Support\MutableClock;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use PHPUnit\Framework\TestCase;

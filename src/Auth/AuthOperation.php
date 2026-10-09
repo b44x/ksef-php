@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
 /** A started (asynchronous) authentication operation. */
 final readonly class AuthOperation

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
 /** SHA-256 helpers in the encodings KSeF expects. */
 final class Digest

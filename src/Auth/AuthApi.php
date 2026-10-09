@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Http\Transport;
 use DateTimeImmutable;
 use Exception;
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\RetryMode;
-use Ksef\Http\Transport;
 
 /**
  * Thin, typed wrapper over the `/auth/*` endpoints. Contains no flow logic; see {@see Authenticator}.

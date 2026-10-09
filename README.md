@@ -34,18 +34,18 @@ composer require b44x/ksef-php guzzlehttp/guzzle
 ```php
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
-use Ksef\Auth\CertificateCredentials;
-use Ksef\Auth\ContextIdentifier;
-use Ksef\Environment;
-use Ksef\Invoice\Address;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Seller;
-use Ksef\Invoice\VatRate;
-use Ksef\KsefClient;
-use Ksef\Support\Nip;
+use B4x\Ksef\Auth\CertificateCredentials;
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Environment;
+use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Seller;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\KsefClient;
+use B4x\Ksef\Support\Nip;
 
 $factory = new HttpFactory();
 $ksef = KsefClient::builder()
@@ -236,7 +236,7 @@ $page = $ksef->searchInvoices(InvoiceSubjectType::Buyer, InvoiceDateType::Perman
 
 ## Error handling
 
-All exceptions extend `Ksef\Exception\KsefException`.
+All exceptions extend `B4x\Ksef\Exception\KsefException`.
 
 | Exception | Meaning | Typical reaction |
 | --- | --- | --- |

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
-use Ksef\Http\ApiError;
+use B4x\Ksef\Http\ApiError;
 use Throwable;
 
 /**

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
-use Ksef\Exception\EncryptionException;
+use B4x\Ksef\Exception\EncryptionException;
 use SensitiveParameter;
 
 /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
 /** Purpose of a Ministry of Finance public key published at /security/public-key-certificates. */
 enum KeyUsage: string

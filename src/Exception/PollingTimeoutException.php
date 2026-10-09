@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
 /**
  * Polling stopped because the configured timeout or attempt limit was reached.

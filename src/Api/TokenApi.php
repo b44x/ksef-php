@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Http\ApiRequest;
-use Ksef\Http\AuthorizedClient;
-use Ksef\Http\Payload;
-use Ksef\Http\RetryMode;
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Http\ApiRequest;
+use B4x\Ksef\Http\AuthorizedClient;
+use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Http\RetryMode;
 
 /** Typed wrapper over the `/tokens` endpoints (KSeF token management). */
 final class TokenApi

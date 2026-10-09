@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Session;
+namespace B4x\Ksef\Session;
 
-use Ksef\Invoice\Fa3Serializer;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceDocument;
-use Ksef\Xml\SchemaValidator;
+use B4x\Ksef\Invoice\Fa3Serializer;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Xml\SchemaValidator;
 use Psr\Clock\ClockInterface;
 
 /**

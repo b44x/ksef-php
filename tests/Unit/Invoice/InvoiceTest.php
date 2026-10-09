@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Invoice;
+namespace B4x\Ksef\Tests\Unit\Invoice;
 
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Invoice\Annotations;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\CorrectedInvoice;
+use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Money;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\Support\Nip;
+use B4x\Ksef\Tests\Support\Fixtures;
 use DateTimeImmutable;
-use Ksef\Exception\ValidationException;
-use Ksef\Invoice\Annotations;
-use Ksef\Invoice\Buyer;
-use Ksef\Invoice\BuyerIdentifier;
-use Ksef\Invoice\CorrectedInvoice;
-use Ksef\Invoice\Correction;
-use Ksef\Invoice\Invoice;
-use Ksef\Invoice\InvoiceLine;
-use Ksef\Invoice\Money;
-use Ksef\Invoice\VatRate;
-use Ksef\Support\Nip;
-use Ksef\Tests\Support\Fixtures;
 use PHPUnit\Framework\TestCase;
 
 final class InvoiceTest extends TestCase

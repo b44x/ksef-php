@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Polling;
+namespace B4x\Ksef\Polling;
 
-use Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\ConfigurationException;
 
 /**
  * How long and how often an asynchronous KSeF operation is polled.
  *
  * Polling always ends: either the operation reaches a terminal state, or the timeout or the
- * attempt limit is reached and a {@see \Ksef\Exception\PollingTimeoutException} is thrown.
+ * attempt limit is reached and a {@see \B4x\Ksef\Exception\PollingTimeoutException} is thrown.
  */
 final readonly class PollingPolicy
 {

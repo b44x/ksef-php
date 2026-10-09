@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Exception;
+namespace B4x\Ksef\Exception;
 
-use Ksef\Http\ApiError;
+use B4x\Ksef\Http\ApiError;
 
 /** HTTP 429: a KSeF rate limit was exceeded and the automatic retry budget is exhausted. */
 final class RateLimitException extends ApiException

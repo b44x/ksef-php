@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Auth;
+namespace B4x\Ksef\Auth;
 
+use B4x\Ksef\Xml\SchemaValidator;
 use DOMDocument;
 use DOMElement;
-use Ksef\Xml\SchemaValidator;
 
 /**
  * Builds the `AuthTokenRequest` document that is signed for certificate authentication.
@@ -56,7 +56,7 @@ final class AuthTokenRequestXml
 
         $xml = $document->saveXML();
         if ($xml === false) {
-            throw new \Ksef\Exception\SerializationException('The authentication request could not be serialized.');
+            throw new \B4x\Ksef\Exception\SerializationException('The authentication request could not be serialized.');
         }
 
         $this->validator->assertValid($xml, $this->schemaPath);

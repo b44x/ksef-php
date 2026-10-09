@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Support;
+namespace B4x\Ksef\Tests\Support;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Request;

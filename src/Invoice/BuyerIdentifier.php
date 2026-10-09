@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Nip;
+use B4x\Ksef\Support\Nip;
 
 /** How the buyer is identified for tax purposes (`DaneIdentyfikacyjne` of `Podmiot2`). */
 final readonly class BuyerIdentifier

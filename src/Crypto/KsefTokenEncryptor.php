@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Crypto;
+namespace B4x\Ksef\Crypto;
 
 use SensitiveParameter;
 

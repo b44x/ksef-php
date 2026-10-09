@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Decimal;
+use B4x\Ksef\Support\Decimal;
 
 /** One invoice position (`FaWiersz`), priced net. */
 final readonly class InvoiceLine

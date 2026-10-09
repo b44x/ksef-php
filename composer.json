@@ -54,12 +54,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Ksef\\": "src/"
+            "B4x\\Ksef\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Ksef\\Tests\\": "tests/"
+            "B4x\\Ksef\\Tests\\": "tests/"
         }
     },
     "scripts": {

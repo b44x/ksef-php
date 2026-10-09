@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
 /** Identifies the invoice schema; sent to KSeF when a session is opened (`formCode`). */
 final readonly class FormCode

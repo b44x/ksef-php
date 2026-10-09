@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Xml;
+namespace B4x\Ksef\Xml;
 
-use Ksef\Exception\ConfigurationException;
-use Ksef\Exception\SerializationException;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\SerializationException;
 
 /** Validates XML documents against an XSD schema shipped with the library. */
 final class SchemaValidator

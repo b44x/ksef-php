@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
 /**
  * One page of search results.

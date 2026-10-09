@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Integration;
+namespace B4x\Ksef\Tests\Integration;
 
+use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\InvoiceRejectedException;
+use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Exception\PollingTimeoutException;
+use B4x\Ksef\Exception\SessionException;
+use B4x\Ksef\Exception\SubmissionOutcomeUnknownException;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Http\RetryPolicy;
+use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\KsefClient;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Session\SubmissionRecoveryPolicy;
+use B4x\Ksef\Tests\Support\FakeKsef;
+use B4x\Ksef\Tests\Support\Fixtures;
+use B4x\Ksef\Tests\Support\Http;
 use DateTimeImmutable;
-use Ksef\Exception\ApiException;
-use Ksef\Exception\ConfigurationException;
-use Ksef\Exception\InvoiceRejectedException;
-use Ksef\Exception\MalformedResponseException;
-use Ksef\Exception\PollingTimeoutException;
-use Ksef\Exception\SessionException;
-use Ksef\Exception\SubmissionOutcomeUnknownException;
-use Ksef\Exception\ValidationException;
-use Ksef\Http\RetryPolicy;
-use Ksef\Invoice\InvoiceDocument;
-use Ksef\KsefClient;
-use Ksef\Polling\PollingPolicy;
-use Ksef\Session\SubmissionRecoveryPolicy;
-use Ksef\Tests\Support\FakeKsef;
-use Ksef\Tests\Support\Fixtures;
-use Ksef\Tests\Support\Http;
 use Psr\Http\Message\RequestInterface;
 
 final class InvoiceSubmissionFlowTest extends KsefTestCase
@@ -212,7 +212,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
     public function testDuplicateAfterARecoveredSubmissionCountsAsStored(): void
     {
         $status = $this->invoiceStatus(440, 'Duplicate invoice', null, [], ['originalKsefNumber' => self::KSEF_NUMBER]);
-        $invoice = \Ksef\Status\SessionInvoice::fromPayload(new \Ksef\Http\Payload($status));
+        $invoice = \B4x\Ksef\Status\SessionInvoice::fromPayload(new \B4x\Ksef\Http\Payload($status));
 
         self::assertSame(self::KSEF_NUMBER, $invoice->resolvedKsefNumber());
         self::assertSame($invoice, $invoice->assertStored());
@@ -360,7 +360,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         $upo = '<Potwierdzenie>signed</Potwierdzenie>';
         $this->ksef->on('GET', '/sessions/sess-1/invoices/inv-1/upo', static fn() => Http::raw(200, $upo, ['x-ms-meta-hash' => base64_encode(hash('sha256', $upo, true))]));
 
-        $result = $this->client()->invoiceUpo(new \Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
+        $result = $this->client()->invoiceUpo(new \B4x\Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
 
         self::assertSame($upo, $result->xml);
         self::assertTrue($result->verifyHash());
@@ -372,7 +372,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         $this->ksef->on('GET', '/sessions/sess-1/invoices/inv-1/upo', static fn() => Http::raw(200, '<tampered/>', ['x-ms-meta-hash' => base64_encode(hash('sha256', 'something else', true))]));
 
         $this->expectException(MalformedResponseException::class);
-        $this->client()->invoiceUpo(new \Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
+        $this->client()->invoiceUpo(new \B4x\Ksef\Status\InvoiceSubmission('sess-1', 'inv-1', 'h'));
     }
 
     public function testDownloadedInvoicesAreHashChecked(): void
@@ -408,7 +408,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
     {
         $this->ksef->on('GET', '/invoices/ksef/' . self::KSEF_NUMBER, static fn() => Http::json(406, ['title' => 'Not Acceptable']));
 
-        $this->expectException(\Ksef\Exception\InvoiceNotAvailableException::class);
+        $this->expectException(\B4x\Ksef\Exception\InvoiceNotAvailableException::class);
         $this->client()->downloadInvoice(self::KSEF_NUMBER);
     }
 
@@ -440,8 +440,8 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         ]));
 
         $page = $this->client()->searchInvoices(
-            \Ksef\Api\InvoiceSubjectType::Buyer,
-            \Ksef\Api\InvoiceDateType::PermanentStorage,
+            \B4x\Ksef\Api\InvoiceSubjectType::Buyer,
+            \B4x\Ksef\Api\InvoiceDateType::PermanentStorage,
             new DateTimeImmutable('2026-05-01T00:00:00+02:00'),
             new DateTimeImmutable('2026-06-01T00:00:00Z'),
         );

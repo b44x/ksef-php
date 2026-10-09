@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Support;
+namespace B4x\Ksef\Tests\Support;
 
-use Ksef\Http\Sleeper;
+use B4x\Ksef\Http\Sleeper;
 
 /** Sleeper that advances a {@see MutableClock} instead of blocking, so time-based logic is deterministic. */
 final class ClockSleeper implements Sleeper

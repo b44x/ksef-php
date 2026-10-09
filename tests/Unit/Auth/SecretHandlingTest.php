@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Auth;
+namespace B4x\Ksef\Tests\Unit\Auth;
 
+use B4x\Ksef\Api\GeneratedToken;
+use B4x\Ksef\Auth\AllowedIps;
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Auth\KsefTokenCredentials;
+use B4x\Ksef\Auth\TokenInfo;
+use B4x\Ksef\Exception\ValidationException;
 use DateTimeImmutable;
-use Ksef\Api\GeneratedToken;
-use Ksef\Auth\AllowedIps;
-use Ksef\Auth\ContextIdentifier;
-use Ksef\Auth\KsefTokenCredentials;
-use Ksef\Auth\TokenInfo;
-use Ksef\Exception\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

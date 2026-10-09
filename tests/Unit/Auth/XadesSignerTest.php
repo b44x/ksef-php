@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Tests\Unit\Auth;
+namespace B4x\Ksef\Tests\Unit\Auth;
 
+use B4x\Ksef\Auth\AllowedIps;
+use B4x\Ksef\Auth\AuthTokenRequestXml;
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Auth\SubjectIdentifierType;
+use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Exception\SigningException;
+use B4x\Ksef\Signing\OpenSslXadesSigner;
+use B4x\Ksef\Tests\Support\MutableClock;
+use B4x\Ksef\Tests\Support\TestPki;
+use B4x\Ksef\Tests\Support\XmlDsigVerifier;
 use DOMDocument;
 use DOMXPath;
-use Ksef\Auth\AllowedIps;
-use Ksef\Auth\AuthTokenRequestXml;
-use Ksef\Auth\ContextIdentifier;
-use Ksef\Auth\SubjectIdentifierType;
-use Ksef\Exception\SerializationException;
-use Ksef\Exception\SigningException;
-use Ksef\Signing\OpenSslXadesSigner;
-use Ksef\Tests\Support\MutableClock;
-use Ksef\Tests\Support\TestPki;
-use Ksef\Tests\Support\XmlDsigVerifier;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
 use DateTimeImmutable;
 

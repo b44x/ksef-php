@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Polling;
+namespace B4x\Ksef\Polling;
 
-use Ksef\Exception\PollingTimeoutException;
-use Ksef\Http\NativeSleeper;
-use Ksef\Http\Sleeper;
-use Ksef\Support\SystemClock;
+use B4x\Ksef\Exception\PollingTimeoutException;
+use B4x\Ksef\Http\NativeSleeper;
+use B4x\Ksef\Http\Sleeper;
+use B4x\Ksef\Support\SystemClock;
 use Psr\Clock\ClockInterface;
 
 /** Repeats a status check until it reports a terminal state or the policy's budget is used up. */

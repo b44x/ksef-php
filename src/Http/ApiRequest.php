@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Http;
+namespace B4x\Ksef\Http;
 
 use SensitiveParameter;
 

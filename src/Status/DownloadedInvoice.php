@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Status;
+namespace B4x\Ksef\Status;
 
-use Ksef\Crypto\Digest;
+use B4x\Ksef\Crypto\Digest;
 
 /** An invoice XML retrieved from KSeF, with the hash KSeF reported for it. */
 final readonly class DownloadedInvoice

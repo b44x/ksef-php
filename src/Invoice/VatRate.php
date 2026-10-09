@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Decimal;
+use B4x\Ksef\Support\Decimal;
 
 /**
  * Tax rate or tax treatment of a line (`P_12`). Case values are the exact FA(3) codes.

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Invoice;
+namespace B4x\Ksef\Invoice;
 
-use Ksef\Support\Decimal;
+use B4x\Ksef\Support\Decimal;
 
 /** Net and tax sums for one header bucket (`P_13_x` / `P_14_x`). */
 final readonly class TotalsBucket

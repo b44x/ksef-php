@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ksef\Api;
+namespace B4x\Ksef\Api;
 
 /** Permissions that can be granted to a KSeF token. Values are the API names. */
 enum TokenPermission: string
