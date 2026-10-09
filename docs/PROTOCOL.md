@@ -107,6 +107,5 @@ HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a
 ## Known limitations
 
 - Deadlines of the offline modes are not calculated (they depend on announcements).
-- The typed invoice model covers FA(3) except the annotation for new means of transport (`NoweSrodkiTransportu`); use `InvoiceDocument::fromXml()` for it.
 - KSeF accepts invoices with attachments only in batch sessions (HTTP/processing status 415 otherwise); the SDK refuses them in interactive sessions.
 - Concurrency: token state is per `KsefClient` instance and process.

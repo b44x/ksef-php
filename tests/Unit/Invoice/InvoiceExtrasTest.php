@@ -28,6 +28,8 @@ use B4x\Ksef\Invoice\InvoiceLine;
 use B4x\Ksef\Invoice\LineProcedure;
 use B4x\Ksef\Invoice\MarginScheme;
 use B4x\Ksef\Invoice\Money;
+use B4x\Ksef\Invoice\NewMeansOfTransport;
+use B4x\Ksef\Invoice\NewTransportSupply;
 use B4x\Ksef\Invoice\PartialPayment;
 use B4x\Ksef\Invoice\Payment;
 use B4x\Ksef\Invoice\PaymentMethod;
@@ -197,6 +199,27 @@ final class InvoiceExtrasTest extends TestCase
         self::assertSame('Drone', $xpath->evaluate('string(//f:Transport[2]/f:OpisInnegoTransportu)'));
         self::assertSame('EUR', $xpath->evaluate('string(//f:WalutaUmowna)'));
         self::assertSame('1', $xpath->evaluate('string(//f:PodmiotPosredniczacy)'));
+    }
+
+    public function testNewMeansOfTransportPassTheSchema(): void
+    {
+        $car = NewMeansOfTransport::landVehicle(new DateTimeImmutable('2026-05-01'), 1, '120 km', vin: 'WVWZZZ1JZXW000001', brand: 'VW', model: 'Golf', color: 'red');
+        $boat = NewMeansOfTransport::vessel(new DateTimeImmutable('2026-05-02'), 2, '10 h', hullNumber: 'H-1');
+        $plane = NewMeansOfTransport::aircraft(new DateTimeImmutable('2026-05-03'), 3, '5 h');
+        $invoice = Fixtures::builder()
+            ->annotations(new Annotations(newTransport: new NewTransportSupply([$car, $boat, $plane], true)))
+            ->addLine(InvoiceLine::of('Car', '1', 'szt.', '1000.00', VatRate::Rate23))
+            ->addLine(InvoiceLine::of('Boat', '1', 'szt.', '1000.00', VatRate::Rate23))
+            ->addLine(InvoiceLine::of('Plane', '1', 'szt.', '1000.00', VatRate::Rate23))
+            ->build();
+
+        $xpath = $this->xpath($invoice);
+
+        self::assertSame('1', $xpath->evaluate('string(//f:NoweSrodkiTransportu/f:P_22)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:NoweSrodkiTransportu/f:P_42_5)'));
+        self::assertSame('WVWZZZ1JZXW000001', $xpath->evaluate('string(//f:NowySrodekTransportu[1]/f:P_22B1)'));
+        self::assertSame('H-1', $xpath->evaluate('string(//f:NowySrodekTransportu[2]/f:P_22C1)'));
+        self::assertSame('5 h', $xpath->evaluate('string(//f:NowySrodekTransportu[3]/f:P_22D)'));
     }
 
     public function testBrokenExtrasAreReported(): void

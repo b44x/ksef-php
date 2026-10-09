@@ -184,8 +184,8 @@ beforehand (`attachmentStatus()`); the SDK refuses to send them in an interactiv
 
 Additional parties (`Podmiot3`: recipient, payer, factor, ...) are added with `addThirdParty(ThirdParty::of(ThirdPartyRole::Recipient, ...))`.
 
-The typed model covers FA(3) except the "new means of transport" annotation (rare; send such invoices as raw XML,
-see below). Seller/buyer data before a correction (`Podmiot1K`/`Podmiot2K`) go into `Correction`, transports and the
+The typed model covers every part of FA(3), including the intra-Community supply of new means of transport
+(`Annotations::$newTransport`). Seller/buyer data before a correction (`Podmiot1K`/`Podmiot2K`) go into `Correction`, transports and the
 contractual currency into `TransactionTerms`, EORI numbers, the JST/VAT-group flags and correspondence addresses
 into `Seller` and `Buyer`.
 

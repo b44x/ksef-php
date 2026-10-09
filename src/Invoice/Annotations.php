@@ -27,6 +27,8 @@ final readonly class Annotations
         public bool $invoiceUnderArt109 = false,
         /** Excise refund information for farmers (`ZwrotAkcyzy`). */
         public bool $exciseRefund = false,
+        /** Intra-Community supply of new means of transport (`NoweSrodkiTransportu`). */
+        public ?NewTransportSupply $newTransport = null,
     ) {}
 
     public static function none(): self

@@ -67,6 +67,7 @@ final class InvoiceValidator
         $this->thirdParties();
         $this->authorizedEntity();
         $this->extras();
+        $this->newTransport();
 
         $this->lines();
         $this->taxTreatment();
@@ -364,6 +365,35 @@ final class InvoiceValidator
                 $this->add($label . ' needs a buyer key that links it to the buyer data of the correction.');
             } else {
                 $this->text($label . ' key', $before->buyerKey, 32);
+            }
+        }
+    }
+
+    private function newTransport(): void
+    {
+        $supply = $this->invoice->annotations->newTransport;
+        if ($supply === null) {
+            return;
+        }
+        if (\count($supply->vehicles) > 10_000) {
+            $this->add('At most 10,000 new means of transport can be listed.');
+        }
+        foreach ($supply->vehicles as $index => $vehicle) {
+            $label = \sprintf('New means of transport %d', $index + 1);
+            $this->date($label . ' admission date', $vehicle->admittedOn);
+            if ($vehicle->lineNumber < 1 || $vehicle->lineNumber > \count($this->invoice->lines)) {
+                $this->add($label . ' refers to an invoice line that does not exist.');
+            }
+            foreach (['brand' => $vehicle->brand, 'model' => $vehicle->model, 'colour' => $vehicle->color, 'registration number' => $vehicle->registrationNumber, 'production year' => $vehicle->productionYear] as $field => $value) {
+                if ($value !== null) {
+                    $this->text($label . ' ' . $field, $value, 240);
+                }
+            }
+            foreach ($vehicle->specific as $field => $value) {
+                $this->text($label . ' ' . $field, $value, 240);
+            }
+            if (\count(array_intersect_key($vehicle->specific, ['P_22B1' => 1, 'P_22B2' => 1, 'P_22B3' => 1, 'P_22B4' => 1])) > 1) {
+                $this->add($label . ' can carry only one of: VIN, body, chassis or frame number.');
             }
         }
     }

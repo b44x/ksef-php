@@ -314,7 +314,26 @@ final class Fa3Serializer
             $this->el($d, $exemption, 'P_19N', '1');
         }
 
-        $this->el($d, $this->el($d, $node, 'NoweSrodkiTransportu'), 'P_22N', '1');
+        $transport = $this->el($d, $node, 'NoweSrodkiTransportu');
+        if ($a->newTransport === null) {
+            $this->el($d, $transport, 'P_22N', '1');
+        } else {
+            $this->el($d, $transport, 'P_22', '1');
+            $this->el($d, $transport, 'P_42_5', $a->newTransport->obligationUnderArt42 ? '1' : '2');
+            foreach ($a->newTransport->vehicles as $vehicle) {
+                $node22 = $this->el($d, $transport, 'NowySrodekTransportu');
+                $this->el($d, $node22, 'P_22A', $vehicle->admittedOn->format('Y-m-d'));
+                $this->el($d, $node22, 'P_NrWierszaNST', (string) $vehicle->lineNumber);
+                foreach (['P_22BMK' => $vehicle->brand, 'P_22BMD' => $vehicle->model, 'P_22BK' => $vehicle->color, 'P_22BNR' => $vehicle->registrationNumber, 'P_22BRP' => $vehicle->productionYear] as $field => $value) {
+                    if ($value !== null) {
+                        $this->el($d, $node22, $field, $value);
+                    }
+                }
+                foreach ($vehicle->specific as $field => $value) {
+                    $this->el($d, $node22, $field, $value);
+                }
+            }
+        }
         $this->el($d, $node, 'P_23', $a->triangular ? '1' : '2');
         $margin = $this->el($d, $node, 'PMarzy');
         if ($a->marginScheme !== null) {
