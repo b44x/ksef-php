@@ -87,6 +87,10 @@ final class OnlineSession
             throw new SessionException('The invoice schema differs from the schema declared when the session was opened.');
         }
 
+        if ($options?->correctedInvoiceHash === null && $document->hasAttachment()) {
+            throw new ValidationException('KSeF accepts invoices with an attachment only in batch sessions: use KsefClient::sendBatch().', ['Attachments are not allowed in interactive sessions.']);
+        }
+
         $encrypted = $this->encryption->encrypt($document->xml);
         $payload = [
             'invoiceHash' => $document->hash(),

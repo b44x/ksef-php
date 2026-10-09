@@ -63,6 +63,23 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         self::assertSame('Bearer access-1', $send->getHeaderLine('Authorization'));
     }
 
+    public function testInvoicesWithAttachmentsAreRefusedInInteractiveSessionsBeforeAnythingIsSent(): void
+    {
+        $this->routeSession();
+        $invoice = Fixtures::builder()
+            ->addLine(\B4x\Ksef\Invoice\InvoiceLine::of('Service', '1', 'szt.', '10.00', \B4x\Ksef\Invoice\VatRate::Rate23))
+            ->attachment(new \B4x\Ksef\Invoice\Attachment([new \B4x\Ksef\Invoice\AttachmentBlock(['Period' => '2026-05'], 'Statement', ['text'])]))
+            ->build();
+
+        try {
+            $this->client()->sendInvoice($invoice);
+            self::fail('Expected ValidationException');
+        } catch (ValidationException $e) {
+            self::assertStringContainsString('only in batch sessions', $e->getMessage());
+        }
+        self::assertCount(0, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'));
+    }
+
     public function testWaitingForTheVerdictPollsUntilAccepted(): void
     {
         $this->routeSession();

@@ -101,6 +101,16 @@ final readonly class InvoiceDocument
         return new self($xml, $formCode);
     }
 
+    /**
+     * Whether the document carries a structured attachment (`Zalacznik`). KSeF accepts such invoices only in batch
+     * sessions (and in the interactive session for a technical correction of an offline invoice).
+     */
+    public function hasAttachment(): bool
+    {
+        return $this->formCode->equals(FormCode::fa3())
+            && SafeXml::load($this->xml)->getElementsByTagNameNS(FormCode::FA3_NAMESPACE, 'Zalacznik')->length > 0;
+    }
+
     /** SHA-256 of the XML, Base64 encoded, as KSeF expects. */
     public function hash(): string
     {

@@ -25,6 +25,15 @@ final class InvoiceBuilder
     private array $thirdParties = [];
 
     private ?AuthorizedEntity $authorizedEntity = null;
+
+    /** @var list<AdditionalInfo> */
+    private array $additionalInfo = [];
+
+    /** @var list<string> */
+    private array $warehouseDocuments = [];
+    private ?AdditionalSettlement $additionalSettlement = null;
+    private ?TransactionTerms $terms = null;
+    private ?Attachment $attachment = null;
     /** @var list<InvoiceLine> */
     private array $lines = [];
     private InvoiceType $type = InvoiceType::Standard;
@@ -105,6 +114,45 @@ final class InvoiceBuilder
     public function authorizedEntity(AuthorizedEntity $entity): self
     {
         $this->authorizedEntity = $entity;
+
+        return $this;
+    }
+
+    /** A free key/value remark (`DodatkowyOpis`); pass a 1-based line number to tie it to one line. */
+    public function addInfo(string $key, string $value, ?int $lineNumber = null): self
+    {
+        $this->additionalInfo[] = new AdditionalInfo($key, $value, $lineNumber);
+
+        return $this;
+    }
+
+    /** The number of a warehouse issue document (`WZ`) related to the invoice. */
+    public function addWarehouseDocument(string $number): self
+    {
+        $this->warehouseDocuments[] = $number;
+
+        return $this;
+    }
+
+    /** Extra charges and deductions shown beside the total (`Rozliczenie`). */
+    public function additionalSettlement(AdditionalSettlement $settlement): self
+    {
+        $this->additionalSettlement = $settlement;
+
+        return $this;
+    }
+
+    public function terms(TransactionTerms $terms): self
+    {
+        $this->terms = $terms;
+
+        return $this;
+    }
+
+    /** The structured attachment; KSeF needs the taxpayer's prior consent for it. */
+    public function attachment(Attachment $attachment): self
+    {
+        $this->attachment = $attachment;
 
         return $this;
     }
@@ -224,6 +272,11 @@ final class InvoiceBuilder
             $this->settlement,
             $this->thirdParties,
             $this->authorizedEntity,
+            $this->additionalInfo,
+            $this->warehouseDocuments,
+            $this->additionalSettlement,
+            $this->terms,
+            $this->attachment,
         );
     }
 

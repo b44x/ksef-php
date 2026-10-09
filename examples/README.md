@@ -32,6 +32,7 @@ can use any PSR-18 client.
 | 09 | `09-error-handling.php` | The failures you will meet and what to do about each |
 | 10 | `10-offline-invoicing.php` | Issuing without KSeF: QR codes, late delivery, technical correction |
 | 11 | `11-farmer-rr-invoice.php` | Flat-rate farmer purchase invoices (FA_RR) and their correction |
+| 12 | `12-rich-invoice.php` | Optional extras: discounts, remarks, partial payments, terms, attachment, third party |
 
 Start with 01, then 04 and 09: they cover what matters most in production.
 

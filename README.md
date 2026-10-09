@@ -37,7 +37,7 @@ php examples/01-send-invoice.php
 ```
 
 This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
-use Guzzle, a dev dependency). See [examples/](examples/README.md) for the eleven guided examples and
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the twelve guided examples and
 [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
 
 ## Quick start
@@ -175,10 +175,17 @@ credit notes) as verified raw XML: `InvoiceDocument::fromXml($ublXml)` recognise
 and checks it against the bundled schema. The PEF path is validated against the official XSD but, unlike FA(3) and
 FA_RR, was not exercised end to end against KSeF (it needs a Peppol service provider setup).
 
+**Optional extras** (all in `examples/12-rich-invoice.php`): `InvoiceLine::withDiscount()`, `deliveredOn()`,
+`withProcedure()`, `withExcise()`; `addInfo()` remarks, `addWarehouseDocument()`; `additionalSettlement()` (charges and
+deductions); `Payment::partlyPaid()`, early-payment discount and other payment methods; `terms()` (contracts, orders,
+batch numbers, delivery terms); margin schemes and related-party flags in `Annotations`; and a structured
+`attachment()`. KSeF accepts attachments only in batch sessions and only from taxpayers who gave their consent
+beforehand (`attachmentStatus()`); the SDK refuses to send them in an interactive session.
+
 Additional parties (`Podmiot3`: recipient, payer, factor, ...) are added with `addThirdParty(ThirdParty::of(ThirdPartyRole::Recipient, ...))`.
 
-Not modelled yet (send them as raw XML, see below): authorised entities, attachments, transport conditions,
-per-line discounts.
+Not modelled (send these as raw XML, see below): transport details of the transaction terms, new means of transport,
+corrections of the seller/buyer data (`Podmiot1K`/`Podmiot2K`) and the contractual currency.
 
 Special kinds:
 

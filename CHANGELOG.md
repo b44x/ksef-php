@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional invoice extras: line discounts, delivery dates, procedure markers and excise (`InvoiceLine::with*()`), `addInfo()`, `addWarehouseDocument()`, `additionalSettlement()`, partial payments / early-payment discount / other payment methods (`Payment`), `TransactionTerms`, margin scheme and related-party flags (`Annotations`), structured attachments (`Attachment`; batch sessions only, the SDK refuses them in interactive sessions) and `TestEnvironment::allowAttachments()`.
 - Collective identifiers (`createCollectiveIdentifier()`, `collectiveIdentifiers()`, `collectiveIdentifierInvoices()`, `collectiveIdentifiersOf()`), `peppolProviders()` and `subjectLimits()`: every endpoint of the KSeF API 2.0 OpenAPI specification is now covered.
 - FA_RR (1) farmer purchase invoices: `RrInvoice` (with `RrInvoiceBuilder`, `RrLine`, `RrParty`, `RrPayment`, `RrCorrection`) including corrections (`KOR_VAT_RR`) and the amount in Polish words (`PolishAmountInWords`).
 - Peppol documents (PEF (3), PEF_KOR (3)) and FA_RR as raw XML through `InvoiceDocument::fromXml()` with bundled schemas; batches check that all invoices share the declared form.
@@ -23,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `B4x\Ksef\Testing\TestEnvironment::createTaxpayer()`: creates a disposable taxpayer with a self-signed certificate on the KSeF TEST environment (refuses any other environment).
-- Eleven runnable, zero-configuration examples (`examples/`), an examples guide and `docs/GETTING-STARTED.md`.
+- Twelve runnable, zero-configuration examples (`examples/`), an examples guide and `docs/GETTING-STARTED.md`.
 - Invoice kinds: advance (`ZAL`, `AdvancePayment`), settlement (`ROZ`, `Settlement`) and simplified (`UPR`); `Decimal::dividedBy()`.
 - Invoice export (`exportInvoices()`): encrypted package parts are downloaded, verified and decrypted into a ZIP file.
 - Permissions: `grantPersonPermissions()`, `grantEntityPermissions()`, `revokePermission()`, `personPermissions()`, `myPermissions()`, `entityPermissions()`, `PermissionOperationException`.

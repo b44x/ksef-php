@@ -65,6 +65,7 @@ final class InvoiceValidator
         $this->buyerIdentifier($i->buyer->identifier);
         $this->thirdParties();
         $this->authorizedEntity();
+        $this->extras();
 
         $this->lines();
         $this->taxTreatment();
@@ -111,6 +112,23 @@ final class InvoiceValidator
             }
             if ($line->unitNetPrice->currency !== $i->currency) {
                 $this->add(\sprintf('%s: the price currency %s differs from the invoice currency %s.', $label, $line->unitNetPrice->currency, $i->currency));
+            }
+            if ($line->discount !== null) {
+                if ($line->discount->currency !== $i->currency) {
+                    $this->add($label . ': the discount currency differs from the invoice currency.');
+                }
+                if ($line->discount->isNegative()) {
+                    $this->add($label . ': the discount must not be negative.');
+                }
+                if ($line->discount->amount->scale() > 8 && !$line->discount->amount->equals($line->discount->amount->roundTo(8))) {
+                    $this->add($label . ': the discount allows at most 8 decimal places.');
+                }
+            }
+            if ($line->excise !== null && ($line->excise->isNegative() || $line->excise->currency !== $i->currency)) {
+                $this->add($label . ': the excise amount must not be negative and must be in the invoice currency.');
+            }
+            if ($line->deliveryDate !== null) {
+                $this->date($label . ' delivery date', $line->deliveryDate);
             }
             if ($line->state === LineState::Before) {
                 ++$before;
@@ -302,6 +320,168 @@ final class InvoiceValidator
         $totals = $this->invoice->totals();
         if ($totals->gross()->abs()->compare($limit) > 0) {
             $this->add('The invoice total exceeds the maximum amount supported by the schema.');
+        }
+    }
+
+    private function extras(): void
+    {
+        $i = $this->invoice;
+
+        if (\count($i->warehouseDocuments) > 1000) {
+            $this->add('At most 1000 warehouse documents can be listed.');
+        }
+        foreach ($i->warehouseDocuments as $number) {
+            $this->text('Warehouse document number', $number, 256);
+        }
+        if (\count($i->additionalInfo) > 10_000) {
+            $this->add('At most 10,000 additional remarks are allowed.');
+        }
+        foreach ($i->additionalInfo as $index => $info) {
+            $this->text(\sprintf('Remark %d key', $index + 1), $info->key, 256);
+            $this->text(\sprintf('Remark %d value', $index + 1), $info->value, 256);
+            if ($info->lineNumber !== null && ($info->lineNumber < 1 || $info->lineNumber > \count($i->lines))) {
+                $this->add(\sprintf('Remark %d refers to line %d, which does not exist.', $index + 1, $info->lineNumber));
+            }
+        }
+
+        $settlement = $i->additionalSettlement;
+        if ($settlement !== null) {
+            if (\count($settlement->charges) > 100 || \count($settlement->deductions) > 100) {
+                $this->add('At most 100 charges and 100 deductions are allowed.');
+            }
+            foreach (['Charge' => $settlement->charges, 'Deduction' => $settlement->deductions] as $kind => $adjustments) {
+                foreach ($adjustments as $index => $adjustment) {
+                    $this->text(\sprintf('%s %d reason', $kind, $index + 1), $adjustment->reason, 256);
+                    if ($adjustment->amount->currency !== $i->currency || !$adjustment->amount->amount->isPositive()) {
+                        $this->add(\sprintf('%s %d must be a positive amount in the invoice currency.', $kind, $index + 1));
+                    }
+                }
+            }
+        }
+
+        $payment = $i->payment;
+        if ($payment !== null) {
+            if ($payment->partialPayments !== [] && $payment->paidOn !== null) {
+                $this->add('Give either the payment date (paid in full) or the partial payments, not both.');
+            }
+            if (\count($payment->partialPayments) > 100) {
+                $this->add('At most 100 partial payments are allowed.');
+            }
+            foreach ($payment->partialPayments as $index => $part) {
+                $this->date(\sprintf('Partial payment %d date', $index + 1), $part->paidOn, '2016-07-01');
+                if ($part->amount->currency !== $i->currency || !$part->amount->amount->isPositive()) {
+                    $this->add(\sprintf('Partial payment %d must be a positive amount in the invoice currency.', $index + 1));
+                }
+            }
+            if ($payment->method !== null && $payment->otherMethod !== null) {
+                $this->add('Give either a payment method or a description of another method, not both.');
+            }
+            if ($payment->otherMethod !== null) {
+                $this->text('Payment method description', $payment->otherMethod, 256);
+            }
+            if (($payment->skontoConditions === null) !== ($payment->skontoAmount === null)) {
+                $this->add('The early-payment discount needs both its conditions and its amount.');
+            }
+            if ($payment->skontoConditions !== null) {
+                $this->text('Discount conditions', $payment->skontoConditions, 256);
+                $this->text('Discount amount', (string) $payment->skontoAmount, 256);
+            }
+        }
+
+        $terms = $i->terms;
+        if ($terms !== null) {
+            if (\count($terms->contracts) > 100 || \count($terms->orders) > 100 || \count($terms->batchNumbers) > 1000) {
+                $this->add('Too many contracts, orders or batch numbers.');
+            }
+            foreach (['Contract' => $terms->contracts, 'Order' => $terms->orders] as $kind => $references) {
+                foreach ($references as $index => $reference) {
+                    if ($reference->number !== null) {
+                        $this->text(\sprintf('%s %d number', $kind, $index + 1), $reference->number, 256);
+                    }
+                    if ($reference->date !== null) {
+                        $this->date(\sprintf('%s %d date', $kind, $index + 1), $reference->date);
+                    }
+                }
+            }
+            foreach ($terms->batchNumbers as $batch) {
+                $this->text('Batch number', $batch, 256);
+            }
+            if ($terms->deliveryTerms !== null) {
+                $this->text('Delivery terms', $terms->deliveryTerms, 256);
+            }
+        }
+
+        if ($i->attachment !== null) {
+            $this->attachment($i->attachment);
+        }
+    }
+
+    private function attachment(Attachment $attachment): void
+    {
+        if (\count($attachment->blocks) > 1000) {
+            $this->add('An attachment can have at most 1000 data blocks.');
+        }
+        foreach ($attachment->blocks as $b => $block) {
+            $label = \sprintf('Attachment block %d', $b + 1);
+            if ($block->header !== null) {
+                $this->text($label . ' header', $block->header, 512);
+            }
+            if ($block->metadata === [] || \count($block->metadata) > 1000) {
+                $this->add($label . ' needs 1 to 1000 metadata entries (key/value descriptions).');
+            }
+            if (\count($block->paragraphs) > 10) {
+                $this->add($label . ' can have at most 10 paragraphs.');
+            }
+            foreach ($block->paragraphs as $paragraph) {
+                $this->text($label . ' paragraph', $paragraph, 512);
+            }
+            foreach ($block->metadata as $key => $value) {
+                $this->text($label . ' metadata key', (string) $key, 256);
+                $this->text($label . ' metadata value', $value, 256);
+            }
+            foreach ($block->tables as $t => $table) {
+                $tableLabel = \sprintf('%s table %d', $label, $t + 1);
+                $width = \count($table->columns);
+                if ($width < 1 || $width > 20) {
+                    $this->add($tableLabel . ' needs 1 to 20 columns.');
+                }
+                foreach ($table->columns as $column) {
+                    $this->text($tableLabel . ' column name', $column->name, 256);
+                }
+                if (\count($table->rows) > 1000) {
+                    $this->add($tableLabel . ' can have at most 1000 rows.');
+                }
+                foreach ($table->rows as $r => $row) {
+                    if (\count($row) !== $width) {
+                        $this->add(\sprintf('%s row %d has %d cells for %d columns.', $tableLabel, $r + 1, \count($row), $width));
+                    }
+                    foreach ($row as $cell) {
+                        $this->cell($tableLabel, $cell);
+                    }
+                }
+                if ($table->totals !== null) {
+                    if (\count($table->totals) !== $width) {
+                        $this->add(\sprintf('%s summary has %d cells for %d columns.', $tableLabel, \count($table->totals), $width));
+                    }
+                    foreach ($table->totals as $cell) {
+                        $this->cell($tableLabel, $cell);
+                    }
+                }
+                if ($table->description !== null) {
+                    $this->text($tableLabel . ' description', $table->description, 512);
+                }
+                foreach ($table->metadata as $key => $value) {
+                    $this->text($tableLabel . ' metadata key', (string) $key, 256);
+                    $this->text($tableLabel . ' metadata value', $value, 256);
+                }
+            }
+        }
+    }
+
+    private function cell(string $label, string $value): void
+    {
+        if (mb_strlen($value, 'UTF-8') > 256) {
+            $this->add($label . ' has a cell longer than 256 characters.');
         }
     }
 

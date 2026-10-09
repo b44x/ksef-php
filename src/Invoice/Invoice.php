@@ -27,9 +27,17 @@ final readonly class Invoice
     /** @var list<ThirdParty> */
     public array $thirdParties;
 
+    /** @var list<AdditionalInfo> */
+    public array $additionalInfo;
+
+    /** @var list<string> */
+    public array $warehouseDocuments;
+
     /**
      * @param list<InvoiceLine> $lines
      * @param list<ThirdParty> $thirdParties additional parties (`Podmiot3`), up to 100
+     * @param list<AdditionalInfo> $additionalInfo free key/value remarks (`DodatkowyOpis`)
+     * @param list<string> $warehouseDocuments numbers of the warehouse issue documents (`WZ`)
      * @param Decimal|null $exchangeRate rate to PLN for foreign-currency invoices (`KursWalutyZ`)
      *
      * @throws ValidationException
@@ -53,9 +61,16 @@ final readonly class Invoice
         public ?Settlement $settlement = null,
         array $thirdParties = [],
         public ?AuthorizedEntity $authorizedEntity = null,
+        array $additionalInfo = [],
+        array $warehouseDocuments = [],
+        public ?AdditionalSettlement $additionalSettlement = null,
+        public ?TransactionTerms $terms = null,
+        public ?Attachment $attachment = null,
     ) {
         $this->lines = array_values($lines);
         $this->thirdParties = array_values($thirdParties);
+        $this->additionalInfo = array_values($additionalInfo);
+        $this->warehouseDocuments = array_values($warehouseDocuments);
 
         $violations = InvoiceValidator::violations($this);
         if ($violations !== []) {

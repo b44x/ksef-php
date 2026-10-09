@@ -71,6 +71,27 @@ final class TestEnvironment
     }
 
     /**
+     * Lets a test taxpayer send invoices with attachments (the consent real taxpayers give the Ministry beforehand).
+     *
+     * @throws ConfigurationException when called for anything but the TEST environment
+     * @throws ApiException when KSeF refuses
+     */
+    public static function allowAttachments(
+        Nip $nip,
+        ClientInterface $http,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        Environment $environment = Environment::Test,
+    ): void {
+        if ($environment !== Environment::Test) {
+            throw new ConfigurationException('Attachment consent can only be simulated on the TEST environment.');
+        }
+
+        (new Transport($environment->baseUrl(), $http, $requestFactory, $streamFactory, RetryPolicy::none()))
+            ->send(ApiRequest::post('/testdata/attachment', ['nip' => $nip->value], null, RetryMode::Never));
+    }
+
+    /**
      * @return array{string, string} certificate PEM and private key PEM
      */
     private static function selfSignedPersonalCertificate(string $nip): array

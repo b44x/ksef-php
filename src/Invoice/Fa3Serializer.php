@@ -49,6 +49,9 @@ final class Fa3Serializer
             $info = $this->el($document, $footer, 'Informacje');
             $this->el($document, $info, 'StopkaFaktury', $invoice->footer);
         }
+        if ($invoice->attachment !== null) {
+            $this->attachment($document, $root, $invoice->attachment);
+        }
 
         $xml = $document->saveXML();
         if ($xml === false) {
@@ -175,6 +178,9 @@ final class Fa3Serializer
             $this->el($d, $fa, 'P_1M', $invoice->issuePlace);
         }
         $this->el($d, $fa, 'P_2', $invoice->number);
+        foreach ($invoice->warehouseDocuments as $wz) {
+            $this->el($d, $fa, 'WZ', $wz);
+        }
         $p6 = $invoice->type->isAdvance() ? $invoice->advance?->receivedOn : $invoice->saleDate;
         if ($p6 !== null) {
             $this->el($d, $fa, 'P_6', $p6->format('Y-m-d'));
@@ -202,6 +208,21 @@ final class Fa3Serializer
             $this->correction($d, $fa, $invoice->correction);
         }
 
+        if ($invoice->annotations->invoiceUnderArt109) {
+            $this->el($d, $fa, 'FP', '1');
+        }
+        if ($invoice->annotations->relatedParties) {
+            $this->el($d, $fa, 'TP', '1');
+        }
+        foreach ($invoice->additionalInfo as $info) {
+            $node = $this->el($d, $fa, 'DodatkowyOpis');
+            if ($info->lineNumber !== null) {
+                $this->el($d, $node, 'NrWiersza', (string) $info->lineNumber);
+            }
+            $this->el($d, $node, 'Klucz', $info->key);
+            $this->el($d, $node, 'Wartosc', $info->value);
+        }
+
         if ($invoice->settlement !== null) {
             foreach ($invoice->settlement->advanceInvoices as $reference) {
                 $node = $this->el($d, $fa, 'FakturaZaliczkowa');
@@ -214,14 +235,24 @@ final class Fa3Serializer
             }
         }
 
+        if ($invoice->annotations->exciseRefund) {
+            $this->el($d, $fa, 'ZwrotAkcyzy', '1');
+        }
+
         if (!$invoice->type->isAdvance()) {
             foreach ($invoice->lines as $index => $line) {
                 $this->line($d, $fa, $index + 1, $line);
             }
         }
 
+        if ($invoice->additionalSettlement !== null) {
+            $this->additionalSettlement($d, $fa, $invoice);
+        }
         if ($invoice->payment !== null) {
-            $this->payment($d, $fa, $invoice->payment);
+            $this->payment($d, $fa, $invoice->payment, $invoice->amountDue());
+        }
+        if ($invoice->terms !== null) {
+            $this->terms($d, $fa, $invoice->terms);
         }
         if ($invoice->type->isAdvance()) {
             $this->order($d, $fa, $invoice);
@@ -246,8 +277,14 @@ final class Fa3Serializer
         }
 
         $this->el($d, $this->el($d, $node, 'NoweSrodkiTransportu'), 'P_22N', '1');
-        $this->el($d, $node, 'P_23', '2');
-        $this->el($d, $this->el($d, $node, 'PMarzy'), 'P_PMarzyN', '1');
+        $this->el($d, $node, 'P_23', $a->triangular ? '1' : '2');
+        $margin = $this->el($d, $node, 'PMarzy');
+        if ($a->marginScheme !== null) {
+            $this->el($d, $margin, 'P_PMarzy', '1');
+            $this->el($d, $margin, $a->marginScheme->value, '1');
+        } else {
+            $this->el($d, $margin, 'P_PMarzyN', '1');
+        }
     }
 
     private function correction(DOMDocument $d, DOMElement $fa, Correction $correction): void
@@ -273,6 +310,9 @@ final class Fa3Serializer
     {
         $node = $this->el($d, $fa, 'FaWiersz');
         $this->el($d, $node, 'NrWierszaFa', (string) $number);
+        if ($line->deliveryDate !== null) {
+            $this->el($d, $node, 'P_6A', $line->deliveryDate->format('Y-m-d'));
+        }
         $this->el($d, $node, 'P_7', $line->name);
         if ($line->internalCode !== null) {
             $this->el($d, $node, 'Indeks', $line->internalCode);
@@ -291,10 +331,19 @@ final class Fa3Serializer
         }
         $this->el($d, $node, 'P_8B', $line->quantity->toTrimmedString());
         $this->el($d, $node, 'P_9A', $line->unitNetPrice->amount->toTrimmedString(2));
+        if ($line->discount !== null) {
+            $this->el($d, $node, 'P_10', $line->discount->amount->toTrimmedString(2));
+        }
         $this->el($d, $node, 'P_11', $line->netAmount()->toString(2));
         $this->el($d, $node, 'P_12', $line->vatRate->value);
+        if ($line->excise !== null) {
+            $this->el($d, $node, 'KwotaAkcyzy', $line->excise->amount->toString(2));
+        }
         if ($line->gtu !== null) {
             $this->el($d, $node, 'GTU', $line->gtu->value);
+        }
+        if ($line->procedure !== null) {
+            $this->el($d, $node, 'Procedura', $line->procedure->value);
         }
         if ($line->state === LineState::Before) {
             $this->el($d, $node, 'StanPrzed', '1');
@@ -326,10 +375,20 @@ final class Fa3Serializer
         }
     }
 
-    private function payment(DOMDocument $d, DOMElement $fa, Payment $payment): void
+    private function payment(DOMDocument $d, DOMElement $fa, Payment $payment, Decimal $invoiceTotal): void
     {
         $node = $this->el($d, $fa, 'Platnosc');
-        if ($payment->paidOn !== null) {
+        if ($payment->partialPayments !== []) {
+            $this->el($d, $node, 'ZnacznikZaplatyCzesciowej', $payment->partialPaymentsComplete($invoiceTotal) ? '2' : '1');
+            foreach ($payment->partialPayments as $part) {
+                $row = $this->el($d, $node, 'ZaplataCzesciowa');
+                $this->el($d, $row, 'KwotaZaplatyCzesciowej', $part->amount->amount->roundTo(2)->toString(2));
+                $this->el($d, $row, 'DataZaplatyCzesciowej', $part->paidOn->format('Y-m-d'));
+                if ($part->method !== null) {
+                    $this->el($d, $row, 'FormaPlatnosci', (string) $part->method->value);
+                }
+            }
+        } elseif ($payment->paidOn !== null) {
             $this->el($d, $node, 'Zaplacono', '1');
             $this->el($d, $node, 'DataZaplaty', $payment->paidOn->format('Y-m-d'));
         }
@@ -338,9 +397,128 @@ final class Fa3Serializer
         }
         if ($payment->method !== null) {
             $this->el($d, $node, 'FormaPlatnosci', (string) $payment->method->value);
+        } elseif ($payment->otherMethod !== null) {
+            $this->el($d, $node, 'PlatnoscInna', '1');
+            $this->el($d, $node, 'OpisPlatnosci', $payment->otherMethod);
         }
         foreach ($payment->bankAccounts as $account) {
             $this->el($d, $this->el($d, $node, 'RachunekBankowy'), 'NrRB', $account);
+        }
+        if ($payment->skontoConditions !== null && $payment->skontoAmount !== null) {
+            $skonto = $this->el($d, $node, 'Skonto');
+            $this->el($d, $skonto, 'WarunkiSkonta', $payment->skontoConditions);
+            $this->el($d, $skonto, 'WysokoscSkonta', $payment->skontoAmount);
+        }
+    }
+
+    private function additionalSettlement(DOMDocument $d, DOMElement $fa, Invoice $invoice): void
+    {
+        $settlement = $invoice->additionalSettlement;
+        if ($settlement === null) {
+            return;
+        }
+        $node = $this->el($d, $fa, 'Rozliczenie');
+        foreach ($settlement->charges as $charge) {
+            $row = $this->el($d, $node, 'Obciazenia');
+            $this->el($d, $row, 'Kwota', $charge->amount->amount->roundTo(2)->toString(2));
+            $this->el($d, $row, 'Powod', $charge->reason);
+        }
+        if ($settlement->charges !== []) {
+            $this->el($d, $node, 'SumaObciazen', $settlement->totalCharges()->toString(2));
+        }
+        foreach ($settlement->deductions as $deduction) {
+            $row = $this->el($d, $node, 'Odliczenia');
+            $this->el($d, $row, 'Kwota', $deduction->amount->amount->roundTo(2)->toString(2));
+            $this->el($d, $row, 'Powod', $deduction->reason);
+        }
+        if ($settlement->deductions !== []) {
+            $this->el($d, $node, 'SumaOdliczen', $settlement->totalDeductions()->toString(2));
+        }
+        $due = $invoice->amountDue()->add($settlement->totalCharges())->subtract($settlement->totalDeductions());
+        if ($due->isNegative()) {
+            $this->el($d, $node, 'DoRozliczenia', $due->abs()->toString(2));
+        } else {
+            $this->el($d, $node, 'DoZaplaty', $due->toString(2));
+        }
+    }
+
+    private function terms(DOMDocument $d, DOMElement $fa, TransactionTerms $terms): void
+    {
+        $node = $this->el($d, $fa, 'WarunkiTransakcji');
+        foreach ($terms->contracts as $contract) {
+            $row = $this->el($d, $node, 'Umowy');
+            if ($contract->date !== null) {
+                $this->el($d, $row, 'DataUmowy', $contract->date->format('Y-m-d'));
+            }
+            if ($contract->number !== null) {
+                $this->el($d, $row, 'NrUmowy', $contract->number);
+            }
+        }
+        foreach ($terms->orders as $order) {
+            $row = $this->el($d, $node, 'Zamowienia');
+            if ($order->date !== null) {
+                $this->el($d, $row, 'DataZamowienia', $order->date->format('Y-m-d'));
+            }
+            if ($order->number !== null) {
+                $this->el($d, $row, 'NrZamowienia', $order->number);
+            }
+        }
+        foreach ($terms->batchNumbers as $batch) {
+            $this->el($d, $node, 'NrPartiiTowaru', $batch);
+        }
+        if ($terms->deliveryTerms !== null) {
+            $this->el($d, $node, 'WarunkiDostawy', $terms->deliveryTerms);
+        }
+    }
+
+    private function attachment(DOMDocument $d, DOMElement $root, Attachment $attachment): void
+    {
+        $node = $this->el($d, $root, 'Zalacznik');
+        foreach ($attachment->blocks as $block) {
+            $b = $this->el($d, $node, 'BlokDanych');
+            if ($block->header !== null) {
+                $this->el($d, $b, 'ZNaglowek', $block->header);
+            }
+            foreach ($block->metadata as $key => $value) {
+                $meta = $this->el($d, $b, 'MetaDane');
+                $this->el($d, $meta, 'ZKlucz', (string) $key);
+                $this->el($d, $meta, 'ZWartosc', $value);
+            }
+            if ($block->paragraphs !== []) {
+                $text = $this->el($d, $b, 'Tekst');
+                foreach ($block->paragraphs as $paragraph) {
+                    $this->el($d, $text, 'Akapit', $paragraph);
+                }
+            }
+            foreach ($block->tables as $table) {
+                $t = $this->el($d, $b, 'Tabela');
+                foreach ($table->metadata as $key => $value) {
+                    $meta = $this->el($d, $t, 'TMetaDane');
+                    $this->el($d, $meta, 'TKlucz', (string) $key);
+                    $this->el($d, $meta, 'TWartosc', $value);
+                }
+                if ($table->description !== null) {
+                    $this->el($d, $t, 'Opis', $table->description);
+                }
+                $header = $this->el($d, $t, 'TNaglowek');
+                foreach ($table->columns as $column) {
+                    $col = $this->el($d, $header, 'Kol');
+                    $col->setAttribute('Typ', $column->type->value);
+                    $this->el($d, $col, 'NKom', $column->name);
+                }
+                foreach ($table->rows as $row) {
+                    $r = $this->el($d, $t, 'Wiersz');
+                    foreach ($row as $cell) {
+                        $this->el($d, $r, 'WKom', $cell);
+                    }
+                }
+                if ($table->totals !== null) {
+                    $sum = $this->el($d, $t, 'Suma');
+                    foreach ($table->totals as $cell) {
+                        $this->el($d, $sum, 'SKom', $cell);
+                    }
+                }
+            }
         }
     }
 
