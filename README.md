@@ -282,6 +282,19 @@ $ksef->rateLimits();      // ['invoiceSend' => RateLimit(perSecond, perMinute, p
 $ksef->authSessions();    // active logins; $ksef->revokeAuthSession($ref) or revokeAuthSession() for the current one
 ```
 
+### Collective identifiers and Peppol
+
+```php
+// One payment reference for many invoices of the same seller
+$id = $ksef->createCollectiveIdentifier([new CollectiveInvoice($ksefNumber1, Money::pln('123.00'), 'May'), new CollectiveInvoice($ksefNumber2)]);
+$page = $ksef->collectiveIdentifiers($from, $to);                      // paged; pass $page->continuationToken for the next page
+$ksef->collectiveIdentifierInvoices([$id]);                            // the invoices (payment details only for entitled parties)
+$ksef->collectiveIdentifiersOf($ksefNumber1);                          // which identifiers an invoice belongs to
+
+$ksef->peppolProviders();                                             // registered Peppol service providers
+$ksef->subjectLimits();                                               // certificate enrolment / certificate limits of the taxpayer
+```
+
 ### KSeF certificates
 
 KSeF issues its own certificates (type `Authentication` for logging in, type `Offline` for signing KOD II links).

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Collective identifiers (`createCollectiveIdentifier()`, `collectiveIdentifiers()`, `collectiveIdentifierInvoices()`, `collectiveIdentifiersOf()`), `peppolProviders()` and `subjectLimits()`: every endpoint of the KSeF API 2.0 OpenAPI specification is now covered.
 - FA_RR (1) farmer purchase invoices: `RrInvoice` (with `RrInvoiceBuilder`, `RrLine`, `RrParty`, `RrPayment`, `RrCorrection`) including corrections (`KOR_VAT_RR`) and the amount in Polish words (`PolishAmountInWords`).
 - Peppol documents (PEF (3), PEF_KOR (3)) and FA_RR as raw XML through `InvoiceDocument::fromXml()` with bundled schemas; batches check that all invoices share the declared form.
 - Offline invoicing: `issueOfflineInvoice()` (XML plus KOD I and KOD II, no network needed), `sendOfflineInvoice()`, `sendTechnicalCorrection()`, `SendOptions` (`offlineMode`, `hashOfCorrectedInvoice`), `sendBatch(..., offline: true)`, `OfflineIssuer`; see `docs/OFFLINE.md`.

@@ -27,6 +27,11 @@ use B4x\Ksef\Certificates\EnrollmentStatus;
 use B4x\Ksef\Certificates\IssuedCertificate;
 use B4x\Ksef\Certificates\KeyType;
 use B4x\Ksef\Certificates\RevocationReason;
+use B4x\Ksef\Collective\CollectiveIdentifier;
+use B4x\Ksef\Collective\CollectiveIdentifierApi;
+use B4x\Ksef\Collective\CollectiveIdentifierInvoice;
+use B4x\Ksef\Collective\CollectiveIdentifierPage;
+use B4x\Ksef\Collective\CollectiveInvoice;
 use B4x\Ksef\Crypto\PublicKeyProvider;
 use B4x\Ksef\Crypto\SessionEncryption;
 use B4x\Ksef\Exception\ConfigurationException;
@@ -43,8 +48,11 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Limits\ContextLimits;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Limits\RateLimit;
+use B4x\Ksef\Limits\SubjectLimits;
 use B4x\Ksef\Offline\OfflineInvoice;
 use B4x\Ksef\Offline\OfflineIssuer;
+use B4x\Ksef\Peppol\PeppolApi;
+use B4x\Ksef\Peppol\PeppolProvider;
 use B4x\Ksef\Permissions\AttachmentStatus;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\AuthorizationGrant;
@@ -128,6 +136,8 @@ final class KsefClient
         private readonly ?PermissionsApi $permissions = null,
         private readonly ?Environment $environment = null,
         private readonly ?ContextIdentifier $context = null,
+        private readonly ?CollectiveIdentifierApi $collective = null,
+        private readonly ?PeppolApi $peppol = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -397,6 +407,12 @@ final class KsefClient
         return $exporter->export($subject, $dateType, $from, $to, $destinationZip, $policy ?? $this->polling);
     }
 
+    /** Limits of the current subject: how many certificate enrolments and certificates it may have. */
+    public function subjectLimits(): SubjectLimits
+    {
+        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->subject();
+    }
+
     /** Limits of the current authentication context (sessions, invoice sizes). */
     public function contextLimits(): ContextLimits
     {
@@ -626,6 +642,66 @@ final class KsefClient
     public function attachmentStatus(): AttachmentStatus
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->attachmentStatus();
+    }
+
+    /**
+     * Creates a collective identifier: one reference under which a single payment can settle many invoices of
+     * the same seller. Needs InvoiceRead, InvoiceWrite or CollectiveIdentifierManage.
+     *
+     * @param non-empty-list<CollectiveInvoice> $invoices
+     *
+     * @return string for example "1111111111-IZ202607-65ED02180000-E7"
+     */
+    public function createCollectiveIdentifier(array $invoices): string
+    {
+        return $this->collective()->generate($invoices);
+    }
+
+    /**
+     * Collective identifiers of the context created in a period (at most 100 days).
+     *
+     * @return CollectiveIdentifierPage<CollectiveIdentifier>
+     */
+    public function collectiveIdentifiers(DateTimeInterface $from, DateTimeInterface $to, ?string $number = null, ?bool $createdInCurrentContext = null, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    {
+        return $this->collective()->query($from, $to, $number, $createdInCurrentContext, $continuationToken, $pageSize);
+    }
+
+    /**
+     * The invoices that make up collective identifiers (up to 10 at once).
+     *
+     * @param non-empty-list<string> $numbers
+     *
+     * @return CollectiveIdentifierPage<CollectiveIdentifierInvoice>
+     */
+    public function collectiveIdentifierInvoices(array $numbers, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    {
+        return $this->collective()->invoices($numbers, $continuationToken, $pageSize);
+    }
+
+    /**
+     * Collective identifiers an invoice belongs to.
+     *
+     * @return CollectiveIdentifierPage<CollectiveIdentifier>
+     */
+    public function collectiveIdentifiersOf(string $ksefNumber, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    {
+        return $this->collective()->ofInvoice($ksefNumber, $continuationToken, $pageSize);
+    }
+
+    /**
+     * Peppol service providers registered in KSeF.
+     *
+     * @return array{providers: list<PeppolProvider>, hasMore: bool}
+     */
+    public function peppolProviders(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->peppol ?? throw new ConfigurationException('Peppol support is not configured.'))->providers($pageOffset, $pageSize);
+    }
+
+    private function collective(): CollectiveIdentifierApi
+    {
+        return $this->collective ?? throw new ConfigurationException('Collective identifier support is not configured.');
     }
 
     private function awaitPermissionOperation(PermissionsApi $api, string $reference, ?PollingPolicy $policy): void

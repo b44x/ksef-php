@@ -20,6 +20,13 @@ final class LimitsApi
         return new ContextLimits($this->session($data->object('onlineSession')), $this->session($data->object('batchSession')));
     }
 
+    public function subject(): SubjectLimits
+    {
+        $data = new Payload($this->client->send(ApiRequest::get('/limits/subject'))->json());
+
+        return new SubjectLimits($data->optionalObject('enrollment')?->optionalInt('maxEnrollments'), $data->optionalObject('certificate')?->optionalInt('maxCertificates'));
+    }
+
     /**
      * Allowed request rates keyed by endpoint group (for example `invoiceSend`, `invoiceStatus`, `global`).
      *

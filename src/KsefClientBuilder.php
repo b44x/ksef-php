@@ -17,6 +17,7 @@ use B4x\Ksef\Auth\Credentials;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
+use B4x\Ksef\Collective\CollectiveIdentifierApi;
 use B4x\Ksef\Crypto\ApiPublicKeyProvider;
 use B4x\Ksef\Crypto\KsefTokenEncryptor;
 use B4x\Ksef\Crypto\PublicKeyProvider;
@@ -28,6 +29,7 @@ use B4x\Ksef\Http\RetryPolicy;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Http\Transport;
 use B4x\Ksef\Limits\LimitsApi;
+use B4x\Ksef\Peppol\PeppolApi;
 use B4x\Ksef\Permissions\PermissionsApi;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
@@ -251,6 +253,8 @@ final class KsefClientBuilder
             new PermissionsApi($authorized),
             $this->environment,
             $this->context,
+            new CollectiveIdentifierApi($authorized),
+            new PeppolApi($authorized),
         );
     }
 }

@@ -106,6 +106,6 @@ HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a
 
 ## Known limitations
 
-- Collective identifiers are not implemented. Deadlines of the offline modes are not calculated (they depend on announcements).
+- Deadlines of the offline modes are not calculated (they depend on announcements).
 - The typed invoice model covers FA(3) in full except attachments, transport conditions and per-line discounts; use `InvoiceDocument::fromXml()` for those.
 - Concurrency: token state is per `KsefClient` instance and process.
