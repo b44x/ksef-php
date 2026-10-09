@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-09
+
 ### Added
 
 - Optional invoice extras: line discounts, delivery dates, procedure markers and excise (`InvoiceLine::with*()`), `addInfo()`, `addWarehouseDocument()`, `additionalSettlement()`, partial payments / early-payment discount / other payment methods (`Payment`), `TransactionTerms`, margin scheme and related-party flags (`Annotations`), structured attachments (`Attachment`; batch sessions only, the SDK refuses them in interactive sessions) and `TestEnvironment::allowAttachments()`.
-- Seller/buyer extras (`eori`, `vatPrefix`, correspondence address, `buyerKey`, JST and VAT group flags), the state before a correction (`Correction::$sellerBefore` / `$buyersBefore`) and `Transport`, contractual currency and intermediary in `TransactionTerms`: `NewTransportSupply` for new means of transport: the typed FA(3) model now covers the whole schema.
+- Seller/buyer extras (`eori`, `vatPrefix`, correspondence address, `buyerKey`, JST and VAT group flags), the state before a correction (`Correction::$sellerBefore` / `$buyersBefore`), `Transport`, contractual currency and intermediary in `TransactionTerms`, and `NewTransportSupply` for new means of transport: the typed FA(3) model now covers the whole schema.
 - Collective identifiers (`createCollectiveIdentifier()`, `collectiveIdentifiers()`, `collectiveIdentifierInvoices()`, `collectiveIdentifiersOf()`), `peppolProviders()` and `subjectLimits()`: every endpoint of the KSeF API 2.0 OpenAPI specification is now covered.
 - FA_RR (1) farmer purchase invoices: `RrInvoice` (with `RrInvoiceBuilder`, `RrLine`, `RrParty`, `RrPayment`, `RrCorrection`) including corrections (`KOR_VAT_RR`) and the amount in Polish words (`PolishAmountInWords`).
 - Peppol documents (PEF (3), PEF_KOR (3)) and FA_RR as raw XML through `InvoiceDocument::fromXml()` with bundled schemas; batches check that all invoices share the declared form.
@@ -71,7 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/b44x/ksef-php/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/b44x/ksef-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/b44x/ksef-php/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/b44x/ksef-php/compare/v0.1.0...v0.2.0
