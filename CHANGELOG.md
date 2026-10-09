@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-09
+
+### Fixed
+
+- Flaky unit test and deprecations of old PSR packages on PHP 8.4+ (minimum `psr/http-factory` 1.1, dev `nyholm/psr7` 1.8.2).
+
 ### Added
 
 - Batch sessions (`KsefClient::sendBatch()`, `waitForSession()`, `sessionInvoices()`, `failedSessionInvoices()`); needs `ext-zip`.
@@ -31,5 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/b44x/ksef-php/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/b44x/ksef-php/releases/tag/v0.1.0
