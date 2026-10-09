@@ -30,6 +30,7 @@ can use any PSR-18 client.
 | 07 | `07-permissions.php` | Granting, listing and revoking access |
 | 08 | `08-qr-codes.php` | Verification links (KOD I and KOD II) and rendering them as images |
 | 09 | `09-error-handling.php` | The failures you will meet and what to do about each |
+| 10 | `10-offline-invoicing.php` | Issuing without KSeF: QR codes, late delivery, technical correction |
 
 Start with 01, then 04 and 09: they cover what matters most in production.
 

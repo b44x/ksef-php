@@ -15,6 +15,7 @@ use B4x\Ksef\Api\TokenPermission;
 use B4x\Ksef\Api\TokenStatus;
 use B4x\Ksef\Auth\AuthSession;
 use B4x\Ksef\Auth\AuthSessionsApi;
+use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
@@ -42,6 +43,8 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Limits\ContextLimits;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Limits\RateLimit;
+use B4x\Ksef\Offline\OfflineInvoice;
+use B4x\Ksef\Offline\OfflineIssuer;
 use B4x\Ksef\Permissions\AttachmentStatus;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\AuthorizationGrant;
@@ -61,8 +64,10 @@ use B4x\Ksef\Permissions\SubunitContext;
 use B4x\Ksef\Permissions\SubunitPermission;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Qr\OfflineCertificate;
 use B4x\Ksef\Session\InvoiceFactory;
 use B4x\Ksef\Session\OnlineSession;
+use B4x\Ksef\Session\SendOptions;
 use B4x\Ksef\Session\SubmissionRecoveryPolicy;
 use B4x\Ksef\Status\BatchSubmission;
 use B4x\Ksef\Status\DownloadedInvoice;
@@ -120,6 +125,8 @@ final class KsefClient
         private readonly ?LimitsApi $limits = null,
         private readonly ?AuthSessionsApi $authSessions = null,
         private readonly ?PermissionsApi $permissions = null,
+        private readonly ?Environment $environment = null,
+        private readonly ?ContextIdentifier $context = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -149,18 +156,19 @@ final class KsefClient
      * {@see self::waitForInvoice()}. For many invoices open a session yourself and reuse it.
      *
      * @param Invoice|InvoiceDocument|string $invoice typed invoice, verified document or raw FA(3) XML
+     * @param SendOptions|null $options offline mode / technical correction flags
      *
      * @throws Exception\ValidationException the invoice is invalid; nothing was sent
      * @throws Exception\SubmissionOutcomeUnknownException the network failed mid-submission; see its documentation
      * @throws Exception\ApiException KSeF refused the request
      */
-    public function sendInvoice(Invoice|InvoiceDocument|string $invoice): InvoiceSubmission
+    public function sendInvoice(Invoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
     {
         $document = $this->factory->document($invoice);
         $session = $this->openOnlineSession($document->formCode);
 
         try {
-            $submission = $session->send($document);
+            $submission = $session->send($document, $options);
         } catch (Throwable $failure) {
             $this->closeAfterFailure($session);
 
@@ -173,6 +181,48 @@ final class KsefClient
     }
 
     /**
+     * An issuer of offline invoices bound to this client's environment and context. It works without talking
+     * to KSeF, so it can be used while KSeF is unavailable.
+     *
+     * @throws ConfigurationException when the client was configured with a custom base URL instead of an environment
+     */
+    public function offlineIssuer(OfflineCertificate $certificate): OfflineIssuer
+    {
+        if ($this->environment === null || $this->context === null) {
+            throw new ConfigurationException('Offline invoicing needs a client configured with environment() so that the QR code links can be built.');
+        }
+
+        return new OfflineIssuer($this->environment, $this->context, $certificate, $this->clock);
+    }
+
+    /** Issues an invoice in offline mode: the XML plus KOD I and KOD II. See docs/OFFLINE.md. */
+    public function issueOfflineInvoice(Invoice $invoice, OfflineCertificate $certificate): OfflineInvoice
+    {
+        return $this->offlineIssuer($certificate)->issue($invoice);
+    }
+
+    /**
+     * Delivers an offline invoice to KSeF (with `offlineMode: true`). Do this within the deadline of the offline mode.
+     *
+     * @throws Exception\ApiException|Exception\SubmissionOutcomeUnknownException|Exception\ValidationException
+     */
+    public function sendOfflineInvoice(OfflineInvoice $invoice): InvoiceSubmission
+    {
+        return $this->sendInvoice($invoice->document, SendOptions::offline());
+    }
+
+    /**
+     * Re-sends an offline invoice that KSeF rejected for technical reasons (for example a schema error), linked to
+     * the rejected one so that its KOD I keeps working. The business content must stay the same.
+     *
+     * @param OfflineInvoice|InvoiceDocument|string $rejected the rejected invoice or its Base64 SHA-256 hash
+     */
+    public function sendTechnicalCorrection(Invoice|InvoiceDocument|string $corrected, OfflineInvoice|InvoiceDocument|string $rejected): InvoiceSubmission
+    {
+        return $this->sendInvoice($corrected, SendOptions::technicalCorrection($rejected));
+    }
+
+    /**
      * Sends many invoices at once as a batch (ZIP, split and encrypted), then closes the session.
      *
      * Everything is verified before upload (XSD, size limits: 10,000 invoices, 50 parts of up to 100 MB).
@@ -182,7 +232,7 @@ final class KsefClient
      *
      * @param iterable<Invoice|InvoiceDocument|string> $invoices
      */
-    public function sendBatch(iterable $invoices, int $maxPartBytes = BatchPackager::DEFAULT_MAX_PART_BYTES, ?FormCode $formCode = null): BatchSubmission
+    public function sendBatch(iterable $invoices, int $maxPartBytes = BatchPackager::DEFAULT_MAX_PART_BYTES, ?FormCode $formCode = null, bool $offline = false): BatchSubmission
     {
         $sender = $this->batches ?? throw new ConfigurationException('Batch support is not configured.');
         $documents = (function () use ($invoices): Generator {
@@ -191,7 +241,7 @@ final class KsefClient
             }
         })();
 
-        return $sender->send($documents, $formCode ?? FormCode::fa3(), $maxPartBytes);
+        return $sender->send($documents, $formCode ?? FormCode::fa3(), $maxPartBytes, $offline);
     }
 
     /**

@@ -52,6 +52,7 @@ final readonly class Invoice
         public ?AdvancePayment $advance = null,
         public ?Settlement $settlement = null,
         array $thirdParties = [],
+        public ?AuthorizedEntity $authorizedEntity = null,
     ) {
         $this->lines = array_values($lines);
         $this->thirdParties = array_values($thirdParties);

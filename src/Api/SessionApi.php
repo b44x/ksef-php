@@ -40,9 +40,9 @@ final class SessionApi
      * @param array{encryptedSymmetricKey: string, initializationVector: string, publicKeyId: string} $encryption
      * @param array{fileSize: int, fileHash: string, fileParts: list<array{ordinalNumber: int, fileSize: int, fileHash: string}>} $batchFile
      */
-    public function openBatch(FormCode $formCode, array $encryption, array $batchFile): OpenedBatch
+    public function openBatch(FormCode $formCode, array $encryption, array $batchFile, bool $offline = false): OpenedBatch
     {
-        $response = $this->client->send(ApiRequest::post('/sessions/batch', ['formCode' => $formCode->toArray(), 'batchFile' => $batchFile, 'encryption' => $encryption], null, RetryMode::RateLimitOnly));
+        $response = $this->client->send(ApiRequest::post('/sessions/batch', ['formCode' => $formCode->toArray(), 'batchFile' => $batchFile, 'encryption' => $encryption] + ($offline ? ['offlineMode' => true] : []), null, RetryMode::RateLimitOnly));
         $data = new Payload($response->json());
 
         $uploads = [];

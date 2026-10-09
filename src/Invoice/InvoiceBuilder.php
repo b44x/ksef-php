@@ -23,6 +23,8 @@ final class InvoiceBuilder
 
     /** @var list<ThirdParty> */
     private array $thirdParties = [];
+
+    private ?AuthorizedEntity $authorizedEntity = null;
     /** @var list<InvoiceLine> */
     private array $lines = [];
     private InvoiceType $type = InvoiceType::Standard;
@@ -95,6 +97,14 @@ final class InvoiceBuilder
     public function buyer(Buyer $buyer): self
     {
         $this->buyer = $buyer;
+
+        return $this;
+    }
+
+    /** Names an entity authorised to issue the invoice for the seller (enforcement authority, court bailiff, tax representative). */
+    public function authorizedEntity(AuthorizedEntity $entity): self
+    {
+        $this->authorizedEntity = $entity;
 
         return $this;
     }
@@ -213,6 +223,7 @@ final class InvoiceBuilder
             $this->advance,
             $this->settlement,
             $this->thirdParties,
+            $this->authorizedEntity,
         );
     }
 

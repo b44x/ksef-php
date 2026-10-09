@@ -65,13 +65,14 @@ final class OnlineSession
 
     /**
      * @param Invoice|InvoiceDocument|string $invoice a typed invoice, a verified document, or raw FA(3) XML
+     * @param SendOptions|null $options offline mode and technical correction flags
      *
      * @throws ValidationException when the invoice is invalid (nothing was sent)
      * @throws ApiException when KSeF refused the request (nothing was stored)
      * @throws SubmissionOutcomeUnknownException when the outcome cannot be determined
      * @throws SessionException when the session is closed or expired
      */
-    public function send(Invoice|InvoiceDocument|string $invoice): InvoiceSubmission
+    public function send(Invoice|InvoiceDocument|string $invoice, ?SendOptions $options = null): InvoiceSubmission
     {
         if ($this->closed) {
             throw new SessionException('The session has already been closed.');
@@ -92,7 +93,7 @@ final class OnlineSession
             'encryptedInvoiceHash' => Digest::sha256Base64($encrypted),
             'encryptedInvoiceSize' => \strlen($encrypted),
             'encryptedInvoiceContent' => base64_encode($encrypted),
-        ];
+        ] + ($options?->toPayload() ?? []);
 
         $hash = $document->hash();
         $resends = 0;

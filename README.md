@@ -37,7 +37,7 @@ php examples/01-send-invoice.php
 ```
 
 This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
-use Guzzle, a dev dependency). See [examples/](examples/README.md) for the nine guided examples and
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the ten guided examples and
 [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
 
 ## Quick start
@@ -295,6 +295,8 @@ $ksef->certificateLimits();  $ksef->searchCertificates(CertificateType::Offline)
 ```
 
 ### QR codes
+
+Offline invoicing (issue without KSeF, deliver later, technical correction) has its own guide: [docs/OFFLINE.md](docs/OFFLINE.md).
 
 `VerificationLinks` builds the links for the QR codes of an invoice visualisation (the SDK does not draw the
 image; feed the link to any ISO/IEC 18004 library such as `bacon/bacon-qr-code`):

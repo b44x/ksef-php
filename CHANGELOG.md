@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Offline invoicing: `issueOfflineInvoice()` (XML plus KOD I and KOD II, no network needed), `sendOfflineInvoice()`, `sendTechnicalCorrection()`, `SendOptions` (`offlineMode`, `hashOfCorrectedInvoice`), `sendBatch(..., offline: true)`, `OfflineIssuer`; see `docs/OFFLINE.md`.
+- Authorised entity on invoices (`PodmiotUpowazniony`): `AuthorizedEntity`, `AuthorizedEntityRole`, `InvoiceBuilder::authorizedEntity()`.
 - Advanced permissions: entity authorisations (`grantAuthorization()`, `revokeAuthorization()`, `authorizations()`), indirect grants, subunit administrators, EU entity administrators and representatives, and the queries `subunitAdministrators()`, `euEntityPermissions()`, `entityRoles()`, `subordinateEntities()`, `attachmentStatus()`.
 - Corrections of advance and settlement invoices (`KOR_ZAL`, `KOR_ROZ`): combine `InvoiceBuilder::correction()` with `advance()` / `settlement()`; `InvoiceType::isCorrection()`, `isAdvance()`, `isSettlement()`.
 - Additional parties on invoices (`Podmiot3`): `ThirdParty`, `ThirdPartyRole` and `InvoiceBuilder::addThirdParty()`.
@@ -18,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `B4x\Ksef\Testing\TestEnvironment::createTaxpayer()`: creates a disposable taxpayer with a self-signed certificate on the KSeF TEST environment (refuses any other environment).
-- Nine runnable, zero-configuration examples (`examples/`), an examples guide and `docs/GETTING-STARTED.md`.
+- Ten runnable, zero-configuration examples (`examples/`), an examples guide and `docs/GETTING-STARTED.md`.
 - Invoice kinds: advance (`ZAL`, `AdvancePayment`), settlement (`ROZ`, `Settlement`) and simplified (`UPR`); `Decimal::dividedBy()`.
 - Invoice export (`exportInvoices()`): encrypted package parts are downloaded, verified and decrypted into a ZIP file.
 - Permissions: `grantPersonPermissions()`, `grantEntityPermissions()`, `revokePermission()`, `personPermissions()`, `myPermissions()`, `entityPermissions()`, `PermissionOperationException`.

@@ -64,6 +64,7 @@ final class InvoiceValidator
         }
         $this->buyerIdentifier($i->buyer->identifier);
         $this->thirdParties();
+        $this->authorizedEntity();
 
         $this->lines();
         $this->taxTreatment();
@@ -301,6 +302,18 @@ final class InvoiceValidator
         $totals = $this->invoice->totals();
         if ($totals->gross()->abs()->compare($limit) > 0) {
             $this->add('The invoice total exceeds the maximum amount supported by the schema.');
+        }
+    }
+
+    private function authorizedEntity(): void
+    {
+        $entity = $this->invoice->authorizedEntity;
+        if ($entity === null) {
+            return;
+        }
+        $this->party('Authorized entity', $entity->name, $entity->address, $entity->email, $entity->phone);
+        if ($entity->correspondenceAddress !== null) {
+            $this->party('Authorized entity correspondence', $entity->name, $entity->correspondenceAddress, null, null);
         }
     }
 

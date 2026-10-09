@@ -70,6 +70,14 @@ final class BatchFlowTest extends KsefTestCase
         self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/batch/batch-1/close'));
     }
 
+    public function testTheOfflineModeIsDeclaredWhenOpeningTheBatchSession(): void
+    {
+        $this->routeBatch(parts: 1);
+        $this->client()->sendBatch($this->invoices(2), offline: true);
+
+        self::assertTrue(FakeKsef::body($this->ksef->requestsTo('POST', '/sessions/batch')[0])['offlineMode']);
+    }
+
     public function testPartsAreUploadedWithoutCredentialsAndWithTheHeadersKsefPrescribed(): void
     {
         $this->routeBatch(parts: 1);

@@ -33,7 +33,7 @@ final class BatchSender
     /**
      * @param iterable<InvoiceDocument> $documents
      */
-    public function send(iterable $documents, FormCode $formCode, int $maxPartBytes): BatchSubmission
+    public function send(iterable $documents, FormCode $formCode, int $maxPartBytes, bool $offline = false): BatchSubmission
     {
         $package = $this->packager->package($documents, $maxPartBytes);
 
@@ -53,7 +53,7 @@ final class BatchSender
                 'fileSize' => $package->zipSize,
                 'fileHash' => $package->zipHash,
                 'fileParts' => $declared,
-            ]);
+            ], $offline);
             $this->logger->info('KSeF batch session opened.', ['session' => $opened->referenceNumber, 'parts' => $package->partCount]);
 
             if (\count($opened->uploads) !== $package->partCount) {

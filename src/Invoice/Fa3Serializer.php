@@ -39,6 +39,9 @@ final class Fa3Serializer
         foreach ($invoice->thirdParties as $party) {
             $this->thirdParty($document, $root, $party);
         }
+        if ($invoice->authorizedEntity !== null) {
+            $this->authorizedEntity($document, $root, $invoice->authorizedEntity);
+        }
         $this->invoiceBody($document, $root, $invoice);
 
         if ($invoice->footer !== null) {
@@ -122,6 +125,23 @@ final class Fa3Serializer
         if ($party->customerNumber !== null) {
             $this->el($d, $node, 'NrKlienta', $party->customerNumber);
         }
+    }
+
+    private function authorizedEntity(DOMDocument $d, DOMElement $root, AuthorizedEntity $entity): void
+    {
+        $node = $this->el($d, $root, 'PodmiotUpowazniony');
+        if ($entity->eori !== null) {
+            $this->el($d, $node, 'NrEORI', $entity->eori);
+        }
+        $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
+        $this->el($d, $id, 'NIP', $entity->nip->value);
+        $this->el($d, $id, 'Nazwa', $entity->name);
+        $this->address($d, $node, 'Adres', $entity->address);
+        if ($entity->correspondenceAddress !== null) {
+            $this->address($d, $node, 'AdresKoresp', $entity->correspondenceAddress);
+        }
+        $this->contact($d, $node, $entity->email, $entity->phone, 'EmailPU', 'TelefonPU');
+        $this->el($d, $node, 'RolaPU', $entity->role->value);
     }
 
     private function identifier(DOMDocument $d, DOMElement $id, BuyerIdentifier $identifier): void
@@ -337,17 +357,17 @@ final class Fa3Serializer
         }
     }
 
-    private function contact(DOMDocument $d, DOMElement $parent, ?string $email, ?string $phone): void
+    private function contact(DOMDocument $d, DOMElement $parent, ?string $email, ?string $phone, string $emailName = 'Email', string $phoneName = 'Telefon'): void
     {
         if ($email === null && $phone === null) {
             return;
         }
         $node = $this->el($d, $parent, 'DaneKontaktowe');
         if ($email !== null) {
-            $this->el($d, $node, 'Email', $email);
+            $this->el($d, $node, $emailName, $email);
         }
         if ($phone !== null) {
-            $this->el($d, $node, 'Telefon', $phone);
+            $this->el($d, $node, $phoneName, $phone);
         }
     }
 

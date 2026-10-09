@@ -51,6 +51,7 @@ final class KsefClientBuilder
     private ?RequestFactoryInterface $requestFactory = null;
     private ?StreamFactoryInterface $streamFactory = null;
     private ?ContextIdentifier $context = null;
+    private ?Environment $environment = null;
     private ?Credentials $credentials = null;
     private ?LoggerInterface $logger = null;
     private ?ClockInterface $clock = null;
@@ -75,6 +76,7 @@ final class KsefClientBuilder
     public function environment(Environment $environment): self
     {
         $this->baseUrl = $environment->baseUrl();
+        $this->environment = $environment;
 
         return $this;
     }
@@ -247,6 +249,8 @@ final class KsefClientBuilder
             new LimitsApi($authorized),
             new AuthSessionsApi($authorized),
             new PermissionsApi($authorized),
+            $this->environment,
+            $this->context,
         );
     }
 }

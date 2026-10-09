@@ -6,6 +6,8 @@ namespace B4x\Ksef\Tests\Unit\Invoice;
 
 use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Invoice\Address;
+use B4x\Ksef\Invoice\AuthorizedEntity;
+use B4x\Ksef\Invoice\AuthorizedEntityRole;
 use B4x\Ksef\Invoice\BuyerIdentifier;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
@@ -51,6 +53,21 @@ final class ThirdPartyTest extends TestCase
         self::assertSame('1', $xpath->evaluate('string(//f:Podmiot3[2]/f:RolaInna)'));
         self::assertSame('Logistics partner', $xpath->evaluate('string(//f:Podmiot3[2]/f:OpisRoli)'));
         self::assertSame('DE', $xpath->evaluate('string(//f:Podmiot3[2]/f:DaneIdentyfikacyjne/f:KodUE)'));
+    }
+
+    public function testAnAuthorizedEntityIsSerializedAfterTheThirdPartiesWithItsOwnContactElements(): void
+    {
+        $invoice = $this->base()
+            ->addThirdParty(ThirdParty::of(ThirdPartyRole::Payer, BuyerIdentifier::none(), 'Payer'))
+            ->authorizedEntity(new AuthorizedEntity(Nip::of('5265877635'), 'Tax Office', new Address('PL', 'ul. Podatkowa 1, 00-001 Warszawa'), AuthorizedEntityRole::EnforcementAuthority, email: 'office@example.com', phone: '221234567'))
+            ->build();
+
+        $xpath = $this->xpath($invoice);
+
+        self::assertSame(1.0, $xpath->evaluate('count(//f:Podmiot3/following-sibling::f:PodmiotUpowazniony)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:PodmiotUpowazniony/f:RolaPU)'));
+        self::assertSame('office@example.com', $xpath->evaluate('string(//f:PodmiotUpowazniony/f:DaneKontaktowe/f:EmailPU)'));
+        self::assertSame('221234567', $xpath->evaluate('string(//f:PodmiotUpowazniony/f:DaneKontaktowe/f:TelefonPU)'));
     }
 
     public function testInvalidThirdPartyDataIsReported(): void
