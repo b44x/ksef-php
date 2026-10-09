@@ -129,6 +129,43 @@ final class LiveKsefTest extends TestCase
         }
     }
 
+    public function testKsefCertificatesAreIssuedAndUsableOnTheTestEnvironment(): void
+    {
+        $nip = $this->randomNip();
+        $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
+        $factory = new HttpFactory();
+        $this->createTestTaxpayer($http, $factory, $nip);
+
+        $pki = TestPki::personal($nip);
+        $builder = static fn(\B4x\Ksef\Auth\Credentials $credentials): KsefClient => KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($http, $factory, $factory)
+            ->context(ContextIdentifier::nip($nip))
+            ->credentials($credentials)
+            ->build();
+        $client = $builder(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']));
+        $policy = new PollingPolicy(1.0, 3.0, 1.5, 60.0);
+
+        foreach ([\B4x\Ksef\Certificates\KeyType::EcP256, \B4x\Ksef\Certificates\KeyType::Rsa2048] as $keyType) {
+            $authentication = $client->requestCertificate('ksef-php live ' . $keyType->name, \B4x\Ksef\Certificates\CertificateType::Authentication, $keyType, $policy);
+            self::assertMatchesRegularExpression('/^[0-9A-F]+$/', $authentication->serialNumber);
+
+            // The freshly issued KSeF certificate authenticates a new session.
+            $session = $builder($authentication->toCredentials())->openOnlineSession();
+            self::assertNotSame('', $session->referenceNumber);
+            $session->close();
+        }
+
+        $offline = $client->requestCertificate('ksef-php live offline', \B4x\Ksef\Certificates\CertificateType::Offline, policy: $policy);
+        $found = $client->searchCertificates(\B4x\Ksef\Certificates\CertificateType::Offline);
+        self::assertContains($offline->serialNumber, array_map(static fn(\B4x\Ksef\Certificates\CertificateInfo $c): string => $c->serialNumber, $found['certificates']));
+
+        $url = (new \B4x\Ksef\Qr\VerificationLinks(Environment::Test))->certificateUrl(ContextIdentifier::nip($nip), Nip::unchecked($nip), base64_encode(hash('sha256', 'x', true)), $offline->toOfflineCertificate());
+        self::assertStringContainsString('/certificate/Nip/' . $nip . '/' . $nip . '/' . $offline->serialNumber . '/', $url);
+
+        $client->revokeCertificate($offline->serialNumber);
+    }
+
     public function testKsefTokenAuthenticationOnTheTestEnvironment(): void
     {
         $nip = $this->randomNip();

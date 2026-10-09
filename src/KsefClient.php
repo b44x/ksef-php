@@ -15,6 +15,15 @@ use B4x\Ksef\Api\TokenPermission;
 use B4x\Ksef\Api\TokenStatus;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
+use B4x\Ksef\Certificates\CertificateApi;
+use B4x\Ksef\Certificates\CertificateInfo;
+use B4x\Ksef\Certificates\CertificateLimits;
+use B4x\Ksef\Certificates\CertificateType;
+use B4x\Ksef\Certificates\CsrGenerator;
+use B4x\Ksef\Certificates\EnrollmentStatus;
+use B4x\Ksef\Certificates\IssuedCertificate;
+use B4x\Ksef\Certificates\KeyType;
+use B4x\Ksef\Certificates\RevocationReason;
 use B4x\Ksef\Crypto\PublicKeyProvider;
 use B4x\Ksef\Crypto\SessionEncryption;
 use B4x\Ksef\Exception\ConfigurationException;
@@ -80,6 +89,7 @@ final class KsefClient
         private readonly SubmissionRecoveryPolicy $recovery = new SubmissionRecoveryPolicy(),
         private readonly Sleeper $sleeper = new NativeSleeper(),
         private readonly ?BatchSender $batches = null,
+        private readonly ?CertificateApi $certificates = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -288,6 +298,62 @@ final class KsefClient
     public function generateToken(array $permissions, string $description): GeneratedToken
     {
         return $this->tokenApi->generate($permissions, $description);
+    }
+
+    /**
+     * Requests a new KSeF certificate: checks the limits, builds a CSR for the subject KSeF dictates, submits it,
+     * waits for issuance and fetches the certificate. A new key pair is generated locally (EC P-256 by default);
+     * the returned object holds the only copy of the private key.
+     *
+     * Requires a session authenticated with a *signature* (certificate credentials), not with a KSeF token.
+     *
+     * @throws Exception\SessionException when KSeF refuses the request or no more certificates may be requested
+     */
+    public function requestCertificate(string $name, CertificateType $type, KeyType $keyType = KeyType::EcP256, ?PollingPolicy $policy = null): IssuedCertificate
+    {
+        $api = $this->certificates ?? throw new ConfigurationException('Certificate support is not configured.');
+
+        if (!$api->limits()->canRequest) {
+            throw new Exception\SessionException('KSeF reports that no further certificate request is allowed (limit reached).');
+        }
+
+        $csr = (new CsrGenerator())->generate($api->enrollmentData(), $keyType);
+        $reference = $api->enroll($name, $type, $csr->csrBase64);
+
+        $status = $this->poller->poll(
+            static fn(): EnrollmentStatus => $api->enrollmentStatus($reference),
+            static fn(EnrollmentStatus $status): bool => !$status->isInProgress(),
+            $policy ?? $this->polling,
+            \sprintf('certificate request %s to be processed', $reference),
+        );
+        if (!$status->isIssued() || $status->certificateSerialNumber === null) {
+            throw new Exception\SessionException(\sprintf('KSeF did not issue the certificate (%d): %s %s', $status->code, $status->description, implode('; ', $status->details)));
+        }
+
+        $retrieved = $api->retrieve([$status->certificateSerialNumber])[$status->certificateSerialNumber] ?? null;
+        if ($retrieved === null) {
+            throw new Exception\SessionException('KSeF issued the certificate but did not return it.');
+        }
+
+        return new IssuedCertificate($status->certificateSerialNumber, $retrieved['name'], $retrieved['type'], $retrieved['certificatePem'], $csr->privateKeyPem);
+    }
+
+    public function certificateLimits(): CertificateLimits
+    {
+        return ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->limits();
+    }
+
+    /**
+     * @return array{certificates: list<CertificateInfo>, hasMore: bool}
+     */
+    public function searchCertificates(?CertificateType $type = null, ?string $status = null, ?string $name = null, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->query($type, $status, $name, null, $pageOffset, $pageSize);
+    }
+
+    public function revokeCertificate(string $serialNumber, RevocationReason $reason = RevocationReason::Unspecified): void
+    {
+        ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->revoke($serialNumber, $reason);
     }
 
     /** Waits until a generated token is Active (or reached a failure state). */

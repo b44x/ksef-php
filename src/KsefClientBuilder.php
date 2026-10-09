@@ -15,6 +15,7 @@ use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Auth\Credentials;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
+use B4x\Ksef\Certificates\CertificateApi;
 use B4x\Ksef\Crypto\ApiPublicKeyProvider;
 use B4x\Ksef\Crypto\KsefTokenEncryptor;
 use B4x\Ksef\Crypto\PublicKeyProvider;
@@ -236,6 +237,7 @@ final class KsefClientBuilder
             $this->recovery,
             $sleeper,
             new BatchSender($sessionApi, $transport, $keys, new BatchPackager(), $logger),
+            new CertificateApi($authorized),
         );
     }
 }

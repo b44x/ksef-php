@@ -196,6 +196,24 @@ $page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ks
 // $batch->invoiceHashes lets you map results back to your own documents.
 ```
 
+### KSeF certificates
+
+KSeF issues its own certificates (type `Authentication` for logging in, type `Offline` for signing KOD II links).
+`requestCertificate()` runs the whole enrolment: limit check, subject lookup, local key + CSR generation
+(EC P-256 by default, RSA 2048 optional), submission, waiting, retrieval. **The private key exists only in the
+returned object: store it in a secret manager.** The session must be authenticated with a *signature*
+(`CertificateCredentials`); KSeF refuses enrolment from token sessions.
+
+```php
+$cert = $ksef->requestCertificate('billing service', CertificateType::Authentication);   // KeyType::EcP256
+$credentials = $cert->toCredentials();               // log in with it from now on (no OCSP/CRL delay)
+
+$offline = $ksef->requestCertificate('offline qr', CertificateType::Offline);
+$signer = $offline->toOfflineCertificate();          // for VerificationLinks::certificateUrl()
+
+$ksef->certificateLimits();  $ksef->searchCertificates(CertificateType::Offline);  $ksef->revokeCertificate($serial);
+```
+
 ### QR codes
 
 `VerificationLinks` builds the links for the QR codes of an invoice visualisation (the SDK does not draw the

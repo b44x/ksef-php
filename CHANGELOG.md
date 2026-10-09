@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- KSeF certificates: `requestCertificate()` (limits, subject lookup, local key + CSR, enrolment, retrieval), `certificateLimits()`, `searchCertificates()`, `revokeCertificate()`; `IssuedCertificate::toCredentials()` / `toOfflineCertificate()`.
+
+### Changed
+
+- Empty JSON request bodies are sent as `{}`.
+
 ## [0.2.0] - 2026-10-09
 
 ### Fixed

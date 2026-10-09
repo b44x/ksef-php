@@ -13,6 +13,7 @@ something, it is listed here.
 | Authentication | `POST /auth/challenge`, `POST /auth/xades-signature`, `POST /auth/ksef-token`, `GET /auth/{ref}`, `POST /auth/token/redeem`, `POST /auth/token/refresh` |
 | Sessions | `POST /sessions/batch`, `POST /sessions/batch/{ref}/close`, `POST /sessions/online`, `POST /sessions/online/{ref}/invoices`, `POST /sessions/online/{ref}/close`, `GET /sessions/{ref}`, `GET /sessions/{ref}/invoices`, `GET /sessions/{ref}/invoices/{inv}`, `.../upo`, `GET /sessions/{ref}/upo/{upoRef}` |
 | Invoices | `GET /invoices/ksef/{ksefNumber}`, `POST /invoices/query/metadata` |
+| Certificates | `GET /certificates/limits`, `GET /certificates/enrollments/data`, `POST /certificates/enrollments`, `GET /certificates/enrollments/{ref}`, `POST /certificates/retrieve`, `POST /certificates/query`, `POST /certificates/{serial}/revoke` |
 | Tokens | `POST /tokens`, `GET /tokens/{ref}`, `DELETE /tokens/{ref}` |
 
 Every request sends `X-Error-Format: problem-details`; the parser also understands the legacy `exception` envelope.
@@ -62,8 +63,17 @@ Verified against the TEST environment.
 KOD I: `{qr-host}/invoice/{sellerNip}/{DD-MM-YYYY}/{base64url(sha256(xml))}` (matches the official example).
 KOD II: `{qr-host}/certificate/{ctxType}/{ctxValue}/{sellerNip}/{certSerialHex}/{base64url(hash)}/{base64url(signature)}`,
 signed over the path without scheme: RSASSA-PSS (SHA-256, MGF1 SHA-256, 32 byte salt) or ECDSA P-256 as `R||S`.
-KOD II signing is covered by tests with independently verified signatures, but has not been checked against KSeF
-because that needs a KSeF *Offline* certificate (enrolment is not implemented yet).
+KOD II signing is covered by tests with independently verified signatures. Offline certificates can now be enrolled
+(see below), but the verification page of KSeF is a JavaScript application that cannot be queried headlessly, so the
+link's acceptance by KSeF itself has not been confirmed.
+
+## Certificates
+
+The DN of a request is dictated by `GET /certificates/enrollments/data` (derived from the authenticating certificate;
+any change gets the request rejected). CSRs are PKCS#10, DER, Base64, signed with SHA-256, built with phpseclib so that
+repeated attributes (several `givenName`) and OIDs such as `organizationIdentifier` are encoded exactly. Keys: EC P-256
+(recommended) or RSA 2048 with the plain `rsaEncryption` OID. Verified on TEST: both key types are accepted and the
+issued Authentication certificates log in successfully.
 
 ## Duplicate protection and submission recovery
 
@@ -87,7 +97,7 @@ HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a
 
 ## Known limitations
 
-- Offline invoicing modes (KOD I/II links are provided, offline submission flow is not), permissions management, certificate enrollment,
+- Offline invoicing modes (KOD I/II links are provided, offline submission flow is not), permissions management, 
   Peppol queries and collective identifiers are not implemented.
 - Typed invoice model covers `VAT` and `KOR`; other kinds via `InvoiceDocument::fromXml()`.
 - Concurrency: token state is per `KsefClient` instance and process.

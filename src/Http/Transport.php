@@ -139,6 +139,11 @@ final class Transport
      */
     private function encodeJson(array $body): string
     {
+        // Every request body in the KSeF API is a JSON object, so an empty array means "{}".
+        if ($body === []) {
+            return '{}';
+        }
+
         try {
             return json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (JsonException $e) {
