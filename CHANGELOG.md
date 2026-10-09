@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Invoice export (`exportInvoices()`): encrypted package parts are downloaded, verified and decrypted into a ZIP file.
+- Permissions: `grantPersonPermissions()`, `grantEntityPermissions()`, `revokePermission()`, `personPermissions()`, `myPermissions()`, `entityPermissions()`, `PermissionOperationException`.
 - `contextLimits()`, `rateLimits()`, `authSessions()` and `revokeAuthSession()`.
 
 ## [0.3.0] - 2026-10-09

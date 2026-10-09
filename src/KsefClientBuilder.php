@@ -28,6 +28,7 @@ use B4x\Ksef\Http\RetryPolicy;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Http\Transport;
 use B4x\Ksef\Limits\LimitsApi;
+use B4x\Ksef\Permissions\PermissionsApi;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
@@ -245,6 +246,7 @@ final class KsefClientBuilder
             new InvoiceExporter($invoiceApi, $transport, $keys, $poller),
             new LimitsApi($authorized),
             new AuthSessionsApi($authorized),
+            new PermissionsApi($authorized),
         );
     }
 }

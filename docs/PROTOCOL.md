@@ -66,7 +66,8 @@ KOD II: `{qr-host}/certificate/{ctxType}/{ctxValue}/{sellerNip}/{certSerialHex}/
 signed over the path without scheme: RSASSA-PSS (SHA-256, MGF1 SHA-256, 32 byte salt) or ECDSA P-256 as `R||S`.
 KOD II signing is covered by tests with independently verified signatures. Offline certificates can now be enrolled
 (see below), but the verification page of KSeF is a JavaScript application that cannot be queried headlessly, so the
-link's acceptance by KSeF itself has not been confirmed.
+link's acceptance was confirmed manually in a browser on TEST: the verification page reported a valid issuer certificate
+for both an EC and an RSA Offline certificate.
 
 ## Invoice export
 
@@ -105,7 +106,7 @@ HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a
 
 ## Known limitations
 
-- Offline invoicing modes (KOD I/II links are provided, offline submission flow is not), permissions management, 
+- Offline invoicing modes (KOD I/II links are provided, offline submission flow is not), advanced permissions (authorisations, indirect, subunits, EU entities), 
   Peppol queries and collective identifiers are not implemented.
 - Typed invoice model covers `VAT` and `KOR`; other kinds via `InvoiceDocument::fromXml()`.
 - Concurrency: token state is per `KsefClient` instance and process.

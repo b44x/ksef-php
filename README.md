@@ -196,6 +196,19 @@ $page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ks
 // $batch->invoiceHashes lets you map results back to your own documents.
 ```
 
+### Permissions
+
+```php
+$ksef->grantPersonPermissions(PersonSubject::byPesel($pesel, 'Anna', 'Nowak'), [Permission::InvoiceRead, Permission::InvoiceWrite], 'accountant');
+$ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);   // may delegate: true
+foreach ($ksef->personPermissions(grantedByMe: true)['permissions'] as $grant) { /* $grant->id, ->scope, ->holder */ }
+$ksef->revokePermission($grant->id);
+```
+
+Grants and revocations are asynchronous in KSeF; these calls wait for the operation and throw
+`PermissionOperationException` (with KSeF's status code) when it is refused. Also available: `myPermissions()`,
+`entityPermissions()`. Not covered yet: authorisations, indirect grants, subunits and EU entities.
+
 ### Export, limits and logins
 
 ```php

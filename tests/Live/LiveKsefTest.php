@@ -208,6 +208,45 @@ final class LiveKsefTest extends TestCase
         self::assertNotSame([], array_filter($sessions['sessions'], static fn(\B4x\Ksef\Auth\AuthSession $s): bool => $s->isCurrent));
     }
 
+    public function testPermissionsCanBeGrantedListedAndRevokedOnTheTestEnvironment(): void
+    {
+        $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
+        $factory = new HttpFactory();
+        $nip = $this->createTestTaxpayer($http, $factory);
+
+        $pki = TestPki::personal($nip);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($http, $factory, $factory)
+            ->context(ContextIdentifier::nip($nip))
+            ->credentials(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']))
+            ->build();
+        $policy = new PollingPolicy(1.0, 3.0, 1.5, 60.0);
+
+        $pesel = $this->randomPesel();
+        $person = \B4x\Ksef\Permissions\PersonSubject::byPesel($pesel, 'Anna', 'Nowak');
+        $client->grantPersonPermissions($person, [\B4x\Ksef\Permissions\Permission::InvoiceRead, \B4x\Ksef\Permissions\Permission::InvoiceWrite], 'ksef-php live test', $policy);
+
+        $granted = $client->personPermissions(true);
+        $scopes = array_map(static fn(\B4x\Ksef\Permissions\PermissionGrant $g): string => $g->scope, $granted['permissions']);
+        self::assertContains('InvoiceRead', $scopes);
+        self::assertContains('InvoiceWrite', $scopes);
+        // The owner's own rights are implicit on TEST, so the personal list may legitimately be empty; it must still load.
+        self::assertIsArray($client->myPermissions()['permissions']);
+
+        foreach ($granted['permissions'] as $grant) {
+            if ($grant->holder === $pesel) {
+                $client->revokePermission($grant->id, $policy);
+            }
+        }
+        $remaining = array_filter($client->personPermissions(true)['permissions'], static fn(\B4x\Ksef\Permissions\PermissionGrant $g): bool => $g->holder === $pesel);
+        self::assertSame([], $remaining);
+
+        // Granting something KSeF does not allow in this context is reported with its status.
+        $this->expectException(\B4x\Ksef\Exception\PermissionOperationException::class);
+        $client->grantPersonPermissions($person, [\B4x\Ksef\Permissions\Permission::EnforcementOperations], 'not allowed here', $policy);
+    }
+
     public function testKsefTokenAuthenticationOnTheTestEnvironment(): void
     {
         $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);

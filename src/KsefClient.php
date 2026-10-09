@@ -31,6 +31,7 @@ use B4x\Ksef\Crypto\SessionEncryption;
 use B4x\Ksef\Exception\ConfigurationException;
 use B4x\Ksef\Exception\InvoiceNotAvailableException;
 use B4x\Ksef\Exception\KsefException;
+use B4x\Ksef\Exception\PermissionOperationException;
 use B4x\Ksef\Export\ExportedPackage;
 use B4x\Ksef\Export\InvoiceExporter;
 use B4x\Ksef\Http\NativeSleeper;
@@ -41,6 +42,11 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Limits\ContextLimits;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Limits\RateLimit;
+use B4x\Ksef\Permissions\OperationStatus;
+use B4x\Ksef\Permissions\Permission;
+use B4x\Ksef\Permissions\PermissionGrant;
+use B4x\Ksef\Permissions\PermissionsApi;
+use B4x\Ksef\Permissions\PersonSubject;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
@@ -54,6 +60,7 @@ use B4x\Ksef\Status\SessionInvoicesPage;
 use B4x\Ksef\Status\SessionStatus;
 use B4x\Ksef\Status\Upo;
 use B4x\Ksef\Support\KsefNumber;
+use B4x\Ksef\Support\Nip;
 use DateTimeInterface;
 use Generator;
 use Psr\Clock\ClockInterface;
@@ -100,6 +107,7 @@ final class KsefClient
         private readonly ?InvoiceExporter $exporter = null,
         private readonly ?LimitsApi $limits = null,
         private readonly ?AuthSessionsApi $authSessions = null,
+        private readonly ?PermissionsApi $permissions = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -351,6 +359,87 @@ final class KsefClient
     {
         $api = $this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.');
         $referenceNumber === null ? $api->revokeCurrent() : $api->revoke($referenceNumber);
+    }
+
+    /**
+     * Grants a person permissions to work in the current context and waits until KSeF applied them.
+     * Requires the CredentialsManage permission (or owner rights).
+     *
+     * @param non-empty-list<Permission> $permissions
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantPersonPermissions(PersonSubject $person, array $permissions, string $description, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantToPerson($person, $permissions, $description), $policy);
+    }
+
+    /**
+     * Grants another entity (company) the right to handle invoices in the current context.
+     *
+     * @param non-empty-array<string, bool> $permissions {@see EntityPermissionType} value => whether the entity may delegate it
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantEntityPermissions(Nip $entityNip, string $entityName, array $permissions, string $description, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantToEntity($entityNip, $entityName, $permissions, $description), $policy);
+    }
+
+    /**
+     * Revokes a permission by the id found in {@see PermissionGrant::$id}.
+     *
+     * @throws PermissionOperationException when KSeF refuses the revocation
+     */
+    public function revokePermission(string $permissionId, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->revoke($permissionId), $policy);
+    }
+
+    /**
+     * Permissions the authenticated subject holds.
+     *
+     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     */
+    public function myPermissions(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->personal($activeOnly, $pageOffset, $pageSize);
+    }
+
+    /**
+     * Permissions persons hold in the current context.
+     *
+     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     */
+    public function personPermissions(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->persons($grantedByMe, $activeOnly, $pageOffset, $pageSize);
+    }
+
+    /**
+     * Invoice-handling permissions other entities granted to the current context.
+     *
+     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     */
+    public function entityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->entities($pageOffset, $pageSize);
+    }
+
+    private function awaitPermissionOperation(PermissionsApi $api, string $reference, ?PollingPolicy $policy): void
+    {
+        $status = $this->poller->poll(
+            static fn(): OperationStatus => $api->operationStatus($reference),
+            static fn(OperationStatus $status): bool => !$status->isInProgress(),
+            $policy ?? $this->polling,
+            \sprintf('permission operation %s to finish', $reference),
+        );
+        if (!$status->isSuccessful()) {
+            throw new PermissionOperationException($status);
+        }
     }
 
     /**
