@@ -183,6 +183,32 @@ $status = $session->waitUntilFinished();                     // SessionStatus in
 Each invoice is encrypted with a per-session AES-256-CBC key which is wrapped with the Ministry's
 RSA key (OAEP, SHA-256). Hashes and sizes of plaintext and ciphertext are computed for you.
 
+### Batch sessions
+
+For large volumes send a batch: the SDK validates every invoice, builds a ZIP (temporary file, never fully in
+memory), splits it into parts of at most 100 MB (max. 50 parts, 10,000 invoices), encrypts each part, uploads
+them to the pre-signed URLs KSeF returns and closes the session. Requires `ext-zip`.
+
+```php
+$batch = $ksef->sendBatch($invoices);                         // iterable of Invoice | InvoiceDocument | XML string
+$status = $ksef->waitForSession($batch->sessionReference);    // SessionStatus (aggregate counts, UPO pages)
+$page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ksefNumber, status, invoiceHash
+// $batch->invoiceHashes lets you map results back to your own documents.
+```
+
+### QR codes
+
+`VerificationLinks` builds the links for the QR codes of an invoice visualisation (the SDK does not draw the
+image; feed the link to any ISO/IEC 18004 library such as `bacon/bacon-qr-code`):
+
+```php
+$links = new VerificationLinks(Environment::Production);
+$url = $links->invoiceUrl($sellerNip, $issueDate, $document);            // KOD I, every invoice
+$label = $links->label($ksefNumber);                                      // KSeF number, or "OFFLINE"
+$url2 = $links->certificateUrl($context, $sellerNip, $document->hash(),   // KOD II, offline invoices only
+    new OfflineCertificate($certPem, $keyPem));                           // KSeF "Offline" certificate
+```
+
 ### Reliability: timeouts, retries and duplicates
 
 A timeout or 5xx while an invoice is being sent never proves that KSeF did not receive it. The SDK

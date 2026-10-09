@@ -20,6 +20,16 @@ enum Environment: string
         return $this->value;
     }
 
+    /** Host of the public verification pages that QR codes point to. */
+    public function qrBaseUrl(): string
+    {
+        return match ($this) {
+            self::Test => 'https://qr-test.ksef.mf.gov.pl',
+            self::Demo => 'https://qr-demo.ksef.mf.gov.pl',
+            self::Production => 'https://qr.ksef.mf.gov.pl',
+        };
+    }
+
     public function isProduction(): bool
     {
         return $this === self::Production;

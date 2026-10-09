@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Batch sessions (`KsefClient::sendBatch()`, `waitForSession()`, `sessionInvoices()`, `failedSessionInvoices()`); needs `ext-zip`.
+- QR verification links: `VerificationLinks` (KOD I, KOD II), `OfflineCertificate`, `Environment::qrBaseUrl()`.
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

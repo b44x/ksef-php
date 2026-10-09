@@ -48,6 +48,8 @@
         "phpunit/phpunit": "^11.5"
     },
     "suggest": {
+        "ext-zip": "Required for batch sessions (KsefClient::sendBatch())",
+        "bacon/bacon-qr-code": "Renders the verification links as QR code images",
         "guzzlehttp/guzzle": "A ready-to-use PSR-18 HTTP client",
         "symfony/http-client": "Another PSR-18 capable HTTP client (with nyholm/psr7 or guzzlehttp/psr7 for PSR-17 factories)",
         "monolog/monolog": "PSR-3 logger implementation for request diagnostics"

@@ -7,6 +7,7 @@ namespace B4x\Ksef\Signing;
 use B4x\Ksef\Crypto\Digest;
 use B4x\Ksef\Exception\SerializationException;
 use B4x\Ksef\Exception\SigningException;
+use B4x\Ksef\Support\EcdsaSignature;
 use B4x\Ksef\Support\SystemClock;
 use B4x\Ksef\Xml\SafeXml;
 use DateTimeZone;
@@ -194,29 +195,7 @@ final class OpenSslXadesSigner implements XadesSigner
         }
         $signature = $produced;
 
-        return $this->isEc ? $this->derToFixedEcdsa($signature) : $signature;
-    }
-
-    /** Converts an ASN.1 DER ECDSA signature into the fixed-width R||S form of XML Signature. */
-    private function derToFixedEcdsa(string $der): string
-    {
-        $offset = 2;
-        if ((\ord($der[1]) & 0x80) !== 0) {
-            $offset += \ord($der[1]) & 0x7F;
-        }
-
-        $parts = [];
-        for ($i = 0; $i < 2; ++$i) {
-            if (\ord($der[$offset]) !== 0x02) {
-                throw new SigningException('Unexpected ECDSA signature encoding.');
-            }
-            $length = \ord($der[$offset + 1]);
-            $integer = substr($der, $offset + 2, $length);
-            $offset += 2 + $length;
-            $parts[] = str_pad(ltrim($integer, "\x00"), $this->ecFieldBytes, "\x00", STR_PAD_LEFT);
-        }
-
-        return $parts[0] . $parts[1];
+        return $this->isEc ? EcdsaSignature::derToFixed($signature, $this->ecFieldBytes) : $signature;
     }
 
     /**

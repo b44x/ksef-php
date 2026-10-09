@@ -11,7 +11,7 @@ something, it is listed here.
 | --- | --- |
 | Public keys | `GET /security/public-key-certificates` |
 | Authentication | `POST /auth/challenge`, `POST /auth/xades-signature`, `POST /auth/ksef-token`, `GET /auth/{ref}`, `POST /auth/token/redeem`, `POST /auth/token/refresh` |
-| Sessions | `POST /sessions/online`, `POST /sessions/online/{ref}/invoices`, `POST /sessions/online/{ref}/close`, `GET /sessions/{ref}`, `GET /sessions/{ref}/invoices`, `GET /sessions/{ref}/invoices/{inv}`, `.../upo`, `GET /sessions/{ref}/upo/{upoRef}` |
+| Sessions | `POST /sessions/batch`, `POST /sessions/batch/{ref}/close`, `POST /sessions/online`, `POST /sessions/online/{ref}/invoices`, `POST /sessions/online/{ref}/close`, `GET /sessions/{ref}`, `GET /sessions/{ref}/invoices`, `GET /sessions/{ref}/invoices/{inv}`, `.../upo`, `GET /sessions/{ref}/upo/{upoRef}` |
 | Invoices | `GET /invoices/ksef/{ksefNumber}`, `POST /invoices/query/metadata` |
 | Tokens | `POST /tokens`, `GET /tokens/{ref}`, `DELETE /tokens/{ref}` |
 
@@ -49,6 +49,22 @@ Every request sends `X-Error-Format: problem-details`; the parser also understan
   Rates 23/22, 8/7 share one header field each, so they cannot be mixed on one invoice.
 - NIP checksums are verified locally by default; KSeF itself only verifies them on production.
 
+## Batch sessions
+
+Package = one ZIP of `invoice_NNNNN.xml` files, split binary into equal parts of <= 100 MB, every part encrypted
+with the same per-session AES-256-CBC key/IV. `fileHash`/`fileSize` of the archive are declared for the plaintext ZIP,
+those of each part for its ciphertext. Parts are uploaded with exactly the method and headers from
+`partUploadRequests`, without the access token (HTTP 201 on success). Upload retries are safe (same part, same URL).
+Verified against the TEST environment.
+
+## QR codes
+
+KOD I: `{qr-host}/invoice/{sellerNip}/{DD-MM-YYYY}/{base64url(sha256(xml))}` (matches the official example).
+KOD II: `{qr-host}/certificate/{ctxType}/{ctxValue}/{sellerNip}/{certSerialHex}/{base64url(hash)}/{base64url(signature)}`,
+signed over the path without scheme: RSASSA-PSS (SHA-256, MGF1 SHA-256, 32 byte salt) or ECDSA P-256 as `R||S`.
+KOD II signing is covered by tests with independently verified signatures, but has not been checked against KSeF
+because that needs a KSeF *Offline* certificate (enrolment is not implemented yet).
+
 ## Duplicate protection and submission recovery
 
 KSeF rejects duplicates globally with status `440` (key: seller NIP + `RodzajFaktury` + `P_2`) for ten full
@@ -71,7 +87,7 @@ HTTP 406 during that window. It is mapped to `InvoiceNotAvailableException` as a
 
 ## Known limitations
 
-- Batch sessions (ZIP upload), offline modes, QR codes, permissions management, certificate enrollment,
+- Offline invoicing modes (KOD I/II links are provided, offline submission flow is not), permissions management, certificate enrollment,
   Peppol queries and collective identifiers are not implemented.
 - Typed invoice model covers `VAT` and `KOR`; other kinds via `InvoiceDocument::fromXml()`.
 - Concurrency: token state is per `KsefClient` instance and process.
