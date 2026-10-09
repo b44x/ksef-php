@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-09
+
 ### Added
 
 - `B4x\Ksef\Testing\TestEnvironment::createTaxpayer()`: creates a disposable taxpayer with a self-signed certificate on the KSeF TEST environment (refuses any other environment).
@@ -56,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/b44x/ksef-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/b44x/ksef-php/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/b44x/ksef-php/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/b44x/ksef-php/releases/tag/v0.1.0
