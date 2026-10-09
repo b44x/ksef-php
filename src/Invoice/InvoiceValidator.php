@@ -63,6 +63,7 @@ final class InvoiceValidator
             $this->text('Buyer customer number', $i->buyer->customerNumber, 256);
         }
         $this->buyerIdentifier($i->buyer->identifier);
+        $this->thirdParties();
 
         $this->lines();
         $this->taxTreatment();
@@ -295,6 +296,31 @@ final class InvoiceValidator
         $totals = $this->invoice->totals();
         if ($totals->gross()->abs()->compare($limit) > 0) {
             $this->add('The invoice total exceeds the maximum amount supported by the schema.');
+        }
+    }
+
+    private function thirdParties(): void
+    {
+        $parties = $this->invoice->thirdParties;
+        if (\count($parties) > 100) {
+            $this->add('An invoice can name at most 100 additional parties.');
+        }
+        foreach ($parties as $index => $party) {
+            $label = \sprintf('Additional party %d', $index + 1);
+            $this->party($label, $party->name, $party->address, $party->email, $party->phone);
+            if ($party->correspondenceAddress !== null) {
+                $this->party($label . ' correspondence', $party->name, $party->correspondenceAddress, null, null);
+            }
+            $this->buyerIdentifier($party->identifier);
+            if ($party->otherRole !== null) {
+                $this->text($label . ' role description', $party->otherRole, 256);
+            }
+            if ($party->share !== null && ($party->share->isNegative() || $party->share->compare(Decimal::of('100')) > 0)) {
+                $this->add($label . ': the share must be between 0 and 100 percent.');
+            }
+            if ($party->customerNumber !== null) {
+                $this->text($label . ' customer number', $party->customerNumber, 256);
+            }
         }
     }
 

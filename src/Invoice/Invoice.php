@@ -24,8 +24,12 @@ final readonly class Invoice
     /** @var list<InvoiceLine> */
     public array $lines;
 
+    /** @var list<ThirdParty> */
+    public array $thirdParties;
+
     /**
      * @param list<InvoiceLine> $lines
+     * @param list<ThirdParty> $thirdParties additional parties (`Podmiot3`), up to 100
      * @param Decimal|null $exchangeRate rate to PLN for foreign-currency invoices (`KursWalutyZ`)
      *
      * @throws ValidationException
@@ -47,8 +51,10 @@ final readonly class Invoice
         public ?string $footer = null,
         public ?AdvancePayment $advance = null,
         public ?Settlement $settlement = null,
+        array $thirdParties = [],
     ) {
         $this->lines = array_values($lines);
+        $this->thirdParties = array_values($thirdParties);
 
         $violations = InvoiceValidator::violations($this);
         if ($violations !== []) {

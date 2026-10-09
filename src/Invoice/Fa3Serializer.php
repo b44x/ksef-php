@@ -36,6 +36,9 @@ final class Fa3Serializer
         $this->header($document, $root, $createdAt);
         $this->seller($document, $root, $invoice->seller);
         $this->buyer($document, $root, $invoice->buyer);
+        foreach ($invoice->thirdParties as $party) {
+            $this->thirdParty($document, $root, $party);
+        }
         $this->invoiceBody($document, $root, $invoice);
 
         if ($invoice->footer !== null) {
@@ -77,7 +80,52 @@ final class Fa3Serializer
     {
         $node = $this->el($d, $root, 'Podmiot2');
         $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
-        $identifier = $buyer->identifier;
+        $this->identifier($d, $id, $buyer->identifier);
+        $this->el($d, $id, 'Nazwa', $buyer->name);
+
+        if ($buyer->address !== null) {
+            $this->address($d, $node, 'Adres', $buyer->address);
+        }
+        $this->contact($d, $node, $buyer->email, $buyer->phone);
+        if ($buyer->customerNumber !== null) {
+            $this->el($d, $node, 'NrKlienta', $buyer->customerNumber);
+        }
+        $this->el($d, $node, 'JST', '2');
+        $this->el($d, $node, 'GV', '2');
+    }
+
+    private function thirdParty(DOMDocument $d, DOMElement $root, ThirdParty $party): void
+    {
+        $node = $this->el($d, $root, 'Podmiot3');
+        if ($party->eori !== null) {
+            $this->el($d, $node, 'NrEORI', $party->eori);
+        }
+        $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
+        $this->identifier($d, $id, $party->identifier);
+        $this->el($d, $id, 'Nazwa', $party->name);
+        if ($party->address !== null) {
+            $this->address($d, $node, 'Adres', $party->address);
+        }
+        if ($party->correspondenceAddress !== null) {
+            $this->address($d, $node, 'AdresKoresp', $party->correspondenceAddress);
+        }
+        $this->contact($d, $node, $party->email, $party->phone);
+        if ($party->role !== null) {
+            $this->el($d, $node, 'Rola', $party->role->value);
+        } else {
+            $this->el($d, $node, 'RolaInna', '1');
+            $this->el($d, $node, 'OpisRoli', (string) $party->otherRole);
+        }
+        if ($party->share !== null) {
+            $this->el($d, $node, 'Udzial', $party->share->toTrimmedString());
+        }
+        if ($party->customerNumber !== null) {
+            $this->el($d, $node, 'NrKlienta', $party->customerNumber);
+        }
+    }
+
+    private function identifier(DOMDocument $d, DOMElement $id, BuyerIdentifier $identifier): void
+    {
         switch ($identifier->type) {
             case BuyerIdentifierType::Nip:
                 $this->el($d, $id, 'NIP', (string) $identifier->value);
@@ -96,17 +144,6 @@ final class Fa3Serializer
                 $this->el($d, $id, 'BrakID', '1');
                 break;
         }
-        $this->el($d, $id, 'Nazwa', $buyer->name);
-
-        if ($buyer->address !== null) {
-            $this->address($d, $node, 'Adres', $buyer->address);
-        }
-        $this->contact($d, $node, $buyer->email, $buyer->phone);
-        if ($buyer->customerNumber !== null) {
-            $this->el($d, $node, 'NrKlienta', $buyer->customerNumber);
-        }
-        $this->el($d, $node, 'JST', '2');
-        $this->el($d, $node, 'GV', '2');
     }
 
     private function invoiceBody(DOMDocument $d, DOMElement $root, Invoice $invoice): void

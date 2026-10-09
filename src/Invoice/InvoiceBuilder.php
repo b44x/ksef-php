@@ -20,6 +20,9 @@ final class InvoiceBuilder
     private string $currency = 'PLN';
     private ?Seller $seller = null;
     private ?Buyer $buyer = null;
+
+    /** @var list<ThirdParty> */
+    private array $thirdParties = [];
     /** @var list<InvoiceLine> */
     private array $lines = [];
     private InvoiceType $type = InvoiceType::Standard;
@@ -92,6 +95,13 @@ final class InvoiceBuilder
     public function buyer(Buyer $buyer): self
     {
         $this->buyer = $buyer;
+
+        return $this;
+    }
+
+    public function addThirdParty(ThirdParty $party): self
+    {
+        $this->thirdParties[] = $party;
 
         return $this;
     }
@@ -193,6 +203,7 @@ final class InvoiceBuilder
             $this->footer,
             $this->advance,
             $this->settlement,
+            $this->thirdParties,
         );
     }
 
