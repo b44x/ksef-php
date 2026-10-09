@@ -6,13 +6,20 @@ namespace B4x\Ksef\Tests\Unit\Invoice;
 
 use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Invoice\AdditionalSettlement;
+use B4x\Ksef\Invoice\Address;
 use B4x\Ksef\Invoice\Adjustment;
 use B4x\Ksef\Invoice\Annotations;
 use B4x\Ksef\Invoice\Attachment;
 use B4x\Ksef\Invoice\AttachmentBlock;
 use B4x\Ksef\Invoice\AttachmentColumn;
 use B4x\Ksef\Invoice\AttachmentTable;
+use B4x\Ksef\Invoice\Buyer;
+use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\CargoType;
+use B4x\Ksef\Invoice\Carrier;
 use B4x\Ksef\Invoice\ColumnType;
+use B4x\Ksef\Invoice\CorrectedInvoice;
+use B4x\Ksef\Invoice\Correction;
 use B4x\Ksef\Invoice\DocumentReference;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
@@ -24,8 +31,13 @@ use B4x\Ksef\Invoice\Money;
 use B4x\Ksef\Invoice\PartialPayment;
 use B4x\Ksef\Invoice\Payment;
 use B4x\Ksef\Invoice\PaymentMethod;
+use B4x\Ksef\Invoice\Seller;
 use B4x\Ksef\Invoice\TransactionTerms;
+use B4x\Ksef\Invoice\Transport;
+use B4x\Ksef\Invoice\TransportType;
 use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\Support\Decimal;
+use B4x\Ksef\Support\Nip;
 use B4x\Ksef\Tests\Support\Fixtures;
 use B4x\Ksef\Tests\Support\MutableClock;
 use DateTimeImmutable;
@@ -130,6 +142,61 @@ final class InvoiceExtrasTest extends TestCase
         self::assertSame('dec', $xpath->evaluate('string(//f:TNaglowek/f:Kol[2]/@Typ)'));
         self::assertSame(2.0, $xpath->evaluate('count(//f:Tabela/f:Wiersz)'));
         self::assertSame('9.5', $xpath->evaluate('string(//f:Suma/f:SKom[2])'));
+    }
+
+    public function testPartyExtrasAndTheStateBeforeACorrectionAreSerializedInOrder(): void
+    {
+        $seller = new Seller(Nip::of('5265877635'), 'Seller sp. z o.o.', new Address('PL', 'ul. Prosta 1', '00-001 Warszawa'), eori: 'PL5265877635000', vatPrefix: 'PL', correspondenceAddress: new Address('PL', 'Skrytka 5'));
+        $buyer = new Buyer(BuyerIdentifier::nip(Nip::of('1111111111')), 'Gmina Przykład', new Address('PL', 'Rynek 1'), eori: 'PL1111111111000', buyerKey: 'B-1', localGovernmentSubunit: true, vatGroupMember: true);
+        $oldBuyer = new Buyer(BuyerIdentifier::nip(Nip::of('1111111111')), 'Gmina Dawna', new Address('PL', 'Rynek 2'), buyerKey: 'B-1');
+        $invoice = Fixtures::builder()
+            ->seller($seller)->buyer($buyer)
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-02'), 'FV/1')], sellerBefore: new Seller(Nip::of('5265877635'), 'Old Seller', new Address('PL', 'ul. Stara 1')), buyersBefore: [$oldBuyer]))
+            ->addLine(InvoiceLine::of('Widget', '10', 'szt.', '10.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Widget', '8', 'szt.', '10.00', VatRate::Rate23))
+            ->build();
+
+        $xpath = $this->xpath($invoice);
+
+        self::assertSame('PL', $xpath->evaluate('string(//f:Podmiot1/f:PrefiksPodatnika)'));
+        self::assertSame('PL5265877635000', $xpath->evaluate('string(//f:Podmiot1/f:NrEORI)'));
+        self::assertSame('Skrytka 5', $xpath->evaluate('string(//f:Podmiot1/f:AdresKoresp/f:AdresL1)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:Podmiot2/f:JST)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:Podmiot2/f:GV)'));
+        self::assertSame('B-1', $xpath->evaluate('string(//f:Podmiot2/f:IDNabywcy)'));
+        self::assertSame('Old Seller', $xpath->evaluate('string(//f:Podmiot1K/f:DaneIdentyfikacyjne/f:Nazwa)'));
+        self::assertSame('Gmina Dawna', $xpath->evaluate('string(//f:Podmiot2K/f:DaneIdentyfikacyjne/f:Nazwa)'));
+        self::assertSame('B-1', $xpath->evaluate('string(//f:Podmiot2K/f:IDNabywcy)'));
+    }
+
+    public function testTransportAndContractualCurrencyPassTheSchema(): void
+    {
+        $transport = new Transport(
+            type: TransportType::Road,
+            cargo: CargoType::Pallet,
+            carrier: new Carrier(BuyerIdentifier::nip(Nip::of('1111111111')), 'Fast Trans', new Address('PL', 'ul. Trasowa 1')),
+            orderNumber: 'TR-1',
+            packagingUnit: 'pallets',
+            startsAt: new DateTimeImmutable('2026-06-02T08:00:00+00:00'),
+            endsAt: new DateTimeImmutable('2026-06-02T18:00:00+00:00'),
+            from: new Address('PL', 'Magazyn 1'),
+            via: [new Address('DE', 'Berlin')],
+            to: new Address('CZ', 'Praha'),
+        );
+        $invoice = Fixtures::builder()
+            ->addLine(InvoiceLine::of('Widget', '1', 'szt.', '100.00', VatRate::Rate23))
+            ->terms(new TransactionTerms(contractualRate: Decimal::of('4.35'), contractualCurrency: 'EUR', transports: [$transport, new Transport(otherType: 'Drone', otherCargo: 'Mixed')], intermediary: true))
+            ->build();
+
+        $xpath = $this->xpath($invoice);
+
+        self::assertSame('3', $xpath->evaluate('string(//f:Transport[1]/f:RodzajTransportu)'));
+        self::assertSame('13', $xpath->evaluate('string(//f:Transport[1]/f:OpisLadunku)'));
+        self::assertSame('2026-06-02T08:00:00Z', $xpath->evaluate('string(//f:Transport[1]/f:DataGodzRozpTransportu)'));
+        self::assertSame('Fast Trans', $xpath->evaluate('string(//f:Przewoznik/f:DaneIdentyfikacyjne/f:Nazwa)'));
+        self::assertSame('Drone', $xpath->evaluate('string(//f:Transport[2]/f:OpisInnegoTransportu)'));
+        self::assertSame('EUR', $xpath->evaluate('string(//f:WalutaUmowna)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:PodmiotPosredniczacy)'));
     }
 
     public function testBrokenExtrasAreReported(): void

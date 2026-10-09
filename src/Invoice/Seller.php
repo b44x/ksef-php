@@ -15,5 +15,10 @@ final readonly class Seller
         public Address $address,
         public ?string $email = null,
         public ?string $phone = null,
+        /** EORI number of the seller (`NrEORI`). */
+        public ?string $eori = null,
+        /** EU VAT prefix of the seller for the cases of art. 97(10) of the VAT Act (`PrefiksPodatnika`), for example "PL". */
+        public ?string $vatPrefix = null,
+        public ?Address $correspondenceAddress = null,
     ) {}
 }

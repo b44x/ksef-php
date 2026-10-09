@@ -75,16 +75,28 @@ final class Fa3Serializer
     private function seller(DOMDocument $d, DOMElement $root, Seller $seller): void
     {
         $node = $this->el($d, $root, 'Podmiot1');
+        if ($seller->vatPrefix !== null) {
+            $this->el($d, $node, 'PrefiksPodatnika', $seller->vatPrefix);
+        }
+        if ($seller->eori !== null) {
+            $this->el($d, $node, 'NrEORI', $seller->eori);
+        }
         $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
         $this->el($d, $id, 'NIP', $seller->nip->value);
         $this->el($d, $id, 'Nazwa', $seller->name);
         $this->address($d, $node, 'Adres', $seller->address);
+        if ($seller->correspondenceAddress !== null) {
+            $this->address($d, $node, 'AdresKoresp', $seller->correspondenceAddress);
+        }
         $this->contact($d, $node, $seller->email, $seller->phone);
     }
 
-    private function buyer(DOMDocument $d, DOMElement $root, Buyer $buyer): void
+    private function buyer(DOMDocument $d, DOMElement $root, Buyer $buyer, string $name = 'Podmiot2', bool $full = true): void
     {
-        $node = $this->el($d, $root, 'Podmiot2');
+        $node = $this->el($d, $root, $name);
+        if ($full && $buyer->eori !== null) {
+            $this->el($d, $node, 'NrEORI', $buyer->eori);
+        }
         $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
         $this->identifier($d, $id, $buyer->identifier);
         $this->el($d, $id, 'Nazwa', $buyer->name);
@@ -92,12 +104,38 @@ final class Fa3Serializer
         if ($buyer->address !== null) {
             $this->address($d, $node, 'Adres', $buyer->address);
         }
+        if (!$full) {
+            if ($buyer->buyerKey !== null) {
+                $this->el($d, $node, 'IDNabywcy', $buyer->buyerKey);
+            }
+
+            return;
+        }
+        if ($buyer->correspondenceAddress !== null) {
+            $this->address($d, $node, 'AdresKoresp', $buyer->correspondenceAddress);
+        }
         $this->contact($d, $node, $buyer->email, $buyer->phone);
         if ($buyer->customerNumber !== null) {
             $this->el($d, $node, 'NrKlienta', $buyer->customerNumber);
         }
-        $this->el($d, $node, 'JST', '2');
-        $this->el($d, $node, 'GV', '2');
+        if ($buyer->buyerKey !== null) {
+            $this->el($d, $node, 'IDNabywcy', $buyer->buyerKey);
+        }
+        $this->el($d, $node, 'JST', $buyer->localGovernmentSubunit ? '1' : '2');
+        $this->el($d, $node, 'GV', $buyer->vatGroupMember ? '1' : '2');
+    }
+
+    /** `Podmiot1K`: the seller data as it was on the corrected invoice. */
+    private function sellerBefore(DOMDocument $d, DOMElement $root, Seller $seller): void
+    {
+        $node = $this->el($d, $root, 'Podmiot1K');
+        if ($seller->vatPrefix !== null) {
+            $this->el($d, $node, 'PrefiksPodatnika', $seller->vatPrefix);
+        }
+        $id = $this->el($d, $node, 'DaneIdentyfikacyjne');
+        $this->el($d, $id, 'NIP', $seller->nip->value);
+        $this->el($d, $id, 'Nazwa', $seller->name);
+        $this->address($d, $node, 'Adres', $seller->address);
     }
 
     private function thirdParty(DOMDocument $d, DOMElement $root, ThirdParty $party): void
@@ -304,6 +342,12 @@ final class Fa3Serializer
                 $this->el($d, $node, 'NrKSeFN', '1');
             }
         }
+        if ($correction->sellerBefore !== null) {
+            $this->sellerBefore($d, $fa, $correction->sellerBefore);
+        }
+        foreach ($correction->buyersBefore as $before) {
+            $this->buyer($d, $fa, $before, 'Podmiot2K', false);
+        }
     }
 
     private function line(DOMDocument $d, DOMElement $fa, int $number, InvoiceLine $line): void
@@ -468,6 +512,61 @@ final class Fa3Serializer
         }
         if ($terms->deliveryTerms !== null) {
             $this->el($d, $node, 'WarunkiDostawy', $terms->deliveryTerms);
+        }
+        if ($terms->contractualRate !== null && $terms->contractualCurrency !== null) {
+            $this->el($d, $node, 'KursUmowny', $terms->contractualRate->toTrimmedString(2));
+            $this->el($d, $node, 'WalutaUmowna', $terms->contractualCurrency);
+        }
+        foreach ($terms->transports as $transport) {
+            $this->transport($d, $node, $transport);
+        }
+        if ($terms->intermediary) {
+            $this->el($d, $node, 'PodmiotPosredniczacy', '1');
+        }
+    }
+
+    private function transport(DOMDocument $d, DOMElement $parent, Transport $transport): void
+    {
+        $node = $this->el($d, $parent, 'Transport');
+        if ($transport->type !== null) {
+            $this->el($d, $node, 'RodzajTransportu', (string) $transport->type->value);
+        } else {
+            $this->el($d, $node, 'TransportInny', '1');
+            $this->el($d, $node, 'OpisInnegoTransportu', (string) $transport->otherType);
+        }
+        if ($transport->carrier !== null) {
+            $carrier = $this->el($d, $node, 'Przewoznik');
+            $id = $this->el($d, $carrier, 'DaneIdentyfikacyjne');
+            $this->identifier($d, $id, $transport->carrier->identifier);
+            $this->el($d, $id, 'Nazwa', $transport->carrier->name);
+            $this->address($d, $carrier, 'AdresPrzewoznika', $transport->carrier->address);
+        }
+        if ($transport->orderNumber !== null) {
+            $this->el($d, $node, 'NrZleceniaTransportu', $transport->orderNumber);
+        }
+        if ($transport->cargo !== null) {
+            $this->el($d, $node, 'OpisLadunku', (string) $transport->cargo->value);
+        } else {
+            $this->el($d, $node, 'LadunekInny', '1');
+            $this->el($d, $node, 'OpisInnegoLadunku', (string) $transport->otherCargo);
+        }
+        if ($transport->packagingUnit !== null) {
+            $this->el($d, $node, 'JednostkaOpakowania', $transport->packagingUnit);
+        }
+        if ($transport->startsAt !== null) {
+            $this->el($d, $node, 'DataGodzRozpTransportu', $transport->startsAt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'));
+        }
+        if ($transport->endsAt !== null) {
+            $this->el($d, $node, 'DataGodzZakTransportu', $transport->endsAt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'));
+        }
+        if ($transport->from !== null) {
+            $this->address($d, $node, 'WysylkaZ', $transport->from);
+        }
+        foreach ($transport->via as $via) {
+            $this->address($d, $node, 'WysylkaPrzez', $via);
+        }
+        if ($transport->to !== null) {
+            $this->address($d, $node, 'WysylkaDo', $transport->to);
         }
     }
 

@@ -63,6 +63,7 @@ final class InvoiceValidator
             $this->text('Buyer customer number', $i->buyer->customerNumber, 256);
         }
         $this->buyerIdentifier($i->buyer->identifier);
+        $this->partyExtras();
         $this->thirdParties();
         $this->authorizedEntity();
         $this->extras();
@@ -323,6 +324,50 @@ final class InvoiceValidator
         }
     }
 
+    private function partyExtras(): void
+    {
+        $i = $this->invoice;
+
+        foreach (['Seller' => $i->seller->eori, 'Buyer' => $i->buyer->eori] as $label => $eori) {
+            if ($eori !== null) {
+                $this->text($label . ' EORI number', $eori, 240);
+            }
+        }
+        if ($i->seller->vatPrefix !== null && preg_match('/^[A-Z]{2}$/', $i->seller->vatPrefix) !== 1) {
+            $this->add('The seller VAT prefix must be a two-letter upper case code.');
+        }
+        if ($i->seller->correspondenceAddress !== null) {
+            $this->party('Seller correspondence', $i->seller->name, $i->seller->correspondenceAddress, null, null);
+        }
+        if ($i->buyer->correspondenceAddress !== null) {
+            $this->party('Buyer correspondence', $i->buyer->name, $i->buyer->correspondenceAddress, null, null);
+        }
+        if ($i->buyer->buyerKey !== null) {
+            $this->text('Buyer key', $i->buyer->buyerKey, 32);
+        }
+
+        $correction = $i->correction;
+        if ($correction === null) {
+            return;
+        }
+        if ($correction->sellerBefore !== null) {
+            $this->party('Seller before correction', $correction->sellerBefore->name, $correction->sellerBefore->address, null, null);
+        }
+        if (\count($correction->buyersBefore) > 101) {
+            $this->add('At most 101 buyers can be given for the state before the correction.');
+        }
+        foreach ($correction->buyersBefore as $index => $before) {
+            $label = \sprintf('Buyer %d before correction', $index + 1);
+            $this->party($label, $before->name, $before->address, null, null);
+            $this->buyerIdentifier($before->identifier);
+            if ($before->buyerKey === null) {
+                $this->add($label . ' needs a buyer key that links it to the buyer data of the correction.');
+            } else {
+                $this->text($label . ' key', $before->buyerKey, 32);
+            }
+        }
+    }
+
     private function extras(): void
     {
         $i = $this->invoice;
@@ -409,10 +454,69 @@ final class InvoiceValidator
             if ($terms->deliveryTerms !== null) {
                 $this->text('Delivery terms', $terms->deliveryTerms, 256);
             }
+            if (($terms->contractualRate === null) !== ($terms->contractualCurrency === null)) {
+                $this->add('The contractual exchange rate and the contractual currency go together.');
+            }
+            if ($terms->contractualRate !== null && !$terms->contractualRate->isPositive()) {
+                $this->add('The contractual exchange rate must be positive.');
+            }
+            if ($terms->contractualCurrency !== null && preg_match('/^[A-Z]{3}$/', $terms->contractualCurrency) !== 1) {
+                $this->add('The contractual currency must be a three-letter ISO 4217 code in upper case.');
+            }
+            if (\count($terms->transports) > 20) {
+                $this->add('At most 20 transports can be described.');
+            }
+            foreach ($terms->transports as $index => $transport) {
+                $this->transport(\sprintf('Transport %d', $index + 1), $transport);
+            }
         }
 
         if ($i->attachment !== null) {
             $this->attachment($i->attachment);
+        }
+    }
+
+    private function transport(string $label, Transport $transport): void
+    {
+        if (($transport->type === null) === ($transport->otherType === null)) {
+            $this->add($label . ' needs either a transport type or a description of another type.');
+        }
+        if (($transport->cargo === null) === ($transport->otherCargo === null)) {
+            $this->add($label . ' needs either a cargo type or a description of another cargo.');
+        }
+        foreach (['other type' => $transport->otherType, 'other cargo' => $transport->otherCargo] as $field => $value) {
+            if ($value !== null) {
+                $this->text($label . ' ' . $field, $value, 50);
+            }
+        }
+        if ($transport->orderNumber !== null) {
+            $this->text($label . ' order number', $transport->orderNumber, 240);
+        }
+        if ($transport->packagingUnit !== null) {
+            $this->text($label . ' packaging unit', $transport->packagingUnit, 240);
+        }
+        if (\count($transport->via) > 20) {
+            $this->add($label . ' can have at most 20 intermediate addresses.');
+        }
+        foreach (['from' => $transport->from, 'to' => $transport->to] as $field => $address) {
+            if ($address !== null) {
+                $this->party($label . ' ' . $field, 'x', $address, null, null);
+            }
+        }
+        foreach ($transport->via as $index => $address) {
+            $this->party(\sprintf('%s via %d', $label, $index + 1), 'x', $address, null, null);
+        }
+        if ($transport->carrier !== null) {
+            $this->party($label . ' carrier', $transport->carrier->name, $transport->carrier->address, null, null);
+            $this->buyerIdentifier($transport->carrier->identifier);
+        }
+        foreach (['start' => $transport->startsAt, 'end' => $transport->endsAt] as $field => $time) {
+            if ($time !== null) {
+                $this->date($label . ' ' . $field, $time, '2021-10-01');
+            }
+        }
+        if ($transport->startsAt !== null && $transport->endsAt !== null && $transport->endsAt < $transport->startsAt) {
+            $this->add($label . ' ends before it starts.');
         }
     }
 
