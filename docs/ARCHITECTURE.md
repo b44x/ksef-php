@@ -17,6 +17,10 @@ knowledge of frameworks, databases, queues or configuration systems.
 | `B4x\Ksef\Signing` | `XadesSigner` interface and the OpenSSL based implementation. | `ext-openssl`, `ext-dom` |
 | `B4x\Ksef\Http` | PSR-18 `Transport` (URL/headers, JSON, retries, error mapping, redacted logging), `AuthorizedClient`. | PSR-7/17/18, PSR-3 |
 | `B4x\Ksef\Polling` | `PollingPolicy`, `Poller`: bounded waiting with backoff. | PSR-20 clock, `Sleeper` |
+| `B4x\Ksef\Rr` | FA_RR (1) farmer purchase invoices: model, validation, serializer. Same shape as `Invoice`, own schema. | `Invoice` (shared value objects), `Support` |
+| `B4x\Ksef\Offline` | Issuing invoices without KSeF: `OfflineIssuer` builds the XML and both QR links locally. | `Invoice`, `Qr` |
+| `B4x\Ksef\Batch`, `Export`, `Certificates`, `Permissions`, `Collective`, `Peppol`, `Limits`, `Qr` | One module per KSeF feature area: typed endpoint wrappers plus the flow logic that belongs to that area. | `Http`, `Crypto`, `Polling` |
+| `B4x\Ksef\Testing` | TEST-environment helpers (`TestEnvironment::createTaxpayer()`); refuses any other environment. | `Http` |
 | `B4x\Ksef\Status`, `B4x\Ksef\Exception`, `B4x\Ksef\Support`, `B4x\Ksef\Xml` | Result value objects, exception hierarchy, `Decimal`/`Nip`/`KsefNumber`, safe XML loading and XSD validation. | - |
 
 Dependencies point inwards: the `Invoice` domain never touches HTTP, and `Http` never knows about
@@ -57,12 +61,13 @@ status 440) is the idempotency mechanism; the SDK exposes it through `findSubmis
 ## Extensibility
 
 - New API version: endpoint wrappers live in `Api`/`Auth`; base URL and `Environment` are data.
-- New invoice schema (FA(4) ...): add a serializer and `FormCode` next to `Fa3Serializer`;
-  `InvoiceDocument`/`OnlineSession` already carry the `FormCode` and reject mismatches.
+- New invoice schema (FA(4) ...): add a serializer and `FormCode` next to `Fa3Serializer` (FA_RR in `Rr` is the
+  worked example) and one line in the form registry of `InvoiceDocument::fromXml()`; `OnlineSession` and batches
+  already carry the `FormCode` and reject mismatches.
 - New authentication mechanism: add a `Credentials` implementation and a branch in `Authenticator`.
 - Alternative crypto/signing backends: implement `XadesSigner` or `PublicKeyProvider`.
 
 ## Deliberate non-goals
 
 No ORM/queue/storage integration, no framework bridges in core, no automatic persistence of
-submissions (applications decide where to store `InvoiceSubmission`), no batch (ZIP) sessions yet.
+submissions (applications decide where to store `InvoiceSubmission`), no rendering of invoices to PDF or QR images (the links are provided; draw them with any QR library).

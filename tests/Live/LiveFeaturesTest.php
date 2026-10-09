@@ -1,0 +1,179 @@
+<?php
+
+declare(strict_types=1);
+
+namespace B4x\Ksef\Tests\Live;
+
+use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Certificates\CertificateType;
+use B4x\Ksef\Collective\CollectiveInvoice;
+use B4x\Ksef\Environment;
+use B4x\Ksef\Invoice\AdvanceInvoiceReference;
+use B4x\Ksef\Invoice\AdvancePayment;
+use B4x\Ksef\Invoice\Attachment;
+use B4x\Ksef\Invoice\AttachmentBlock;
+use B4x\Ksef\Invoice\CorrectedInvoice;
+use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\Invoice;
+use B4x\Ksef\Invoice\InvoiceBuilder;
+use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\Money;
+use B4x\Ksef\Invoice\Settlement;
+use B4x\Ksef\Invoice\ThirdParty;
+use B4x\Ksef\Invoice\ThirdPartyRole;
+use B4x\Ksef\Invoice\VatRate;
+use B4x\Ksef\KsefClient;
+use B4x\Ksef\Permissions\AuthorizationDirection;
+use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Rr\RrCorrection;
+use B4x\Ksef\Rr\RrInvoice;
+use B4x\Ksef\Rr\RrLine;
+use B4x\Ksef\Rr\RrParty;
+use B4x\Ksef\Rr\RrRate;
+use B4x\Ksef\Testing\TestEnvironment;
+use B4x\Ksef\Testing\TestTaxpayer;
+use DateTimeImmutable;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * More end-to-end checks against the KSeF TEST environment (opt-in with KSEF_LIVE=1, see {@see LiveKsefTest}).
+ */
+final class LiveFeaturesTest extends TestCase
+{
+    private Client $http;
+    private HttpFactory $factory;
+    private PollingPolicy $policy;
+
+    protected function setUp(): void
+    {
+        if (getenv('KSEF_LIVE') !== '1') {
+            self::markTestSkipped('Live tests are opt-in: set KSEF_LIVE=1.');
+        }
+        $this->http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
+        $this->factory = new HttpFactory();
+        $this->policy = new PollingPolicy(2.0, 5.0, 1.5, 180.0);
+    }
+
+    public function testCorrectionsOfAdvanceAndSettlementInvoicesAreAccepted(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $today = new DateTimeImmutable('today');
+        $base = fn(string $prefix): InvoiceBuilder => $this->builder($taxpayer, $prefix);
+
+        $advance = $base('ZAL')->advance(new AdvancePayment(Money::pln('1230.00'), VatRate::Rate23, $today))->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23))->build();
+        $advanceNumber = $this->accept($client, $advance);
+        $settlement = $base('ROZ')->saleDate($today)->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceNumber)], Money::pln('1230.00')))->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23))->build();
+        $settlementNumber = $this->accept($client, $settlement);
+
+        $this->accept($client, $base('KZAL')
+            ->correction(new Correction([new CorrectedInvoice($advance->issueDate, $advance->number, $advanceNumber)]))
+            ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, $today))
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4500.00', VatRate::Rate23))
+            ->build());
+        $this->accept($client, $base('KROZ')
+            ->correction(new Correction([new CorrectedInvoice($settlement->issueDate, $settlement->number, $settlementNumber)]))
+            ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceNumber)], Money::pln('0.00')))
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4000.00', VatRate::Rate23))
+            ->build());
+    }
+
+    public function testFarmerInvoicesNeedTheFarmersAuthorisationAndAreAccepted(): void
+    {
+        [$buyerTaxpayer, $buyerClient] = $this->taxpayer();
+        [$farmer, $farmerClient] = $this->taxpayer();
+
+        $farmerClient->grantAuthorization($buyerTaxpayer->nip, EntityAuthorizationType::RrInvoicing, 'Buyer', 'RR invoices', $this->policy);
+        $granted = $farmerClient->authorizations(AuthorizationDirection::Granted)['permissions'];
+        self::assertSame('RRInvoicing', $granted[0]->scope);
+
+        $address = \B4x\Ksef\Invoice\Address::poland('ul. Polna 1', '00-001 Wieś');
+        $supplier = new RrParty($farmer->nip, 'Jan Rolnik', $address);
+        $buyer = new RrParty($buyerTaxpayer->nip, 'Skup', $address);
+        $today = new DateTimeImmutable('today');
+        $invoice = RrInvoice::builder()->number('RR/' . random_int(1, 999_999))->issueDate($today)->purchaseDate($today)->supplier($supplier)->buyer($buyer)
+            ->addLine(RrLine::of('Wheat', 'kg', '1500', 'A', '1.20', RrRate::Rate7))->build();
+        $number = $this->accept($buyerClient, $invoice);
+
+        $this->accept($buyerClient, RrInvoice::builder()->number('KRR/' . random_int(1, 999_999))->issueDate($today)->purchaseDate($today)->supplier($supplier)->buyer($buyer)
+            ->correction(new RrCorrection([new CorrectedInvoice($today, $invoice->number, $number)]))
+            ->addLine(RrLine::of('Wheat', 'kg', '1500', 'A', '1.20', RrRate::Rate7)->asBefore())
+            ->addLine(RrLine::of('Wheat', 'kg', '1400', 'A', '1.20', RrRate::Rate7))
+            ->build());
+    }
+
+    public function testOfflineInvoicesAreIssuedLocallyAndDeliveredLater(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $certificate = $client->requestCertificate('offline live test', CertificateType::Offline, policy: $this->policy);
+
+        $offline = $client->issueOfflineInvoice($this->builder($taxpayer, 'OFF')->addLine(InvoiceLine::of('Consulting', '3', 'h', '150.00', VatRate::Rate23))->build(), $certificate->toOfflineCertificate());
+        self::assertStringContainsString('/certificate/Nip/' . $taxpayer->nip->value . '/', $offline->issuerUrl);
+
+        $result = $client->waitForInvoice($client->sendOfflineInvoice($offline), $this->policy, true)->assertAccepted();
+        self::assertNotNull($result->ksefNumber);
+        $client->revokeCertificate($certificate->serialNumber);
+    }
+
+    public function testCollectiveIdentifiersAndAttachmentsInBatches(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $numbers = [];
+        foreach ([1, 2] as $_) {
+            $numbers[] = $this->accept($client, $this->builder($taxpayer, 'FV')->addLine(InvoiceLine::of('Item', '1', 'szt.', '100.00', VatRate::Rate23))->build());
+        }
+
+        $id = $client->createCollectiveIdentifier([new CollectiveInvoice($numbers[0], Money::pln('123.00')), new CollectiveInvoice($numbers[1])]);
+        self::assertStringContainsString('-IZ', $id);
+        $invoices = $client->collectiveIdentifierInvoices([$id]);
+        self::assertCount(2, $invoices->items);
+
+        // Attachments: consent, batch only.
+        TestEnvironment::allowAttachments($taxpayer->nip, $this->http, $this->factory, $this->factory);
+        $rich = $this->builder($taxpayer, 'ATT')
+            ->addLine(InvoiceLine::of('Services', '1', 'szt.', '100.00', VatRate::Rate23)->withDiscount('10.00'))
+            ->addThirdParty(ThirdParty::of(ThirdPartyRole::Recipient, \B4x\Ksef\Invoice\BuyerIdentifier::nip(\B4x\Ksef\Support\Nip::of('5265877635')), 'Branch'))
+            ->attachment(new Attachment([new AttachmentBlock(['Period' => '2026-10'], 'Statement', ['Services rendered.'])]))
+            ->build();
+        $batch = $client->sendBatch([$rich]);
+        $status = $client->waitForSession($batch->sessionReference, $this->policy);
+        self::assertSame(1, $status->successfulInvoiceCount);
+    }
+
+    /**
+     * @return array{TestTaxpayer, KsefClient}
+     */
+    private function taxpayer(): array
+    {
+        $taxpayer = TestEnvironment::createTaxpayer($this->http, $this->factory, $this->factory);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($this->http, $this->factory, $this->factory)
+            ->context(ContextIdentifier::nip($taxpayer->nip->value))
+            ->credentials($taxpayer->credentials())
+            ->build();
+
+        return [$taxpayer, $client];
+    }
+
+    private function builder(TestTaxpayer $taxpayer, string $prefix): InvoiceBuilder
+    {
+        return Invoice::builder()
+            ->number($prefix . '/' . date('Ymd') . '/' . random_int(1, 999_999))
+            ->issueDate(new DateTimeImmutable('today'))
+            ->seller(new \B4x\Ksef\Invoice\Seller($taxpayer->nip, 'Live Seller', \B4x\Ksef\Invoice\Address::poland('ul. Testowa 1', '00-001 Warszawa')))
+            ->buyer(new \B4x\Ksef\Invoice\Buyer(\B4x\Ksef\Invoice\BuyerIdentifier::nip(\B4x\Ksef\Support\Nip::of('5265877635')), 'Live Buyer', \B4x\Ksef\Invoice\Address::poland('ul. Kupiecka 2', '00-002 Warszawa')));
+    }
+
+    private function accept(KsefClient $client, Invoice|RrInvoice $invoice): string
+    {
+        $result = $client->waitForInvoice($client->sendInvoice($invoice), $this->policy, true)->assertAccepted();
+        self::assertNotNull($result->ksefNumber);
+
+        return $result->ksefNumber;
+    }
+}
