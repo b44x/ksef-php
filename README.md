@@ -158,8 +158,23 @@ foreign tax id or none), all common VAT treatments (23/22/8/7/5 %, 0 % variants,
 GTU codes, payment details, annotations and a footer. Corrections: mark the original state with
 `InvoiceLine::asBefore()` and add the corrected lines; totals become differences automatically.
 
-Not modelled yet (send them as raw XML, see below): advance/settlement/simplified invoices, third parties
+Not modelled yet (send them as raw XML, see below): corrections of advance/settlement invoices, third parties
 (`Podmiot3`), authorised entities, attachments, transport conditions, per-line discounts.
+
+Special kinds:
+
+```php
+// Advance invoice (ZAL): the tax is taken out of the gross payment; the lines describe the order.
+Invoice::builder()->...->advance(new AdvancePayment(Money::pln('1230.00'), VatRate::Rate23, $paidOn))
+    ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))->build();
+
+// Final invoice (ROZ): full sale; P_15 is the remainder after the advances.
+Invoice::builder()->...->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsefNumber)], Money::pln('1230.00')))
+    ->addLine(...)->build();
+
+// Simplified invoice (UPR): up to PLN 450 / EUR 100, buyer identified by NIP.
+Invoice::builder()->...->simplified()->addLine(...)->build();
+```
 
 **Raw XML escape hatch.** Any FA(3) document can be sent after verification:
 

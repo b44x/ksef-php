@@ -14,4 +14,13 @@ enum InvoiceType: string
 {
     case Standard = 'VAT';
     case Correction = 'KOR';
+
+    /** Documents an advance payment (`ZAL`); needs {@see AdvancePayment}, lines describe the order. */
+    case Advance = 'ZAL';
+
+    /** Final invoice settling advances (`ROZ`); needs {@see Settlement}. */
+    case Settlement = 'ROZ';
+
+    /** Simplified invoice (`UPR`, art. 106e(5)(3)): up to PLN 450 / EUR 100, buyer identified by NIP. */
+    case Simplified = 'UPR';
 }

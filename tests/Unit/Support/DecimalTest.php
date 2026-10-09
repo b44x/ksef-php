@@ -94,4 +94,21 @@ final class DecimalTest extends TestCase
 
         self::assertSame('2.39', $result->toString(2));
     }
+
+    public function testDivisionRoundsHalfAwayFromZero(): void
+    {
+        self::assertSame('1.87', Decimal::of('123.00')->multiply(Decimal::of('23'))->dividedBy(Decimal::of('123'), 2)->dividedBy(Decimal::of('12.3'), 2)->toString(2));
+        self::assertSame('23.00', Decimal::of('123.00')->multiply(Decimal::of('23'))->dividedBy(Decimal::of('123'), 2)->toString(2));
+        self::assertSame('0.33', Decimal::of('1')->dividedBy(Decimal::of('3'), 2)->toString(2));
+        self::assertSame('0.67', Decimal::of('2')->dividedBy(Decimal::of('3'), 2)->toString(2));
+        self::assertSame('-0.67', Decimal::of('-2')->dividedBy(Decimal::of('3'), 2)->toString(2));
+        self::assertSame('0.50', Decimal::of('1.0')->dividedBy(Decimal::of('2.0'), 2)->toString(2));
+        self::assertSame('1', Decimal::of('5')->dividedBy(Decimal::of('5'), 0)->toString());
+    }
+
+    public function testDivisionByZeroIsRejected(): void
+    {
+        $this->expectException(ValidationException::class);
+        Decimal::of('1')->dividedBy(Decimal::of('0'), 2);
+    }
 }

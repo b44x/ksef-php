@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Invoice;
 
 use B4x\Ksef\Support\Decimal;
+use B4x\Ksef\Support\KsefNumber;
 use DateTimeImmutable;
 
 /**
@@ -67,6 +68,7 @@ final class InvoiceValidator
         $this->taxTreatment();
         $this->payment();
         $this->correction();
+        $this->kindSpecificRules();
         $this->amounts();
     }
 
@@ -93,7 +95,7 @@ final class InvoiceValidator
             if ($line->gtin !== null) {
                 $this->text($label . ' GTIN', $line->gtin, 20);
             }
-            if ($line->quantity->isNegative() || ($line->state === LineState::Current && $i->type === InvoiceType::Standard && $line->quantity->isZero())) {
+            if ($line->quantity->isNegative() || ($line->state === LineState::Current && $i->type !== InvoiceType::Correction && $line->quantity->isZero())) {
                 $this->add($label . ': the quantity must be positive.');
             }
             if ($line->quantity->scale() > 6 && !$line->quantity->equals($line->quantity->roundTo(6))) {
@@ -113,7 +115,7 @@ final class InvoiceValidator
             }
         }
 
-        if ($i->type === InvoiceType::Standard && $before > 0) {
+        if ($i->type !== InvoiceType::Correction && $before > 0) {
             $this->add('"Before correction" lines are only allowed on correction invoices.');
         }
         if ($i->type === InvoiceType::Correction && $before === 0) {
@@ -205,6 +207,85 @@ final class InvoiceValidator
             }
         } elseif ($i->correction !== null) {
             $this->add('Correction details are only allowed on correction invoices.');
+        }
+    }
+
+    private function kindSpecificRules(): void
+    {
+        $i = $this->invoice;
+
+        if ($i->type !== InvoiceType::Advance && $i->advance !== null) {
+            $this->add('Advance payment data is only allowed on advance invoices (ZAL).');
+        }
+        if ($i->type !== InvoiceType::Settlement && $i->settlement !== null) {
+            $this->add('Settlement data is only allowed on settlement invoices (ROZ).');
+        }
+
+        switch ($i->type) {
+            case InvoiceType::Advance:
+                if ($i->advance === null) {
+                    $this->add('An advance invoice needs the advance payment (AdvancePayment).');
+
+                    break;
+                }
+                if ($i->advance->paid->currency !== $i->currency) {
+                    $this->add('The advance payment currency differs from the invoice currency.');
+                }
+                if (!$i->advance->paid->amount->isPositive()) {
+                    $this->add('The advance payment must be positive.');
+                }
+                $this->date('Advance payment date', $i->advance->receivedOn);
+                if ($i->saleDate !== null) {
+                    $this->add('An advance invoice takes its date from the payment; do not set a sale date.');
+                }
+
+                break;
+            case InvoiceType::Settlement:
+                if ($i->settlement === null) {
+                    $this->add('A settlement invoice needs Settlement data (advance invoices and the amount paid).');
+
+                    break;
+                }
+                if (\count($i->settlement->advanceInvoices) > 100) {
+                    $this->add('A settlement invoice can refer to at most 100 advance invoices.');
+                }
+                foreach ($i->settlement->advanceInvoices as $index => $reference) {
+                    if ($reference->ksefNumber !== null) {
+                        $error = KsefNumber::validate($reference->ksefNumber);
+                        if ($error !== null) {
+                            $this->add(\sprintf('Advance invoice %d: "%s" is not a valid KSeF number (%s).', $index + 1, $reference->ksefNumber, $error));
+                        }
+                    } elseif ($reference->number !== null) {
+                        $this->text(\sprintf('Advance invoice %d number', $index + 1), $reference->number, 256);
+                    }
+                }
+                $paid = $i->settlement->advancesPaid;
+                if ($paid->currency !== $i->currency) {
+                    $this->add('The amount paid in advances must be in the invoice currency.');
+                }
+                if ($paid->isNegative() || $paid->amount->roundTo(2)->compare($i->totals()->gross()) > 0) {
+                    $this->add('The advances paid must be between zero and the invoice total.');
+                }
+
+                break;
+            case InvoiceType::Simplified:
+                if ($i->buyer->identifier->type !== BuyerIdentifierType::Nip) {
+                    $this->add('A simplified invoice (UPR) identifies the buyer by NIP.');
+                }
+                $limit = match ($i->currency) {
+                    'PLN' => '450',
+                    'EUR' => '100',
+                    default => null,
+                };
+                if ($limit === null) {
+                    $this->add('A simplified invoice (UPR) can only be issued in PLN or EUR.');
+                } elseif ($i->totals()->gross()->compare(Decimal::of($limit)) > 0) {
+                    $this->add(\sprintf('A simplified invoice (UPR) cannot exceed %s %s.', $limit, $i->currency));
+                }
+
+                break;
+            default:
+                break;
         }
     }
 

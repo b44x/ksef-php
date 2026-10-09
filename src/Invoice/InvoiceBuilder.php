@@ -30,6 +30,8 @@ final class InvoiceBuilder
     private ?Correction $correction = null;
     private ?Decimal $exchangeRate = null;
     private ?string $footer = null;
+    private ?AdvancePayment $advance = null;
+    private ?Settlement $settlement = null;
 
     public function __construct()
     {
@@ -122,6 +124,34 @@ final class InvoiceBuilder
         return $this;
     }
 
+    /**
+     * Turns the invoice into an advance invoice (`ZAL`). Add the lines of the *order* with {@see self::addLine()}.
+     */
+    public function advance(AdvancePayment $advance): self
+    {
+        $this->type = InvoiceType::Advance;
+        $this->advance = $advance;
+
+        return $this;
+    }
+
+    /** Turns the invoice into a final invoice (`ROZ`) that settles the given advances. */
+    public function settlement(Settlement $settlement): self
+    {
+        $this->type = InvoiceType::Settlement;
+        $this->settlement = $settlement;
+
+        return $this;
+    }
+
+    /** Marks the invoice as simplified (`UPR`). */
+    public function simplified(): self
+    {
+        $this->type = InvoiceType::Simplified;
+
+        return $this;
+    }
+
     /** Turns the invoice into a correction (`KOR`) of the given invoices. */
     public function correction(Correction $correction): self
     {
@@ -161,6 +191,8 @@ final class InvoiceBuilder
             $this->correction,
             $this->exchangeRate,
             $this->footer,
+            $this->advance,
+            $this->settlement,
         );
     }
 

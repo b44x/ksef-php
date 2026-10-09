@@ -85,6 +85,34 @@ final readonly class Decimal
         return new self(self::checkedMultiply($this->unscaled, $other->unscaled), $scale);
     }
 
+    /**
+     * Divides and rounds half away from zero to the given number of places.
+     */
+    public function dividedBy(self $divisor, int $places): self
+    {
+        if ($divisor->isZero()) {
+            throw new ValidationException('Division by zero.');
+        }
+        if ($places < 0 || $places > self::MAX_SCALE) {
+            throw new ValidationException('Division precision must be between 0 and ' . self::MAX_SCALE . '.');
+        }
+
+        // (a / 10^sa) / (b / 10^sb) = a * 10^(sb - sa) / b ; scale the numerator so the quotient has places + 1 digits to round on.
+        $numerator = $this->unscaled;
+        $exponent = $places + 1 + $divisor->scale - $this->scale;
+        $denominator = $divisor->unscaled;
+        if ($exponent >= 0) {
+            $numerator = self::checkedMultiply($numerator, $this->pow10($exponent));
+        } else {
+            $denominator = self::checkedMultiply($denominator, $this->pow10(-$exponent));
+        }
+
+        $quotient = intdiv(abs($numerator), abs($denominator));
+        $negative = ($numerator < 0) !== ($denominator < 0);
+
+        return (new self($negative ? -$quotient : $quotient, $places + 1))->roundTo($places);
+    }
+
     /** Multiplies by a percentage: `of('200')->percent(of('23'))` is 46. */
     public function percent(self $percentage): self
     {

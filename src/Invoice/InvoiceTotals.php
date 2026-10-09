@@ -36,6 +36,20 @@ final readonly class InvoiceTotals
     }
 
     /**
+     * Totals of an advance invoice: the tax is contained in the gross payment (`gross * rate / (100 + rate)`).
+     */
+    public static function forAdvance(AdvancePayment $advance, string $currency, ?Decimal $exchangeRate): self
+    {
+        $gross = $advance->paid->amount->roundTo(2);
+        $percentage = $advance->rate->percentage();
+        $vat = $percentage !== null ? $gross->multiply($percentage)->dividedBy($percentage->add(Decimal::of(100)), 2) : null;
+        $net = $vat !== null ? $gross->subtract($vat) : $gross;
+        $vatPln = $vat !== null && $currency !== 'PLN' && $exchangeRate !== null ? $vat->multiply($exchangeRate)->roundTo(2) : null;
+
+        return new self([new TotalsBucket($advance->rate->bucket(), $advance->rate, $net, $vat, $vatPln)]);
+    }
+
+    /**
      * @param list<InvoiceLine> $lines
      */
     public static function calculate(array $lines, string $currency, ?Decimal $exchangeRate): self

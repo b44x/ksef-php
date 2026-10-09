@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Invoice;
 
 use B4x\Ksef\Exception\SerializationException;
+use B4x\Ksef\Support\Decimal;
 use DateTimeImmutable;
 use DateTimeZone;
 use DOMDocument;
@@ -117,8 +118,9 @@ final class Fa3Serializer
             $this->el($d, $fa, 'P_1M', $invoice->issuePlace);
         }
         $this->el($d, $fa, 'P_2', $invoice->number);
-        if ($invoice->saleDate !== null) {
-            $this->el($d, $fa, 'P_6', $invoice->saleDate->format('Y-m-d'));
+        $p6 = $invoice->type === InvoiceType::Advance ? $invoice->advance?->receivedOn : $invoice->saleDate;
+        if ($p6 !== null) {
+            $this->el($d, $fa, 'P_6', $p6->format('Y-m-d'));
         }
 
         $totals = $invoice->totals();
@@ -132,7 +134,7 @@ final class Fa3Serializer
                 }
             }
         }
-        $this->el($d, $fa, 'P_15', $totals->gross()->toString(2));
+        $this->el($d, $fa, 'P_15', $invoice->amountDue()->toString(2));
         if ($invoice->exchangeRate !== null) {
             $this->el($d, $fa, 'KursWalutyZ', $invoice->exchangeRate->toTrimmedString(2));
         }
@@ -143,12 +145,29 @@ final class Fa3Serializer
             $this->correction($d, $fa, $invoice->correction);
         }
 
-        foreach ($invoice->lines as $index => $line) {
-            $this->line($d, $fa, $index + 1, $line);
+        if ($invoice->settlement !== null) {
+            foreach ($invoice->settlement->advanceInvoices as $reference) {
+                $node = $this->el($d, $fa, 'FakturaZaliczkowa');
+                if ($reference->ksefNumber !== null) {
+                    $this->el($d, $node, 'NrKSeFFaZaliczkowej', $reference->ksefNumber);
+                } else {
+                    $this->el($d, $node, 'NrKSeFZN', '1');
+                    $this->el($d, $node, 'NrFaZaliczkowej', (string) $reference->number);
+                }
+            }
+        }
+
+        if ($invoice->type !== InvoiceType::Advance) {
+            foreach ($invoice->lines as $index => $line) {
+                $this->line($d, $fa, $index + 1, $line);
+            }
         }
 
         if ($invoice->payment !== null) {
             $this->payment($d, $fa, $invoice->payment);
+        }
+        if ($invoice->type === InvoiceType::Advance) {
+            $this->order($d, $fa, $invoice);
         }
     }
 
@@ -222,6 +241,28 @@ final class Fa3Serializer
         }
         if ($line->state === LineState::Before) {
             $this->el($d, $node, 'StanPrzed', '1');
+        }
+    }
+
+    /** `Zamowienie`: the order or contract an advance invoice refers to, in the invoice currency. */
+    private function order(DOMDocument $d, DOMElement $fa, Invoice $invoice): void
+    {
+        $order = $this->el($d, $fa, 'Zamowienie');
+        $this->el($d, $order, 'WartoscZamowienia', $invoice->orderValue()->toString(2));
+        foreach ($invoice->lines as $index => $line) {
+            $row = $this->el($d, $order, 'ZamowienieWiersz');
+            $this->el($d, $row, 'NrWierszaZam', (string) ($index + 1));
+            $this->el($d, $row, 'P_7Z', $line->name);
+            if ($line->unit !== null) {
+                $this->el($d, $row, 'P_8AZ', $line->unit);
+            }
+            $this->el($d, $row, 'P_8BZ', $line->quantity->toTrimmedString());
+            $this->el($d, $row, 'P_9AZ', $line->unitNetPrice->amount->toTrimmedString(2));
+            $net = $line->netAmount();
+            $this->el($d, $row, 'P_11NettoZ', $net->toString(2));
+            $percentage = $line->vatRate->percentage();
+            $this->el($d, $row, 'P_11VatZ', ($percentage !== null ? $net->percent($percentage)->roundTo(2) : Decimal::of('0.00'))->toString(2));
+            $this->el($d, $row, 'P_12Z', $line->vatRate->value);
         }
     }
 

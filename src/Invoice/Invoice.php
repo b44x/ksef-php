@@ -45,6 +45,8 @@ final readonly class Invoice
         public ?Correction $correction = null,
         public ?Decimal $exchangeRate = null,
         public ?string $footer = null,
+        public ?AdvancePayment $advance = null,
+        public ?Settlement $settlement = null,
     ) {
         $this->lines = array_values($lines);
 
@@ -59,9 +61,37 @@ final readonly class Invoice
         return new InvoiceBuilder();
     }
 
+    /**
+     * Net and tax sums. For an advance invoice these describe the advance payment, otherwise the lines.
+     */
     public function totals(): InvoiceTotals
     {
+        if ($this->type === InvoiceType::Advance && $this->advance !== null) {
+            return InvoiceTotals::forAdvance($this->advance, $this->currency, $this->exchangeRate);
+        }
+
         return InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate);
+    }
+
+    /**
+     * Value of the order an advance invoice refers to, tax included (`WartoscZamowienia`).
+     */
+    public function orderValue(): Decimal
+    {
+        return InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate)->gross();
+    }
+
+    /**
+     * The amount that `P_15` carries: the gross total; for an advance invoice the payment received;
+     * for a settlement invoice what remains to be paid after the advances.
+     */
+    public function amountDue(): Decimal
+    {
+        return match ($this->type) {
+            InvoiceType::Advance => $this->advance?->paid->amount->roundTo(2) ?? $this->totals()->gross(),
+            InvoiceType::Settlement => $this->totals()->gross()->subtract($this->settlement?->advancesPaid->amount->roundTo(2) ?? Decimal::of('0.00')),
+            default => $this->totals()->gross(),
+        };
     }
 
     public function hasLinesWith(VatRate $rate): bool

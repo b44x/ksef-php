@@ -247,6 +247,42 @@ final class LiveKsefTest extends TestCase
         $client->grantPersonPermissions($person, [\B4x\Ksef\Permissions\Permission::EnforcementOperations], 'not allowed here', $policy);
     }
 
+    public function testAdvanceSettlementAndSimplifiedInvoicesAreAcceptedOnTheTestEnvironment(): void
+    {
+        $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
+        $factory = new HttpFactory();
+        $nip = $this->createTestTaxpayer($http, $factory);
+        $pki = TestPki::personal($nip);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($http, $factory, $factory)
+            ->context(ContextIdentifier::nip($nip))
+            ->credentials(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']))
+            ->build();
+        $policy = new PollingPolicy(2.0, 5.0, 1.5, 120.0);
+
+        $today = new DateTimeImmutable('today');
+        $seller = new Seller(Nip::unchecked($nip), 'Kinds Seller', Address::poland('ul. Testowa 1', '00-001 Warszawa'));
+        $buyer = new Buyer(BuyerIdentifier::nip(Nip::of('5265877635')), 'Kinds Buyer', Address::poland('ul. Kupiecka 2', '00-002 Warszawa'));
+        $builder = static fn(string $prefix): \B4x\Ksef\Invoice\InvoiceBuilder => Invoice::builder()->number($prefix . '/' . random_int(1, 999_999))->issueDate($today)->seller($seller)->buyer($buyer);
+
+        $simplified = $builder('UPR')->simplified()->addLine(InvoiceLine::of('Coffee', '2', 'szt.', '10.00', VatRate::Rate23))->build();
+        $client->waitForInvoice($client->sendInvoice($simplified), $policy, true)->assertAccepted();
+
+        $advance = $builder('ZAL')
+            ->advance(new \B4x\Ksef\Invoice\AdvancePayment(\B4x\Ksef\Invoice\Money::pln('1230.00'), VatRate::Rate23, $today))
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
+            ->build();
+        $advanceResult = $client->waitForInvoice($client->sendInvoice($advance), $policy, true)->assertAccepted();
+        self::assertNotNull($advanceResult->ksefNumber);
+
+        $settlement = $builder('ROZ')->saleDate($today)
+            ->settlement(new \B4x\Ksef\Invoice\Settlement([\B4x\Ksef\Invoice\AdvanceInvoiceReference::ksef($advanceResult->ksefNumber)], \B4x\Ksef\Invoice\Money::pln('1230.00')))
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
+            ->build();
+        $client->waitForInvoice($client->sendInvoice($settlement), $policy, true)->assertAccepted();
+    }
+
     public function testKsefTokenAuthenticationOnTheTestEnvironment(): void
     {
         $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
