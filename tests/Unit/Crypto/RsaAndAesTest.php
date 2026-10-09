@@ -62,7 +62,8 @@ final class RsaAndAesTest extends TestCase
     public function testDecryptingGarbageFails(): void
     {
         $this->expectException(EncryptionException::class);
-        SessionEncryption::generate()->decrypt(str_repeat("\x01", 16));
+        // A length that is not a multiple of the block size can never be valid ciphertext (deterministic, unlike random blocks).
+        SessionEncryption::generate()->decrypt(str_repeat("\x01", 15));
     }
 
     public function testRsaOaepSha256RoundTripAndDistinctCiphertexts(): void
