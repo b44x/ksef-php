@@ -77,6 +77,34 @@ final class Transport
         return $this->execute($request, RetryMode::Safe, 'GET <pre-signed download url>');
     }
 
+    /**
+     * Uploads a body to a pre-signed absolute URL (for example a batch part) without any credentials,
+     * using exactly the method and headers KSeF prescribed.
+     *
+     * @param array<string, string> $headers
+     */
+    public function upload(string $absoluteUrl, string $method, array $headers, string $body): ApiResponse
+    {
+        if (!str_starts_with($absoluteUrl, 'https://')) {
+            throw new ConfigurationException('Refusing to upload to a non-https URL.');
+        }
+        if (!\in_array(strtoupper($method), ['PUT', 'POST'], true)) {
+            throw new ConfigurationException('Unsupported upload method.');
+        }
+
+        $request = $this->requestFactory->createRequest(strtoupper($method), $absoluteUrl)
+            ->withHeader('User-Agent', $this->userAgent)
+            ->withBody($this->streamFactory->createStream($body));
+        foreach ($headers as $name => $value) {
+            if (strtolower($name) !== 'authorization') {
+                $request = $request->withHeader($name, $value);
+            }
+        }
+
+        // Re-uploading the same part to the same URL is idempotent, so network retries are safe.
+        return $this->execute($request, RetryMode::Safe, strtoupper($method) . ' <pre-signed upload url>');
+    }
+
     private function buildRequest(ApiRequest $request): RequestInterface
     {
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($request->path, '/');

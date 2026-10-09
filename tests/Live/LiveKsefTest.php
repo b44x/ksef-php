@@ -88,6 +88,47 @@ final class LiveKsefTest extends TestCase
         self::assertSame($result->ksefNumber, $second->status->originalKsefNumber());
     }
 
+    public function testBatchSessionOnTheTestEnvironment(): void
+    {
+        $nip = $this->randomNip();
+        $http = new Client(['timeout' => 120, 'connect_timeout' => 15, 'http_errors' => false]);
+        $factory = new HttpFactory();
+        $this->createTestTaxpayer($http, $factory, $nip);
+
+        $pki = TestPki::personal($nip);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($http, $factory, $factory)
+            ->context(ContextIdentifier::nip($nip))
+            ->credentials(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']))
+            ->build();
+
+        $invoices = [];
+        $prefix = 'BATCH/' . date('Ymd-His') . '/';
+        for ($i = 1; $i <= 5; ++$i) {
+            $invoices[] = Invoice::builder()
+                ->number($prefix . $i)
+                ->issueDate(new DateTimeImmutable('today'))
+                ->seller(new Seller(Nip::unchecked($nip), 'Live Batch Seller', Address::poland('ul. Testowa 1', '00-001 Warszawa')))
+                ->buyer(new Buyer(BuyerIdentifier::nip(Nip::of('5265877635')), 'Live Batch Buyer'))
+                ->addLine(InvoiceLine::of('Batch item ' . $i, '1', 'szt.', '10.00', VatRate::Rate23))
+                ->build();
+        }
+
+        $submission = $client->sendBatch($invoices);
+        $status = $client->waitForSession($submission->sessionReference, new PollingPolicy(2.0, 5.0, 1.5, 180.0));
+
+        self::assertTrue($status->isSuccessful(), 'session: ' . $status->code . ' ' . $status->description);
+        self::assertSame(5, $status->successfulInvoiceCount);
+        self::assertSame(0, $status->failedInvoiceCount);
+        $page = $client->sessionInvoices($submission->sessionReference);
+        self::assertCount(5, $page->invoices);
+        foreach ($page->invoices as $invoice) {
+            self::assertContains($invoice->invoiceHash, $submission->invoiceHashes);
+            self::assertNotNull($invoice->ksefNumber);
+        }
+    }
+
     public function testKsefTokenAuthenticationOnTheTestEnvironment(): void
     {
         $nip = $this->randomNip();

@@ -13,6 +13,8 @@ use B4x\Ksef\Auth\AuthApi;
 use B4x\Ksef\Auth\Authenticator;
 use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Auth\Credentials;
+use B4x\Ksef\Batch\BatchPackager;
+use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Crypto\ApiPublicKeyProvider;
 use B4x\Ksef\Crypto\KsefTokenEncryptor;
 use B4x\Ksef\Crypto\PublicKeyProvider;
@@ -219,8 +221,10 @@ final class KsefClientBuilder
         $tokens = new AccessTokenProvider($authenticator, $authApi, $this->context, $this->credentials, $clock, $this->allowedIps, logger: $logger);
         $authorized = new AuthorizedClient($transport, $tokens);
 
+        $sessionApi = new SessionApi($authorized);
+
         return new KsefClient(
-            new SessionApi($authorized),
+            $sessionApi,
             new InvoiceApi($authorized),
             new TokenApi($authorized),
             $keys,
@@ -231,6 +235,7 @@ final class KsefClientBuilder
             $logger,
             $this->recovery,
             $sleeper,
+            new BatchSender($sessionApi, $transport, $keys, new BatchPackager(), $logger),
         );
     }
 }

@@ -13,8 +13,11 @@ use B4x\Ksef\Api\SessionApi;
 use B4x\Ksef\Api\TokenApi;
 use B4x\Ksef\Api\TokenPermission;
 use B4x\Ksef\Api\TokenStatus;
+use B4x\Ksef\Batch\BatchPackager;
+use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Crypto\PublicKeyProvider;
 use B4x\Ksef\Crypto\SessionEncryption;
+use B4x\Ksef\Exception\ConfigurationException;
 use B4x\Ksef\Exception\InvoiceNotAvailableException;
 use B4x\Ksef\Exception\KsefException;
 use B4x\Ksef\Http\NativeSleeper;
@@ -27,13 +30,16 @@ use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
 use B4x\Ksef\Session\OnlineSession;
 use B4x\Ksef\Session\SubmissionRecoveryPolicy;
+use B4x\Ksef\Status\BatchSubmission;
 use B4x\Ksef\Status\DownloadedInvoice;
 use B4x\Ksef\Status\InvoiceSubmission;
 use B4x\Ksef\Status\SessionInvoice;
+use B4x\Ksef\Status\SessionInvoicesPage;
 use B4x\Ksef\Status\SessionStatus;
 use B4x\Ksef\Status\Upo;
 use B4x\Ksef\Support\KsefNumber;
 use DateTimeInterface;
+use Generator;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -73,6 +79,7 @@ final class KsefClient
         private readonly LoggerInterface $logger,
         private readonly SubmissionRecoveryPolicy $recovery = new SubmissionRecoveryPolicy(),
         private readonly Sleeper $sleeper = new NativeSleeper(),
+        private readonly ?BatchSender $batches = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -123,6 +130,55 @@ final class KsefClient
         $session->close();
 
         return $submission;
+    }
+
+    /**
+     * Sends many invoices at once as a batch (ZIP, split and encrypted), then closes the session.
+     *
+     * Everything is verified before upload (XSD, size limits: 10,000 invoices, 50 parts of up to 100 MB).
+     * Processing is asynchronous: wait with {@see self::waitForSession()} and read per-invoice results
+     * with {@see self::sessionInvoices()}; correlate them via {@see BatchSubmission::$invoiceHashes}.
+     * Requires ext-zip.
+     *
+     * @param iterable<Invoice|InvoiceDocument|string> $invoices
+     */
+    public function sendBatch(iterable $invoices, int $maxPartBytes = BatchPackager::DEFAULT_MAX_PART_BYTES, ?FormCode $formCode = null): BatchSubmission
+    {
+        $sender = $this->batches ?? throw new ConfigurationException('Batch support is not configured.');
+        $documents = (function () use ($invoices): Generator {
+            foreach ($invoices as $invoice) {
+                yield $this->factory->document($invoice);
+            }
+        })();
+
+        return $sender->send($documents, $formCode ?? FormCode::fa3(), $maxPartBytes);
+    }
+
+    /**
+     * Polls until a session (online or batch) reached a final state.
+     *
+     * @throws Exception\PollingTimeoutException
+     */
+    public function waitForSession(string $sessionReference, ?PollingPolicy $policy = null): SessionStatus
+    {
+        return $this->poller->poll(
+            fn(): SessionStatus => $this->sessions->status($sessionReference),
+            static fn(SessionStatus $status): bool => $status->isFinished(),
+            $policy ?? $this->polling,
+            \sprintf('session %s to finish', $sessionReference),
+        );
+    }
+
+    /** One page of the invoices of a session with their individual results. */
+    public function sessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
+    {
+        return $this->sessions->invoices($sessionReference, $continuationToken, $pageSize);
+    }
+
+    /** One page of the invoices KSeF rejected in a session. */
+    public function failedSessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
+    {
+        return $this->sessions->failedInvoices($sessionReference, $continuationToken, $pageSize);
     }
 
     /** Current state of a submitted invoice (a single request). */

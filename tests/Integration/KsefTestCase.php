@@ -108,4 +108,31 @@ abstract class KsefTestCase extends TestCase
 
         return $decrypted;
     }
+
+    /**
+     * Unwraps the session AES key with the fake Ministry private key and decrypts one ciphertext.
+     *
+     * @param array<array-key, mixed> $encryption the `encryption` object of an open-session request
+     */
+    protected function decryptWithSessionKey(array $encryption, string $cipher): string
+    {
+        $wrappedKey = $encryption['encryptedSymmetricKey'] ?? null;
+        $iv = $encryption['initializationVector'] ?? null;
+        self::assertIsString($wrappedKey);
+        self::assertIsString($iv);
+
+        $key = PublicKeyLoader::load($this->ksef->privateKeyPem);
+        self::assertInstanceOf(RSA\PrivateKey::class, $key);
+        $key = $key->withPadding(RSA::ENCRYPTION_OAEP);
+        self::assertInstanceOf(RSA\PrivateKey::class, $key);
+        $key = $key->withHash('sha256');
+        self::assertInstanceOf(RSA\PrivateKey::class, $key);
+        $key = $key->withMGFHash('sha256');
+        self::assertInstanceOf(RSA\PrivateKey::class, $key);
+
+        $plain = openssl_decrypt($cipher, 'aes-256-cbc', (string) $key->decrypt((string) base64_decode($wrappedKey, true)), OPENSSL_RAW_DATA, (string) base64_decode($iv, true));
+        self::assertIsString($plain);
+
+        return $plain;
+    }
 }

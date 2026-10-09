@@ -10,7 +10,9 @@ use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
 use B4x\Ksef\Invoice\FormCode;
+use B4x\Ksef\Status\OpenedBatch;
 use B4x\Ksef\Status\OpenedSession;
+use B4x\Ksef\Status\PartUpload;
 use B4x\Ksef\Status\SessionInvoice;
 use B4x\Ksef\Status\SessionInvoicesPage;
 use B4x\Ksef\Status\SessionStatus;
@@ -32,6 +34,34 @@ final class SessionApi
         $data = new Payload($response->json());
 
         return new OpenedSession($data->string('referenceNumber'), $data->date('validUntil'));
+    }
+
+    /**
+     * @param array{encryptedSymmetricKey: string, initializationVector: string, publicKeyId: string} $encryption
+     * @param array{fileSize: int, fileHash: string, fileParts: list<array{ordinalNumber: int, fileSize: int, fileHash: string}>} $batchFile
+     */
+    public function openBatch(FormCode $formCode, array $encryption, array $batchFile): OpenedBatch
+    {
+        $response = $this->client->send(ApiRequest::post('/sessions/batch', ['formCode' => $formCode->toArray(), 'batchFile' => $batchFile, 'encryption' => $encryption], null, RetryMode::RateLimitOnly));
+        $data = new Payload($response->json());
+
+        $uploads = [];
+        foreach ($data->objects('partUploadRequests') as $upload) {
+            $headers = [];
+            foreach ($upload->map('headers') as $name => $value) {
+                if (\is_string($value)) {
+                    $headers[$name] = $value;
+                }
+            }
+            $uploads[] = new PartUpload($upload->int('ordinalNumber'), $upload->string('method'), $upload->string('url'), $headers);
+        }
+
+        return new OpenedBatch($data->string('referenceNumber'), $uploads);
+    }
+
+    public function closeBatch(string $sessionReference): void
+    {
+        $this->client->send(ApiRequest::post('/sessions/batch/' . rawurlencode($sessionReference) . '/close', null, null, RetryMode::RateLimitOnly));
     }
 
     /**
