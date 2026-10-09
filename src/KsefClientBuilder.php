@@ -11,6 +11,7 @@ use B4x\Ksef\Auth\AccessTokenProvider;
 use B4x\Ksef\Auth\AllowedIps;
 use B4x\Ksef\Auth\AuthApi;
 use B4x\Ksef\Auth\Authenticator;
+use B4x\Ksef\Auth\AuthSessionsApi;
 use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Auth\Credentials;
 use B4x\Ksef\Batch\BatchPackager;
@@ -20,11 +21,13 @@ use B4x\Ksef\Crypto\ApiPublicKeyProvider;
 use B4x\Ksef\Crypto\KsefTokenEncryptor;
 use B4x\Ksef\Crypto\PublicKeyProvider;
 use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Export\InvoiceExporter;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\NativeSleeper;
 use B4x\Ksef\Http\RetryPolicy;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Http\Transport;
+use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
@@ -223,10 +226,11 @@ final class KsefClientBuilder
         $authorized = new AuthorizedClient($transport, $tokens);
 
         $sessionApi = new SessionApi($authorized);
+        $invoiceApi = new InvoiceApi($authorized);
 
         return new KsefClient(
             $sessionApi,
-            new InvoiceApi($authorized),
+            $invoiceApi,
             new TokenApi($authorized),
             $keys,
             new InvoiceFactory($clock),
@@ -238,6 +242,9 @@ final class KsefClientBuilder
             $sleeper,
             new BatchSender($sessionApi, $transport, $keys, new BatchPackager(), $logger),
             new CertificateApi($authorized),
+            new InvoiceExporter($invoiceApi, $transport, $keys, $poller),
+            new LimitsApi($authorized),
+            new AuthSessionsApi($authorized),
         );
     }
 }

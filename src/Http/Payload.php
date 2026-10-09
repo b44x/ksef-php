@@ -39,6 +39,16 @@ final readonly class Payload
         return \is_string($value) ? $value : throw $this->invalid($key, 'a string');
     }
 
+    public function optionalBool(string $key): ?bool
+    {
+        $value = $this->data[$key] ?? null;
+        if ($value === null) {
+            return null;
+        }
+
+        return \is_bool($value) ? $value : throw $this->invalid($key, 'a boolean');
+    }
+
     public function int(string $key): int
     {
         $value = $this->data[$key] ?? null;

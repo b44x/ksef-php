@@ -13,6 +13,8 @@ use B4x\Ksef\Api\SessionApi;
 use B4x\Ksef\Api\TokenApi;
 use B4x\Ksef\Api\TokenPermission;
 use B4x\Ksef\Api\TokenStatus;
+use B4x\Ksef\Auth\AuthSession;
+use B4x\Ksef\Auth\AuthSessionsApi;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
@@ -29,11 +31,16 @@ use B4x\Ksef\Crypto\SessionEncryption;
 use B4x\Ksef\Exception\ConfigurationException;
 use B4x\Ksef\Exception\InvoiceNotAvailableException;
 use B4x\Ksef\Exception\KsefException;
+use B4x\Ksef\Export\ExportedPackage;
+use B4x\Ksef\Export\InvoiceExporter;
 use B4x\Ksef\Http\NativeSleeper;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Limits\ContextLimits;
+use B4x\Ksef\Limits\LimitsApi;
+use B4x\Ksef\Limits\RateLimit;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
@@ -90,6 +97,9 @@ final class KsefClient
         private readonly Sleeper $sleeper = new NativeSleeper(),
         private readonly ?BatchSender $batches = null,
         private readonly ?CertificateApi $certificates = null,
+        private readonly ?InvoiceExporter $exporter = null,
+        private readonly ?LimitsApi $limits = null,
+        private readonly ?AuthSessionsApi $authSessions = null,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -287,6 +297,60 @@ final class KsefClient
         int $pageSize = 100,
     ): InvoiceMetadataPage {
         return $this->invoices->queryMetadata($subject, $dateType, $from, $to, $pageOffset, $pageSize);
+    }
+
+    /**
+     * Exports invoices (sales or purchases) in a date range as one decrypted ZIP file at `$destinationZip`:
+     * `{ksefNumber}.xml` for every invoice plus `_metadata.json`. Intended for synchronisation: use
+     * {@see InvoiceDateType::PermanentStorage} and continue from {@see ExportedPackage::$continueFrom}.
+     * At most 10,000 invoices / 1 GB per export; at most 10 exports may run concurrently.
+     *
+     * @throws Exception\SessionException when KSeF reports a failure
+     */
+    public function exportInvoices(
+        InvoiceSubjectType $subject,
+        InvoiceDateType $dateType,
+        DateTimeInterface $from,
+        ?DateTimeInterface $to,
+        string $destinationZip,
+        ?PollingPolicy $policy = null,
+    ): ExportedPackage {
+        $exporter = $this->exporter ?? throw new ConfigurationException('Export support is not configured.');
+
+        return $exporter->export($subject, $dateType, $from, $to, $destinationZip, $policy ?? $this->polling);
+    }
+
+    /** Limits of the current authentication context (sessions, invoice sizes). */
+    public function contextLimits(): ContextLimits
+    {
+        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->context();
+    }
+
+    /**
+     * Currently effective request rates per endpoint group.
+     *
+     * @return array<string, RateLimit>
+     */
+    public function rateLimits(): array
+    {
+        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->rates();
+    }
+
+    /**
+     * Active logins (authentication sessions) of the subject.
+     *
+     * @return array{sessions: list<AuthSession>, continuationToken: string|null}
+     */
+    public function authSessions(?string $continuationToken = null, int $pageSize = 20): array
+    {
+        return ($this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.'))->list($continuationToken, $pageSize);
+    }
+
+    /** Revokes one login; its refresh token stops working. Without a reference the current login is revoked. */
+    public function revokeAuthSession(?string $referenceNumber = null): void
+    {
+        $api = $this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.');
+        $referenceNumber === null ? $api->revokeCurrent() : $api->revoke($referenceNumber);
     }
 
     /**

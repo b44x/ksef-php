@@ -196,6 +196,18 @@ $page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ks
 // $batch->invoiceHashes lets you map results back to your own documents.
 ```
 
+### Export, limits and logins
+
+```php
+// Decrypted ZIP of {ksefNumber}.xml + _metadata.json; page through time with continueFrom (PermanentStorage).
+$package = $ksef->exportInvoices(InvoiceSubjectType::Buyer, InvoiceDateType::PermanentStorage, $from, null, '/tmp/export.zip');
+if ($package->isTruncated) { $from = $package->continueFrom; /* export again */ }
+
+$ksef->contextLimits();   // max invoices / sizes per session type
+$ksef->rateLimits();      // ['invoiceSend' => RateLimit(perSecond, perMinute, perHour), ...]
+$ksef->authSessions();    // active logins; $ksef->revokeAuthSession($ref) or revokeAuthSession() for the current one
+```
+
 ### KSeF certificates
 
 KSeF issues its own certificates (type `Authentication` for logging in, type `Offline` for signing KOD II links).

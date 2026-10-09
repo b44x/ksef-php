@@ -110,11 +110,13 @@ abstract class KsefTestCase extends TestCase
     }
 
     /**
-     * Unwraps the session AES key with the fake Ministry private key and decrypts one ciphertext.
+     * Unwraps the session AES key with the fake Ministry private key.
      *
      * @param array<array-key, mixed> $encryption the `encryption` object of an open-session request
+     *
+     * @return array{key: string, iv: string}
      */
-    protected function decryptWithSessionKey(array $encryption, string $cipher): string
+    protected function unwrapSessionKey(array $encryption): array
     {
         $wrappedKey = $encryption['encryptedSymmetricKey'] ?? null;
         $iv = $encryption['initializationVector'] ?? null;
@@ -130,7 +132,18 @@ abstract class KsefTestCase extends TestCase
         $key = $key->withMGFHash('sha256');
         self::assertInstanceOf(RSA\PrivateKey::class, $key);
 
-        $plain = openssl_decrypt($cipher, 'aes-256-cbc', (string) $key->decrypt((string) base64_decode($wrappedKey, true)), OPENSSL_RAW_DATA, (string) base64_decode($iv, true));
+        return ['key' => (string) $key->decrypt((string) base64_decode($wrappedKey, true)), 'iv' => (string) base64_decode($iv, true)];
+    }
+
+    /**
+     * Decrypts one ciphertext with the session key wrapped in an open-session request.
+     *
+     * @param array<array-key, mixed> $encryption
+     */
+    protected function decryptWithSessionKey(array $encryption, string $cipher): string
+    {
+        $aes = $this->unwrapSessionKey($encryption);
+        $plain = openssl_decrypt($cipher, 'aes-256-cbc', $aes['key'], OPENSSL_RAW_DATA, $aes['iv']);
         self::assertIsString($plain);
 
         return $plain;

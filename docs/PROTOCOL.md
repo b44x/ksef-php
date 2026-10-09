@@ -14,6 +14,7 @@ something, it is listed here.
 | Sessions | `POST /sessions/batch`, `POST /sessions/batch/{ref}/close`, `POST /sessions/online`, `POST /sessions/online/{ref}/invoices`, `POST /sessions/online/{ref}/close`, `GET /sessions/{ref}`, `GET /sessions/{ref}/invoices`, `GET /sessions/{ref}/invoices/{inv}`, `.../upo`, `GET /sessions/{ref}/upo/{upoRef}` |
 | Invoices | `GET /invoices/ksef/{ksefNumber}`, `POST /invoices/query/metadata` |
 | Certificates | `GET /certificates/limits`, `GET /certificates/enrollments/data`, `POST /certificates/enrollments`, `GET /certificates/enrollments/{ref}`, `POST /certificates/retrieve`, `POST /certificates/query`, `POST /certificates/{serial}/revoke` |
+| Export / limits / logins | `POST /invoices/exports`, `GET /invoices/exports/{ref}`, `GET /limits/context`, `GET /rate-limits`, `GET /auth/sessions`, `DELETE /auth/sessions/{ref|current}` |
 | Tokens | `POST /tokens`, `GET /tokens/{ref}`, `DELETE /tokens/{ref}` |
 
 Every request sends `X-Error-Format: problem-details`; the parser also understands the legacy `exception` envelope.
@@ -66,6 +67,13 @@ signed over the path without scheme: RSASSA-PSS (SHA-256, MGF1 SHA-256, 32 byte 
 KOD II signing is covered by tests with independently verified signatures. Offline certificates can now be enrolled
 (see below), but the verification page of KSeF is a JavaScript application that cannot be queried headlessly, so the
 link's acceptance by KSeF itself has not been confirmed.
+
+## Invoice export
+
+Export is asynchronous: start (with a per-export AES key wrapped for the Ministry), poll until status 200, then
+download the <= 50 MB parts from pre-signed URLs (no token). Each part is verified twice (hash of the ciphertext, hash
+after decryption) before being appended to the destination file. Incremental synchronisation filters by
+`PermanentStorage`; when a result is truncated (10,000 invoices / 1 GB) the next export starts at the last stored date.
 
 ## Certificates
 

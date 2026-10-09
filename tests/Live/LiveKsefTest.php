@@ -25,6 +25,7 @@ use DateTimeImmutable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\TestCase;
+use ZipArchive;
 
 /**
  * End-to-end test against the public KSeF TEST environment.
@@ -44,11 +45,10 @@ final class LiveKsefTest extends TestCase
 
     public function testFullInvoiceLifecycleOnTheTestEnvironment(): void
     {
-        $nip = $this->randomNip();
         $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
         $factory = new HttpFactory();
 
-        $this->createTestTaxpayer($http, $factory, $nip);
+        $nip = $this->createTestTaxpayer($http, $factory);
 
         $pki = TestPki::personal($nip);
         $client = KsefClient::builder()
@@ -90,10 +90,9 @@ final class LiveKsefTest extends TestCase
 
     public function testBatchSessionOnTheTestEnvironment(): void
     {
-        $nip = $this->randomNip();
         $http = new Client(['timeout' => 120, 'connect_timeout' => 15, 'http_errors' => false]);
         $factory = new HttpFactory();
-        $this->createTestTaxpayer($http, $factory, $nip);
+        $nip = $this->createTestTaxpayer($http, $factory);
 
         $pki = TestPki::personal($nip);
         $client = KsefClient::builder()
@@ -131,10 +130,9 @@ final class LiveKsefTest extends TestCase
 
     public function testKsefCertificatesAreIssuedAndUsableOnTheTestEnvironment(): void
     {
-        $nip = $this->randomNip();
         $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
         $factory = new HttpFactory();
-        $this->createTestTaxpayer($http, $factory, $nip);
+        $nip = $this->createTestTaxpayer($http, $factory);
 
         $pki = TestPki::personal($nip);
         $builder = static fn(\B4x\Ksef\Auth\Credentials $credentials): KsefClient => KsefClient::builder()
@@ -166,12 +164,55 @@ final class LiveKsefTest extends TestCase
         $client->revokeCertificate($offline->serialNumber);
     }
 
+    public function testExportLimitsAndAuthSessionsOnTheTestEnvironment(): void
+    {
+        $http = new Client(['timeout' => 120, 'connect_timeout' => 15, 'http_errors' => false]);
+        $factory = new HttpFactory();
+        $nip = $this->createTestTaxpayer($http, $factory);
+
+        $pki = TestPki::personal($nip);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($http, $factory, $factory)
+            ->context(ContextIdentifier::nip($nip))
+            ->credentials(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']))
+            ->build();
+        $policy = new PollingPolicy(2.0, 5.0, 1.5, 180.0);
+
+        $invoice = Invoice::builder()
+            ->number('EXPORT/' . date('Ymd-His'))
+            ->issueDate(new DateTimeImmutable('today'))
+            ->seller(new Seller(Nip::unchecked($nip), 'Live Export Seller', Address::poland('ul. Testowa 1', '00-001 Warszawa')))
+            ->buyer(new Buyer(BuyerIdentifier::nip(Nip::of('5265877635')), 'Live Export Buyer'))
+            ->addLine(InvoiceLine::of('Export item', '1', 'szt.', '10.00', VatRate::Rate23))
+            ->build();
+        $result = $client->waitForInvoice($client->sendInvoice($invoice), $policy, true)->assertAccepted();
+
+        $path = tempnam(sys_get_temp_dir(), 'ksef-export-');
+        self::assertIsString($path);
+        $package = $client->exportInvoices(\B4x\Ksef\Api\InvoiceSubjectType::Seller, \B4x\Ksef\Api\InvoiceDateType::PermanentStorage, new DateTimeImmutable('-1 day'), null, $path, $policy);
+        self::assertSame(1, $package->invoiceCount);
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($path));
+        self::assertNotFalse($zip->locateName($result->ksefNumber . '.xml'));
+        self::assertNotFalse($zip->locateName('_metadata.json'));
+        $zip->close();
+        unlink($path);
+
+        $limits = $client->contextLimits();
+        self::assertGreaterThan(0, $limits->onlineSession->maxInvoices);
+        self::assertArrayHasKey('invoiceSend', $client->rateLimits());
+
+        $sessions = $client->authSessions();
+        self::assertNotSame([], $sessions['sessions']);
+        self::assertNotSame([], array_filter($sessions['sessions'], static fn(\B4x\Ksef\Auth\AuthSession $s): bool => $s->isCurrent));
+    }
+
     public function testKsefTokenAuthenticationOnTheTestEnvironment(): void
     {
-        $nip = $this->randomNip();
         $http = new Client(['timeout' => 60, 'connect_timeout' => 15, 'http_errors' => false]);
         $factory = new HttpFactory();
-        $this->createTestTaxpayer($http, $factory, $nip);
+        $nip = $this->createTestTaxpayer($http, $factory);
 
         $pki = TestPki::personal($nip);
         $builder = static fn(\B4x\Ksef\Auth\Credentials $credentials): KsefClient => KsefClient::builder()
@@ -194,15 +235,28 @@ final class LiveKsefTest extends TestCase
         $certificateClient->revokeToken($token->referenceNumber);
     }
 
-    private function createTestTaxpayer(Client $http, HttpFactory $factory, string $nip): void
+    /**
+     * Creates a throw-away taxpayer on TEST and returns its NIP. Random NIPs can collide with subjects
+     * created by earlier runs ("already exists"), so a few fresh ones are tried.
+     */
+    private function createTestTaxpayer(Client $http, HttpFactory $factory): string
     {
-        $body = json_encode(['nip' => $nip, 'pesel' => $this->randomPesel(), 'description' => 'ksef-php live test', 'isBailiff' => false], JSON_THROW_ON_ERROR);
-        $request = $factory->createRequest('POST', Environment::Test->baseUrl() . '/testdata/person')
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody($factory->createStream($body));
-        $response = $http->sendRequest($request);
+        $lastError = '';
+        for ($attempt = 0; $attempt < 8; ++$attempt) {
+            $nip = $this->randomNip();
+            $body = json_encode(['nip' => $nip, 'pesel' => $this->randomPesel(), 'description' => 'ksef-php live test', 'isBailiff' => false], JSON_THROW_ON_ERROR);
+            $request = $factory->createRequest('POST', Environment::Test->baseUrl() . '/testdata/person')
+                ->withHeader('Content-Type', 'application/json')
+                ->withBody($factory->createStream($body));
+            $response = $http->sendRequest($request);
 
-        self::assertContains($response->getStatusCode(), [200, 201], 'Cannot create the TEST taxpayer: ' . $response->getBody());
+            if (\in_array($response->getStatusCode(), [200, 201], true)) {
+                return $nip;
+            }
+            $lastError = (string) $response->getBody();
+        }
+
+        self::fail('Cannot create the TEST taxpayer: ' . $lastError);
     }
 
     private function randomNip(): string

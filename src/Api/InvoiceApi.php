@@ -7,6 +7,7 @@ namespace B4x\Ksef\Api;
 use B4x\Ksef\Exception\ApiException;
 use B4x\Ksef\Exception\InvoiceNotAvailableException;
 use B4x\Ksef\Exception\MalformedResponseException;
+use B4x\Ksef\Export\ExportStatus;
 use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
@@ -79,6 +80,33 @@ final class InvoiceApi
             $data->bool('hasMore'),
             $data->bool('isTruncated'),
         );
+    }
+
+    /**
+     * @param array{encryptedSymmetricKey: string, initializationVector: string, publicKeyId: string} $encryption
+     *
+     * @return string the export reference number
+     */
+    public function startExport(InvoiceSubjectType $subject, InvoiceDateType $dateType, DateTimeInterface $from, ?DateTimeInterface $to, array $encryption): string
+    {
+        $range = ['dateType' => $dateType->value, 'from' => $this->utc($from)];
+        if ($to !== null) {
+            $range['to'] = $this->utc($to);
+        }
+
+        $response = $this->client->send(ApiRequest::post(
+            '/invoices/exports',
+            ['encryption' => $encryption, 'filters' => ['subjectType' => $subject->value, 'dateRange' => $range]],
+            null,
+            RetryMode::RateLimitOnly,
+        ));
+
+        return (new Payload($response->json()))->string('referenceNumber');
+    }
+
+    public function exportStatus(string $reference): ExportStatus
+    {
+        return ExportStatus::fromPayload(new Payload($this->client->send(ApiRequest::get('/invoices/exports/' . rawurlencode($reference)))->json()));
     }
 
     private function utc(DateTimeInterface $moment): string
