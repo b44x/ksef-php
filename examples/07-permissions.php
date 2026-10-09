@@ -11,9 +11,13 @@ declare(strict_types=1);
  * PermissionOperationException (with KSeF's status code) if it is refused.
  */
 
+use B4x\Ksef\Environment;
 use B4x\Ksef\Exception\PermissionOperationException;
+use B4x\Ksef\Permissions\AuthorizationDirection;
+use B4x\Ksef\Permissions\EntityAuthorizationType;
 use B4x\Ksef\Permissions\Permission;
 use B4x\Ksef\Permissions\PersonSubject;
+use B4x\Ksef\Testing\TestEnvironment;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -48,5 +52,21 @@ try {
     say(sprintf('  KSeF refused (%d): %s', $e->status->code, $e->status->description));
 }
 
-step('Another company? Same idea:');
+step('5. Authorise another company to act for you (self-billing, tax representative, ...)');
+if ($example->environment !== Environment::Test) {
+    say('  (skipped: this step creates a second company, which is only possible on the TEST environment)');
+} else {
+    $partner = TestEnvironment::createTaxpayer($example->http, $example->factory, $example->factory);   // TEST only: a second company
+    $ksef->grantAuthorization($partner->nip, EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing agreement');
+    foreach ($ksef->authorizations(AuthorizationDirection::Granted)['permissions'] as $authorization) {
+        say(sprintf('  %-18s -> %s %s (id %s)', $authorization->scope, $authorization->authorized->type, $authorization->authorized->value, $authorization->id));
+        $ksef->revokeAuthorization($authorization->id);   // authorisations have their own revoke call
+    }
+    say('  revoked.');
+}
+
+step('Other recipes (not run here)');
 say("  \$ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);");
+say('  // accounting office: let a person work in the contexts of ALL your customers');
+say('  $ksef->grantIndirectPermissions($accountant, [EntityPermissionType::InvoiceRead], \'office staff\', IndirectTarget::allPartners());');
+say('  // administrators of subordinate units, EU entities: grantSubunitAdministrator(), grantEuEntityAdministrator(), ...');

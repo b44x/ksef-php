@@ -243,7 +243,26 @@ $ksef->revokePermission($grant->id);
 
 Grants and revocations are asynchronous in KSeF; these calls wait for the operation and throw
 `PermissionOperationException` (with KSeF's status code) when it is refused. Also available: `myPermissions()`,
-`entityPermissions()`. Not covered yet: authorisations, indirect grants, subunits and EU entities.
+`entityPermissions()`.
+
+Special arrangements have their own calls, all asynchronous in KSeF and awaited by the SDK:
+
+```php
+// Entity-level authorisations: self-invoicing, RR, tax representative, Peppol
+$ksef->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing');
+$ksef->authorizations(AuthorizationDirection::Granted);   // ...::Received
+$ksef->revokeAuthorization($authorization->id);           // not revokePermission(): different endpoint
+
+// Accounting office: a person works in the contexts of your customers
+$ksef->grantIndirectPermissions($person, [EntityPermissionType::InvoiceRead], 'staff', IndirectTarget::allPartners());
+
+// Subordinate units (local government, VAT groups) and EU entities
+$ksef->grantSubunitAdministrator($person, SubunitContext::internalId('5265877635-12345'), 'branch admin');
+$ksef->grantEuEntityAdministrator(EuEntitySubject::person(PersonSubject::byFingerprint(...)), '5265877635-DE123456789', 'Muster GmbH', 'Berlin', 'admin');
+$ksef->grantEuEntityRepresentative(EuEntitySubject::entity($fingerprint, 'Seal GmbH', 'Berlin'), [EuEntityPermissionType::InvoiceWrite], 'rep');
+
+// Reading: subunitAdministrators(), euEntityPermissions(), entityRoles(), subordinateEntities(), attachmentStatus()
+```
 
 ### Export, limits and logins
 

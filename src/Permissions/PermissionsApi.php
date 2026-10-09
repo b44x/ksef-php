@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace B4x\Ksef\Permissions;
 
+use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
@@ -48,6 +49,176 @@ final class PermissionsApi
             'description' => $description,
             'subjectDetails' => ['fullName' => $fullName],
         ], null, RetryMode::RateLimitOnly));
+    }
+
+    /**
+     * Entity-level authorisation (self-invoicing, RR, tax representative, Peppol).
+     *
+     * @param Nip|string $subject the authorised entity: a NIP, or a Peppol ID given as a string
+     *
+     * @return string the operation reference number
+     */
+    public function grantAuthorization(Nip|string $subject, EntityAuthorizationType $type, string $fullName, string $description): string
+    {
+        $identifier = $subject instanceof Nip ? ['type' => 'Nip', 'value' => $subject->value] : ['type' => 'PeppolId', 'value' => self::nonEmpty($subject, 'Peppol ID')];
+
+        return $this->operation(ApiRequest::post('/permissions/authorizations/grants', [
+            'subjectIdentifier' => $identifier,
+            'permission' => $type->value,
+            'description' => $description,
+            'subjectDetails' => ['fullName' => $fullName],
+        ], null, RetryMode::RateLimitOnly));
+    }
+
+    /** @return string the operation reference number */
+    public function revokeAuthorization(string $permissionId): string
+    {
+        return $this->operation(ApiRequest::delete('/permissions/authorizations/grants/' . rawurlencode($permissionId)));
+    }
+
+    /**
+     * Permissions a person receives through the current context in other contexts (for example for the
+     * customers of an accounting office).
+     *
+     * @param non-empty-list<EntityPermissionType> $permissions
+     *
+     * @return string the operation reference number
+     */
+    public function grantIndirect(PersonSubject $subject, array $permissions, string $description, ?IndirectTarget $target = null): string
+    {
+        $body = $subject->toArray() + [
+            'permissions' => array_map(static fn(EntityPermissionType $p): string => $p->value, $permissions),
+            'description' => $description,
+        ];
+        if ($target !== null) {
+            $body['targetIdentifier'] = $target->toArray();
+        }
+
+        return $this->operation(ApiRequest::post('/permissions/indirect/grants', $body, null, RetryMode::RateLimitOnly));
+    }
+
+    /**
+     * Makes a person administrator of a subordinate unit or entity.
+     *
+     * @return string the operation reference number
+     */
+    public function grantSubunitAdministrator(PersonSubject $subject, SubunitContext $unit, string $description, ?string $subunitName = null): string
+    {
+        $body = $subject->toArray() + ['contextIdentifier' => $unit->toArray(), 'description' => $description];
+        if ($subunitName !== null) {
+            $body['subunitName'] = $subunitName;
+        }
+
+        return $this->operation(ApiRequest::post('/permissions/subunits/grants', $body, null, RetryMode::RateLimitOnly));
+    }
+
+    /**
+     * Makes a certificate holder administrator of an EU entity that is allowed to self-invoice.
+     *
+     * @param string $vatUe the EU entity's identifier in the context (NIP-VAT UE)
+     *
+     * @return string the operation reference number
+     */
+    public function grantEuEntityAdministrator(EuEntitySubject $subject, string $vatUe, string $euEntityName, string $euEntityAddress, string $description): string
+    {
+        return $this->operation(ApiRequest::post('/permissions/eu-entities/administration/grants', $subject->toArray() + [
+            'contextIdentifier' => ['type' => 'NipVatUe', 'value' => self::nonEmpty($vatUe, 'NIP-VAT UE')],
+            'description' => $description,
+            'euEntityName' => $euEntityName,
+            'euEntityDetails' => ['fullName' => $euEntityName, 'address' => $euEntityAddress],
+        ], null, RetryMode::RateLimitOnly));
+    }
+
+    /**
+     * Gives a representative of an EU entity permission to work in the current (EU-entity) context.
+     *
+     * @param non-empty-list<EuEntityPermissionType> $permissions
+     *
+     * @return string the operation reference number
+     */
+    public function grantEuEntityRepresentative(EuEntitySubject $subject, array $permissions, string $description): string
+    {
+        return $this->operation(ApiRequest::post('/permissions/eu-entities/grants', $subject->toArray() + [
+            'permissions' => array_map(static fn(EuEntityPermissionType $p): string => $p->value, $permissions),
+            'description' => $description,
+        ], null, RetryMode::RateLimitOnly));
+    }
+
+    /**
+     * Entity-level authorisations granted by or to the current context.
+     *
+     * @return array{permissions: list<AuthorizationGrant>, hasMore: bool}
+     */
+    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/authorizations/grants', ['queryType' => $direction->value], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
+
+        return ['permissions' => array_map(AuthorizationGrant::fromPayload(...), $data->objects('authorizationGrants')), 'hasMore' => $data->bool('hasMore')];
+    }
+
+    /**
+     * Administrators of the subordinate units of the current context.
+     *
+     * @return array{permissions: list<SubunitPermission>, hasMore: bool}
+     */
+    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subunits/grants', $unit === null ? [] : ['subunitIdentifier' => $unit->toArray()], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
+
+        return ['permissions' => array_map(SubunitPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
+    }
+
+    /**
+     * Administrators and representatives of EU entities in the current context.
+     *
+     * @return array{permissions: list<EuEntityPermission>, hasMore: bool}
+     */
+    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/eu-entities/grants', [], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
+
+        return ['permissions' => array_map(EuEntityPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
+    }
+
+    /**
+     * Roles of the current context (court bailiff, local government unit, VAT group unit, ...).
+     *
+     * @return array{roles: list<EntityRole>, hasMore: bool}
+     */
+    public function roles(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        $data = new Payload($this->client->send(ApiRequest::get('/permissions/query/entities/roles', null, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
+
+        return ['roles' => array_map(EntityRole::ofContext(...), $data->objects('roles')), 'hasMore' => $data->bool('hasMore')];
+    }
+
+    /**
+     * Subordinate entities of the current context (members of a local government unit or VAT group).
+     *
+     * @return array{roles: list<EntityRole>, hasMore: bool}
+     */
+    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        $body = $subordinate === null ? [] : ['subordinateEntityIdentifier' => ['type' => 'Nip', 'value' => $subordinate->value]];
+        $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subordinate-entities/roles', $body, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
+
+        return ['roles' => array_map(EntityRole::ofSubordinate(...), $data->objects('roles')), 'hasMore' => $data->bool('hasMore')];
+    }
+
+    public function attachmentStatus(): AttachmentStatus
+    {
+        $data = new Payload($this->client->send(ApiRequest::get('/permissions/attachments/status'))->json());
+
+        return new AttachmentStatus($data->optionalBool('isAttachmentAllowed') ?? false, $data->optionalDate('revokedDate'));
+    }
+
+    private static function nonEmpty(string $value, string $label): string
+    {
+        if (trim($value) === '') {
+            throw new ValidationException(\sprintf('The %s must not be empty.', $label));
+        }
+
+        return $value;
     }
 
     /** @return string the operation reference number */

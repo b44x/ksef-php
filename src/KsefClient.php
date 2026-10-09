@@ -42,11 +42,23 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Limits\ContextLimits;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Limits\RateLimit;
+use B4x\Ksef\Permissions\AttachmentStatus;
+use B4x\Ksef\Permissions\AuthorizationDirection;
+use B4x\Ksef\Permissions\AuthorizationGrant;
+use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Permissions\EntityPermissionType;
+use B4x\Ksef\Permissions\EntityRole;
+use B4x\Ksef\Permissions\EuEntityPermission;
+use B4x\Ksef\Permissions\EuEntityPermissionType;
+use B4x\Ksef\Permissions\EuEntitySubject;
+use B4x\Ksef\Permissions\IndirectTarget;
 use B4x\Ksef\Permissions\OperationStatus;
 use B4x\Ksef\Permissions\Permission;
 use B4x\Ksef\Permissions\PermissionGrant;
 use B4x\Ksef\Permissions\PermissionsApi;
 use B4x\Ksef\Permissions\PersonSubject;
+use B4x\Ksef\Permissions\SubunitContext;
+use B4x\Ksef\Permissions\SubunitPermission;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
@@ -428,6 +440,136 @@ final class KsefClient
     public function entityPermissions(int $pageOffset = 0, int $pageSize = 10): array
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->entities($pageOffset, $pageSize);
+    }
+
+    /**
+     * Authorises another entity to act for you in a special way (self-billing, RR invoices, tax
+     * representative, Peppol) and waits until KSeF applied it.
+     *
+     * @param Nip|string $subject the authorised entity: a NIP, or a Peppol ID given as a string
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantAuthorization(Nip|string $subject, EntityAuthorizationType $type, string $fullName, string $description, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantAuthorization($subject, $type, $fullName, $description), $policy);
+    }
+
+    /**
+     * Revokes an entity-level authorisation by the id found in {@see AuthorizationGrant::$id}
+     * (ordinary permissions are revoked with {@see self::revokePermission()}).
+     *
+     * @throws PermissionOperationException when KSeF refuses the revocation
+     */
+    public function revokeAuthorization(string $authorizationId, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->revokeAuthorization($authorizationId), $policy);
+    }
+
+    /**
+     * Gives a person permissions in the contexts of your customers or partners (typical for accounting offices).
+     *
+     * @param non-empty-list<EntityPermissionType> $permissions
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantIndirectPermissions(PersonSubject $person, array $permissions, string $description, ?IndirectTarget $target = null, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantIndirect($person, $permissions, $description, $target), $policy);
+    }
+
+    /**
+     * Makes a person administrator of a subordinate unit or entity (local government sub-unit, VAT group member).
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantSubunitAdministrator(PersonSubject $person, SubunitContext $unit, string $description, ?string $subunitName = null, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantSubunitAdministrator($person, $unit, $description, $subunitName), $policy);
+    }
+
+    /**
+     * Makes a certificate holder administrator of an EU entity that may self-invoice.
+     *
+     * @param string $vatUe the EU entity's NIP-VAT UE identifier
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantEuEntityAdministrator(EuEntitySubject $administrator, string $vatUe, string $euEntityName, string $euEntityAddress, string $description, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantEuEntityAdministrator($administrator, $vatUe, $euEntityName, $euEntityAddress, $description), $policy);
+    }
+
+    /**
+     * Gives a representative of an EU entity permissions in the current (EU entity) context.
+     *
+     * @param non-empty-list<EuEntityPermissionType> $permissions
+     *
+     * @throws PermissionOperationException when KSeF refuses the grant
+     */
+    public function grantEuEntityRepresentative(EuEntitySubject $representative, array $permissions, string $description, ?PollingPolicy $policy = null): void
+    {
+        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $this->awaitPermissionOperation($api, $api->grantEuEntityRepresentative($representative, $permissions, $description), $policy);
+    }
+
+    /**
+     * Entity-level authorisations the current context granted or received.
+     *
+     * @return array{permissions: list<AuthorizationGrant>, hasMore: bool}
+     */
+    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->authorizations($direction, $pageOffset, $pageSize);
+    }
+
+    /**
+     * Administrators of subordinate units, optionally of one unit only.
+     *
+     * @return array{permissions: list<SubunitPermission>, hasMore: bool}
+     */
+    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subunitAdministrators($unit, $pageOffset, $pageSize);
+    }
+
+    /**
+     * @return array{permissions: list<EuEntityPermission>, hasMore: bool}
+     */
+    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->euEntityPermissions($pageOffset, $pageSize);
+    }
+
+    /**
+     * Roles of the current context (court bailiff, local government unit, VAT group unit, ...).
+     *
+     * @return array{roles: list<EntityRole>, hasMore: bool}
+     */
+    public function entityRoles(int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->roles($pageOffset, $pageSize);
+    }
+
+    /**
+     * Subordinate entities of the current context.
+     *
+     * @return array{roles: list<EntityRole>, hasMore: bool}
+     */
+    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): array
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subordinateEntities($subordinate, $pageOffset, $pageSize);
+    }
+
+    /** Whether the current context may issue invoices with attachments. */
+    public function attachmentStatus(): AttachmentStatus
+    {
+        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->attachmentStatus();
     }
 
     private function awaitPermissionOperation(PermissionsApi $api, string $reference, ?PollingPolicy $policy): void
