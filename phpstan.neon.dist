@@ -11,3 +11,8 @@ parameters:
     tmpDir: .phpstan.cache
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: true
+    ignoreErrors:
+        # bacon/bacon-qr-code is an optional suggestion, used only by examples/08-qr-codes.php.
+        -
+            identifier: class.notFound
+            path: examples/08-qr-codes.php

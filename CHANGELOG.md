@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `B4x\Ksef\Testing\TestEnvironment::createTaxpayer()`: creates a disposable taxpayer with a self-signed certificate on the KSeF TEST environment (refuses any other environment).
+- Nine runnable, zero-configuration examples (`examples/`), an examples guide and `docs/GETTING-STARTED.md`.
 - Invoice kinds: advance (`ZAL`, `AdvancePayment`), settlement (`ROZ`, `Settlement`) and simplified (`UPR`); `Decimal::dividedBy()`.
 - Invoice export (`exportInvoices()`): encrypted package parts are downloaded, verified and decrypted into a ZIP file.
 - Permissions: `grantPersonPermissions()`, `grantEntityPermissions()`, `revokePermission()`, `personPermissions()`, `myPermissions()`, `entityPermissions()`, `PermissionOperationException`.

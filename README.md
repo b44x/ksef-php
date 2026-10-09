@@ -29,6 +29,17 @@ composer require b44x/ksef-php guzzlehttp/guzzle
 
 `guzzlehttp/guzzle` is only one possible HTTP client; the SDK itself depends on the PSR interfaces only.
 
+## Try it in 60 seconds
+
+```bash
+git clone https://github.com/b44x/ksef-php.git && cd ksef-php && composer install
+php examples/01-send-invoice.php
+```
+
+This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the nine guided examples and
+[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
+
 ## Quick start
 
 ```php

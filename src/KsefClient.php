@@ -269,6 +269,7 @@ final class KsefClient
      * @throws Exception\ValidationException when the KSeF number is malformed
      * @throws InvoiceNotAvailableException when the invoice is not stored yet and no wait policy was given
      * @throws Exception\PollingTimeoutException when the wait policy is exhausted
+     * @throws Exception\ApiException when KSeF refuses the request (for example 403 without permission)
      */
     public function downloadInvoice(string $ksefNumber, ?PollingPolicy $waitWhileUnavailable = null): DownloadedInvoice
     {
