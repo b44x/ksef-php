@@ -135,20 +135,20 @@ final class InvoiceBuilder
     }
 
     /**
-     * Turns the invoice into an advance invoice (`ZAL`). Add the lines of the *order* with {@see self::addLine()}.
+     * Turns the invoice into an advance invoice (`ZAL`), or with {@see self::correction()} into a correction of one
+     * (`KOR_ZAL`; then `$advance->paid` is the change of the payment). Add the lines of the *order* with {@see self::addLine()}.
      */
     public function advance(AdvancePayment $advance): self
     {
-        $this->type = InvoiceType::Advance;
         $this->advance = $advance;
 
         return $this;
     }
 
-    /** Turns the invoice into a final invoice (`ROZ`) that settles the given advances. */
+    /** Turns the invoice into a final invoice (`ROZ`) that settles the given advances, or with
+     * {@see self::correction()} into a correction of one (`KOR_ROZ`). */
     public function settlement(Settlement $settlement): self
     {
-        $this->type = InvoiceType::Settlement;
         $this->settlement = $settlement;
 
         return $this;
@@ -162,10 +162,9 @@ final class InvoiceBuilder
         return $this;
     }
 
-    /** Turns the invoice into a correction (`KOR`) of the given invoices. */
+    /** Turns the invoice into a correction (`KOR`, or `KOR_ZAL` / `KOR_ROZ` combined with advance / settlement data). */
     public function correction(Correction $correction): self
     {
-        $this->type = InvoiceType::Correction;
         $this->correction = $correction;
 
         return $this;
@@ -186,6 +185,16 @@ final class InvoiceBuilder
             throw ValidationException::fromViolations($missing);
         }
 
+        $type = match (true) {
+            $this->type === InvoiceType::Simplified => InvoiceType::Simplified,
+            $this->correction !== null && $this->advance !== null => InvoiceType::AdvanceCorrection,
+            $this->correction !== null && $this->settlement !== null => InvoiceType::SettlementCorrection,
+            $this->correction !== null => InvoiceType::Correction,
+            $this->advance !== null => InvoiceType::Advance,
+            $this->settlement !== null => InvoiceType::Settlement,
+            default => InvoiceType::Standard,
+        };
+
         return new Invoice(
             $this->number,
             $this->issueDate,
@@ -193,7 +202,7 @@ final class InvoiceBuilder
             $this->seller,
             $this->buyer,
             $this->lines,
-            $this->type,
+            $type,
             $this->saleDate,
             $this->issuePlace,
             $this->annotations,

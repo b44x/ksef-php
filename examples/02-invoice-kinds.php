@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * 02 - Beyond the standard invoice: advance (ZAL), final/settlement (ROZ), simplified (UPR) and correction (KOR).
+ * 02 - Beyond the standard invoice: advance (ZAL), final/settlement (ROZ), simplified (UPR) and corrections (KOR, KOR_ZAL, KOR_ROZ).
  *
  *   php examples/02-invoice-kinds.php
  */
@@ -38,10 +38,11 @@ step('Simplified invoice (UPR): at most PLN 450, buyer identified by NIP');
 $send('UPR', $example->invoice('UPR')->simplified()->addLine(InvoiceLine::of('Coffee', '2', 'szt.', '10.00', VatRate::Rate23))->build());
 
 step('Advance invoice (ZAL): the customer paid 1230.00 PLN gross up front for a 5000.00 net order');
-$advanceKsef = $send('ZAL', $example->invoice('ZAL')
+$advanceInvoice = $example->invoice('ZAL')
     ->advance(new AdvancePayment(Money::pln('1230.00'), VatRate::Rate23, new DateTimeImmutable('today')))
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))   // lines of the ORDER
-    ->build());
+    ->build();
+$advanceKsef = $send('ZAL', $advanceInvoice);
 
 step('Final invoice (ROZ): delivery done; the amount due is the total minus the advance');
 $final = $example->invoice('ROZ')
@@ -50,7 +51,7 @@ $final = $example->invoice('ROZ')
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
     ->build();
 say(sprintf('  total %s, advances 1230.00, still due %s', $final->totals()->gross(), $final->amountDue()));
-$send('ROZ', $final);
+$finalKsef = $send('ROZ', $final);
 
 step('Correction (KOR): the customer returned 2 of 10 pieces');
 $original = $example->invoice('FV')->addLine(InvoiceLine::of('Widget', '10', 'szt.', '20.00', VatRate::Rate23))->build();
@@ -62,5 +63,23 @@ $correction = $example->invoice('KOR')
     ->build();
 say(sprintf('  correction changes the total by %s PLN', $correction->totals()->gross()));
 $send('KOR', $correction);
+
+step('Correction of the advance invoice (KOR_ZAL): the order shrinks to 4500.00 net, the customer gets 615.00 back');
+$advanceCorrection = $example->invoice('KZAL')
+    ->correction(new Correction([new CorrectedInvoice($advanceInvoice->issueDate, $advanceInvoice->number, $advanceKsef)], reason: 'Smaller order'))
+    ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, new DateTimeImmutable('today')))   // the CHANGE of the payment
+    ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+    ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4500.00', VatRate::Rate23))
+    ->build();
+$send('KOR_ZAL', $advanceCorrection);
+
+step('Correction of the final invoice (KOR_ROZ): the delivered scope was 4000.00 net after all');
+$finalCorrection = $example->invoice('KROZ')
+    ->correction(new Correction([new CorrectedInvoice($final->issueDate, $final->number, $finalKsef)], reason: 'Reduced scope'))
+    ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsef)], Money::pln('0.00')))   // advances paid: no change
+    ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+    ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4000.00', VatRate::Rate23))
+    ->build();
+$send('KOR_ROZ', $finalCorrection);
 
 say("\nDone.");

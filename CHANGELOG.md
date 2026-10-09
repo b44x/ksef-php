@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Corrections of advance and settlement invoices (`KOR_ZAL`, `KOR_ROZ`): combine `InvoiceBuilder::correction()` with `advance()` / `settlement()`; `InvoiceType::isCorrection()`, `isAdvance()`, `isSettlement()`.
 - Additional parties on invoices (`Podmiot3`): `ThirdParty`, `ThirdPartyRole` and `InvoiceBuilder::addThirdParty()`.
 
 ## [0.4.0] - 2026-10-09

@@ -72,7 +72,7 @@ final readonly class Invoice
      */
     public function totals(): InvoiceTotals
     {
-        if ($this->type === InvoiceType::Advance && $this->advance !== null) {
+        if ($this->type->isAdvance() && $this->advance !== null) {
             return InvoiceTotals::forAdvance($this->advance, $this->currency, $this->exchangeRate);
         }
 
@@ -84,7 +84,12 @@ final readonly class Invoice
      */
     public function orderValue(): Decimal
     {
-        return InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate)->gross();
+        // After a correction the order is worth what the "current" lines say; "before" lines only document the old state.
+        $lines = $this->type === InvoiceType::AdvanceCorrection
+            ? array_values(array_filter($this->lines, static fn(InvoiceLine $line): bool => $line->state === LineState::Current))
+            : $this->lines;
+
+        return InvoiceTotals::calculate($lines, $this->currency, $this->exchangeRate)->gross();
     }
 
     /**
@@ -94,8 +99,8 @@ final readonly class Invoice
     public function amountDue(): Decimal
     {
         return match ($this->type) {
-            InvoiceType::Advance => $this->advance?->paid->amount->roundTo(2) ?? $this->totals()->gross(),
-            InvoiceType::Settlement => $this->totals()->gross()->subtract($this->settlement?->advancesPaid->amount->roundTo(2) ?? Decimal::of('0.00')),
+            InvoiceType::Advance, InvoiceType::AdvanceCorrection => $this->advance?->paid->amount->roundTo(2) ?? $this->totals()->gross(),
+            InvoiceType::Settlement, InvoiceType::SettlementCorrection => $this->totals()->gross()->subtract($this->settlement?->advancesPaid->amount->roundTo(2) ?? Decimal::of('0.00')),
             default => $this->totals()->gross(),
         };
     }

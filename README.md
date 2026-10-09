@@ -169,8 +169,10 @@ foreign tax id or none), all common VAT treatments (23/22/8/7/5 %, 0 % variants,
 GTU codes, payment details, annotations and a footer. Corrections: mark the original state with
 `InvoiceLine::asBefore()` and add the corrected lines; totals become differences automatically.
 
-Not modelled yet (send them as raw XML, see below): corrections of advance/settlement invoices, third parties
-(`Podmiot3`), authorised entities, attachments, transport conditions, per-line discounts.
+Additional parties (`Podmiot3`: recipient, payer, factor, ...) are added with `addThirdParty(ThirdParty::of(ThirdPartyRole::Recipient, ...))`.
+
+Not modelled yet (send them as raw XML, see below): authorised entities, attachments, transport conditions,
+per-line discounts.
 
 Special kinds:
 
@@ -182,6 +184,14 @@ Invoice::builder()->...->advance(new AdvancePayment(Money::pln('1230.00'), VatRa
 // Final invoice (ROZ): full sale; P_15 is the remainder after the advances.
 Invoice::builder()->...->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsefNumber)], Money::pln('1230.00')))
     ->addLine(...)->build();
+
+// Correction of an advance invoice (KOR_ZAL): combine correction() and advance(); the advance amount is the
+// CHANGE of the payment (negative when it decreases), lines are the order before (asBefore) and after.
+Invoice::builder()->...->correction($correction)->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, $paidOn))
+    ->addLine($orderLine->asBefore())->addLine($newOrderLine)->build();
+
+// Correction of a final invoice (KOR_ROZ): combine correction() and settlement(); before/after lines.
+Invoice::builder()->...->correction($correction)->settlement($settlement)->addLine($line->asBefore())->addLine($newLine)->build();
 
 // Simplified invoice (UPR): up to PLN 450 / EUR 100, buyer identified by NIP.
 Invoice::builder()->...->simplified()->addLine(...)->build();

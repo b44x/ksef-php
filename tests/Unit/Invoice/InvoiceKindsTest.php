@@ -9,10 +9,13 @@ use B4x\Ksef\Invoice\AdvanceInvoiceReference;
 use B4x\Ksef\Invoice\AdvancePayment;
 use B4x\Ksef\Invoice\Buyer;
 use B4x\Ksef\Invoice\BuyerIdentifier;
+use B4x\Ksef\Invoice\CorrectedInvoice;
+use B4x\Ksef\Invoice\Correction;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Invoice\InvoiceLine;
+use B4x\Ksef\Invoice\InvoiceType;
 use B4x\Ksef\Invoice\Money;
 use B4x\Ksef\Invoice\Settlement;
 use B4x\Ksef\Invoice\VatRate;
@@ -70,6 +73,51 @@ final class InvoiceKindsTest extends TestCase
         self::assertSame(self::KSEF_NUMBER, $xpath->evaluate('string(//f:FakturaZaliczkowa[1]/f:NrKSeFFaZaliczkowej)'));
         self::assertSame('1', $xpath->evaluate('string(//f:FakturaZaliczkowa[2]/f:NrKSeFZN)'));
         self::assertSame('ZAL/OUT/7', $xpath->evaluate('string(//f:FakturaZaliczkowa[2]/f:NrFaZaliczkowej)'));
+    }
+
+    public function testCorrectionOfAnAdvanceInvoiceCarriesTheDifferenceAndTheOrderBeforeAndAfter(): void
+    {
+        $invoice = Invoice::builder()
+            ->number('KZAL/2026/05/001')->issueDate('2026-05-25')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-20'), 'ZAL/2026/05/001', self::KSEF_NUMBER)], reason: 'Smaller order'))
+            ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, new DateTimeImmutable('2026-05-20')))
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4500.00', VatRate::Rate23))
+            ->build();
+
+        self::assertSame(InvoiceType::AdvanceCorrection, $invoice->type);
+        self::assertSame('-500.00', $invoice->totals()->net()->toString(2));
+        self::assertSame('-115.00', $invoice->totals()->vat()->toString(2), '-615 * 23 / 123');
+        self::assertSame('-615.00', $invoice->amountDue()->toString(2));
+        self::assertSame('5535.00', $invoice->orderValue()->toString(2), 'the order is worth what the lines say after the correction');
+
+        $xpath = $this->xpath($invoice);
+        self::assertSame('KOR_ZAL', $xpath->evaluate('string(//f:RodzajFaktury)'));
+        self::assertSame('Smaller order', $xpath->evaluate('string(//f:PrzyczynaKorekty)'));
+        self::assertSame(0.0, $xpath->evaluate('count(//f:FaWiersz)'));
+        self::assertSame(2.0, $xpath->evaluate('count(//f:ZamowienieWiersz)'));
+        self::assertSame('1', $xpath->evaluate('string(//f:ZamowienieWiersz[1]/f:StanPrzedZ)'));
+        self::assertSame('', $xpath->evaluate('string(//f:ZamowienieWiersz[2]/f:StanPrzedZ)'));
+    }
+
+    public function testCorrectionOfASettlementInvoiceCombinesBeforeAfterLinesWithTheAdvances(): void
+    {
+        $invoice = Invoice::builder()
+            ->number('KROZ/2026/06/001')->issueDate('2026-06-02')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-06-01'), 'ROZ/2026/06/001')]))
+            ->settlement(new Settlement([AdvanceInvoiceReference::ksef(self::KSEF_NUMBER)], Money::pln('0.00')))
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4000.00', VatRate::Rate23))
+            ->build();
+
+        self::assertSame(InvoiceType::SettlementCorrection, $invoice->type);
+        self::assertSame('-1230.00', $invoice->amountDue()->toString(2));
+
+        $xpath = $this->xpath($invoice);
+        self::assertSame('KOR_ROZ', $xpath->evaluate('string(//f:RodzajFaktury)'));
+        self::assertSame('-1000.00', $xpath->evaluate('string(//f:P_13_1)'));
+        self::assertSame(self::KSEF_NUMBER, $xpath->evaluate('string(//f:FakturaZaliczkowa/f:NrKSeFFaZaliczkowej)'));
+        self::assertSame(2.0, $xpath->evaluate('count(//f:FaWiersz)'));
     }
 
     public function testSimplifiedInvoiceIsLimitedAndNeedsTheBuyersNip(): void

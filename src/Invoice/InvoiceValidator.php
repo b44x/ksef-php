@@ -96,7 +96,7 @@ final class InvoiceValidator
             if ($line->gtin !== null) {
                 $this->text($label . ' GTIN', $line->gtin, 20);
             }
-            if ($line->quantity->isNegative() || ($line->state === LineState::Current && $i->type !== InvoiceType::Correction && $line->quantity->isZero())) {
+            if ($line->quantity->isNegative() || ($line->state === LineState::Current && !$i->type->isCorrection() && $line->quantity->isZero())) {
                 $this->add($label . ': the quantity must be positive.');
             }
             if ($line->quantity->scale() > 6 && !$line->quantity->equals($line->quantity->roundTo(6))) {
@@ -116,10 +116,10 @@ final class InvoiceValidator
             }
         }
 
-        if ($i->type !== InvoiceType::Correction && $before > 0) {
+        if (!$i->type->isCorrection() && $before > 0) {
             $this->add('"Before correction" lines are only allowed on correction invoices.');
         }
-        if ($i->type === InvoiceType::Correction && $before === 0) {
+        if ($i->type->isCorrection() && $before === 0) {
             $this->add('A correction invoice needs at least one "before correction" line (InvoiceLine::asBefore()).');
         }
     }
@@ -190,7 +190,7 @@ final class InvoiceValidator
     private function correction(): void
     {
         $i = $this->invoice;
-        if ($i->type === InvoiceType::Correction) {
+        if ($i->type->isCorrection()) {
             if ($i->correction === null || $i->correction->correctedInvoices === []) {
                 $this->add('A correction invoice needs the corrected invoice reference(s).');
 
@@ -215,15 +215,16 @@ final class InvoiceValidator
     {
         $i = $this->invoice;
 
-        if ($i->type !== InvoiceType::Advance && $i->advance !== null) {
-            $this->add('Advance payment data is only allowed on advance invoices (ZAL).');
+        if (!$i->type->isAdvance() && $i->advance !== null) {
+            $this->add('Advance payment data is only allowed on advance invoices (ZAL, KOR_ZAL).');
         }
-        if ($i->type !== InvoiceType::Settlement && $i->settlement !== null) {
-            $this->add('Settlement data is only allowed on settlement invoices (ROZ).');
+        if (!$i->type->isSettlement() && $i->settlement !== null) {
+            $this->add('Settlement data is only allowed on settlement invoices (ROZ, KOR_ROZ).');
         }
 
         switch ($i->type) {
             case InvoiceType::Advance:
+            case InvoiceType::AdvanceCorrection:
                 if ($i->advance === null) {
                     $this->add('An advance invoice needs the advance payment (AdvancePayment).');
 
@@ -232,8 +233,11 @@ final class InvoiceValidator
                 if ($i->advance->paid->currency !== $i->currency) {
                     $this->add('The advance payment currency differs from the invoice currency.');
                 }
-                if (!$i->advance->paid->amount->isPositive()) {
+                if ($i->type === InvoiceType::Advance && !$i->advance->paid->amount->isPositive()) {
                     $this->add('The advance payment must be positive.');
+                }
+                if ($i->type === InvoiceType::AdvanceCorrection && $i->advance->paid->amount->isZero()) {
+                    $this->add('The change of the advance payment must not be zero; give the difference (negative when it decreases).');
                 }
                 $this->date('Advance payment date', $i->advance->receivedOn);
                 if ($i->saleDate !== null) {
@@ -242,6 +246,7 @@ final class InvoiceValidator
 
                 break;
             case InvoiceType::Settlement:
+            case InvoiceType::SettlementCorrection:
                 if ($i->settlement === null) {
                     $this->add('A settlement invoice needs Settlement data (advance invoices and the amount paid).');
 
@@ -264,7 +269,7 @@ final class InvoiceValidator
                 if ($paid->currency !== $i->currency) {
                     $this->add('The amount paid in advances must be in the invoice currency.');
                 }
-                if ($paid->isNegative() || $paid->amount->roundTo(2)->compare($i->totals()->gross()) > 0) {
+                if ($i->type === InvoiceType::Settlement && ($paid->isNegative() || $paid->amount->roundTo(2)->compare($i->totals()->gross()) > 0)) {
                     $this->add('The advances paid must be between zero and the invoice total.');
                 }
 

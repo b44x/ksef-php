@@ -155,7 +155,7 @@ final class Fa3Serializer
             $this->el($d, $fa, 'P_1M', $invoice->issuePlace);
         }
         $this->el($d, $fa, 'P_2', $invoice->number);
-        $p6 = $invoice->type === InvoiceType::Advance ? $invoice->advance?->receivedOn : $invoice->saleDate;
+        $p6 = $invoice->type->isAdvance() ? $invoice->advance?->receivedOn : $invoice->saleDate;
         if ($p6 !== null) {
             $this->el($d, $fa, 'P_6', $p6->format('Y-m-d'));
         }
@@ -194,7 +194,7 @@ final class Fa3Serializer
             }
         }
 
-        if ($invoice->type !== InvoiceType::Advance) {
+        if (!$invoice->type->isAdvance()) {
             foreach ($invoice->lines as $index => $line) {
                 $this->line($d, $fa, $index + 1, $line);
             }
@@ -203,7 +203,7 @@ final class Fa3Serializer
         if ($invoice->payment !== null) {
             $this->payment($d, $fa, $invoice->payment);
         }
-        if ($invoice->type === InvoiceType::Advance) {
+        if ($invoice->type->isAdvance()) {
             $this->order($d, $fa, $invoice);
         }
     }
@@ -300,6 +300,9 @@ final class Fa3Serializer
             $percentage = $line->vatRate->percentage();
             $this->el($d, $row, 'P_11VatZ', ($percentage !== null ? $net->percent($percentage)->roundTo(2) : Decimal::of('0.00'))->toString(2));
             $this->el($d, $row, 'P_12Z', $line->vatRate->value);
+            if ($line->state === LineState::Before) {
+                $this->el($d, $row, 'StanPrzedZ', '1');
+            }
         }
     }
 
