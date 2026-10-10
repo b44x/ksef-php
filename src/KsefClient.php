@@ -112,6 +112,10 @@ use Throwable;
  * ```
  *
  * Authentication, token refresh, encryption, request signing and polling are handled internally.
+ *
+ * Every method that talks to KSeF can throw {@see Exception\ApiException} (KSeF refused), {@see Exception\TransportException}
+ * (no usable HTTP answer) or {@see Exception\MalformedResponseException}; the waiting ones add
+ * {@see Exception\PollingTimeoutException}; input is checked first and reported as {@see Exception\ValidationException}.
  */
 final class KsefClient
 {

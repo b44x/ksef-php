@@ -37,6 +37,10 @@ Tax-law and KSeF vocabulary enums (`VatRate`, `Gtu`, `Permission`, `EntityPermis
 `Signing\XadesSigner`, `Crypto\PublicKeyProvider` and `Http\Sleeper` are meant to be implemented by you. New capabilities
 will arrive as new interfaces, not as new methods on these. `Auth\Credentials` cannot be implemented outside the SDK.
 
+Constructors with many optional parameters (`Invoice`, `InvoiceLine`, `Seller`, ...) are meant to be used through their
+builders and static factories (`Invoice::builder()`, `InvoiceLine::of()`); if you call a constructor directly, use named
+arguments, because new optional parameters are added at the end and are not a breaking change.
+
 **Not** covered: anything marked `@internal` (the `*Api` endpoint wrappers, `Http\Transport` and friends, serializers,
 validators, XML helpers, the poller, the batch packager). They may change in any release; use `KsefClient` instead.
 

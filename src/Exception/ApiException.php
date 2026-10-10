@@ -22,9 +22,9 @@ class ApiException extends KsefException
         public readonly int $httpStatus,
         public readonly array $errors = [],
         public readonly ?string $traceId = null,
-        public readonly ?Throwable $cause = null,
+        ?Throwable $previous = null,
     ) {
-        parent::__construct($message, $httpStatus, $cause);
+        parent::__construct($message, $httpStatus, $previous);
     }
 
     /** First KSeF error code (for example 21405), if the response carried one. */
