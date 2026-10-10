@@ -14,6 +14,8 @@ use ZipArchive;
 /**
  * Builds the batch archive: one ZIP of invoice XML files, split binary into parts of at most
  * {@see self::DEFAULT_MAX_PART_BYTES} (100 MB before encryption, KSeF limit), at most 50 parts.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class BatchPackager
 {

@@ -13,6 +13,8 @@ use B4x\Ksef\Exception\AuthenticationException;
  * When KSeF answers 401 the cached tokens are discarded and the request is repeated exactly once
  * with fresh tokens. A 401 is produced before any processing happens, so repeating even a
  * mutating request cannot duplicate it.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class AuthorizedClient
 {

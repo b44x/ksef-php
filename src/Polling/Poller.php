@@ -10,7 +10,10 @@ use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Support\SystemClock;
 use Psr\Clock\ClockInterface;
 
-/** Repeats a status check until it reports a terminal state or the policy's budget is used up. */
+/** Repeats a status check until it reports a terminal state or the policy's budget is used up.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class Poller
 {
     public function __construct(

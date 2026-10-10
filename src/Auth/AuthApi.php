@@ -13,6 +13,8 @@ use Exception;
 
 /**
  * Thin, typed wrapper over the `/auth/*` endpoints. Contains no flow logic; see {@see Authenticator}.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class AuthApi
 {

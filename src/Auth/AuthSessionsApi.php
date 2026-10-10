@@ -9,7 +9,10 @@ use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Support\Constraint;
 
-/** Typed wrapper over `/auth/sessions` (listing and revoking logins). */
+/** Typed wrapper over `/auth/sessions` (listing and revoking logins).
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class AuthSessionsApi
 {
     public function __construct(private readonly AuthorizedClient $client) {}

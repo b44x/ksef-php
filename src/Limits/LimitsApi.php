@@ -8,7 +8,10 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 
-/** Typed wrapper over `/limits/*` and `/rate-limits`. */
+/** Typed wrapper over `/limits/*` and `/rate-limits`.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class LimitsApi
 {
     public function __construct(private readonly AuthorizedClient $client) {}

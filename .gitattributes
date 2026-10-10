@@ -11,3 +11,5 @@
 /CONTRIBUTING.md      export-ignore
 
 *.xsd -diff
+/tools               export-ignore
+/resources/spec       export-ignore

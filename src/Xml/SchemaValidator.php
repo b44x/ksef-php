@@ -7,7 +7,10 @@ namespace B4x\Ksef\Xml;
 use B4x\Ksef\Exception\ConfigurationException;
 use B4x\Ksef\Exception\SerializationException;
 
-/** Validates XML documents against an XSD schema shipped with the library. */
+/** Validates XML documents against an XSD schema shipped with the library.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class SchemaValidator
 {
     /**

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docs/STABILITY.md`: what the public API is; the endpoint wrappers, transport, serializers, validators and XML helpers are now marked `@internal`.
 - Specification drift detection: `tools/spec.php` compares the published KSeF OpenAPI specification with a committed snapshot (`composer spec:check`, weekly workflow `spec-drift.yml`), and a test asserts that every operation of the snapshot is implemented.
 - `Correction::$amountBefore` / `$exchangeRateBefore` (`P_15ZK`, `KursWalutyZK`) for corrections of advance and settlement invoices, and `docs/ADVANCE-INVOICES.md` explaining how those documents are filled and what is still open.
 - Peppol provider flow verified on TEST, PEF invoices and PEF_KOR credit notes: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`, fixtures under `examples/fixtures/`.

@@ -21,6 +21,8 @@ use B4x\Ksef\Support\Constraint;
 
 /**
  * Typed wrapper over the interactive-session and status endpoints. No flow logic lives here.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class SessionApi
 {

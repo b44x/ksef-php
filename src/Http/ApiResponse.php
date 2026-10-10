@@ -7,7 +7,10 @@ namespace B4x\Ksef\Http;
 use B4x\Ksef\Exception\MalformedResponseException;
 use JsonException;
 
-/** A successful (2xx) answer from the KSeF API. */
+/** A successful (2xx) answer from the KSeF API.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final readonly class ApiResponse
 {
     /**

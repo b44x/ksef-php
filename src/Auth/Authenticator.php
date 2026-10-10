@@ -17,6 +17,8 @@ use Psr\Log\NullLogger;
  * Runs the complete KSeF authentication flow:
  * challenge, proof of identity (XAdES signature or encrypted KSeF token), status polling and
  * exchange of the temporary token for access and refresh tokens.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class Authenticator
 {

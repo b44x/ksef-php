@@ -12,7 +12,10 @@ use B4x\Ksef\Http\RetryMode;
 use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\Nip;
 
-/** Typed wrapper over the commonly used `/permissions/*` endpoints. */
+/** Typed wrapper over the commonly used `/permissions/*` endpoints.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class PermissionsApi
 {
     public function __construct(private readonly AuthorizedClient $client) {}

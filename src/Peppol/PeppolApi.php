@@ -9,7 +9,10 @@ use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Support\Constraint;
 
-/** Typed wrapper over `/peppol/query`. */
+/** Typed wrapper over `/peppol/query`.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class PeppolApi
 {
     public function __construct(private readonly AuthorizedClient $client) {}

@@ -17,6 +17,8 @@ use DOMElement;
  * The document is built with DOM (never by string concatenation), so escaping, namespaces and
  * encoding are handled by libxml. Element order follows the schema sequence. Output is UTF-8
  * without a byte order mark and contains no processing instructions, as KSeF requires.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class Fa3Serializer
 {

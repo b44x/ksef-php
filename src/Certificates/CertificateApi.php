@@ -17,6 +17,8 @@ use DateTimeZone;
 /**
  * Typed wrapper over the `/certificates/*` endpoints. Note that requesting certificates requires an
  * access token obtained with a *signature* (XAdES); KSeF token sessions are refused.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class CertificateApi
 {

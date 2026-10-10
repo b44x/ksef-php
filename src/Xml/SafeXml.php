@@ -13,6 +13,8 @@ use DOMDocument;
  * Documents containing a DOCTYPE are refused outright: KSeF forbids processing instructions and
  * has no use for DTDs, and refusing them removes the XXE and entity-expansion attack surface.
  * Network access is disabled and entities are never substituted.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class SafeXml
 {

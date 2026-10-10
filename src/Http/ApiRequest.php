@@ -10,6 +10,8 @@ use SensitiveParameter;
  * A request to the KSeF API, described independently of any HTTP library.
  *
  * Instances are internal plumbing of the endpoint classes; consumers do not build them.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final readonly class ApiRequest
 {

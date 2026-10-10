@@ -19,6 +19,8 @@ use SensitiveParameter;
  *
  * Tokens are kept in memory only. The class is not safe for concurrent use by parallel processes;
  * every process authenticates on its own.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class AccessTokenProvider
 {

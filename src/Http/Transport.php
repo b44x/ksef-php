@@ -25,6 +25,8 @@ use Psr\Log\NullLogger;
  *
  * Timeouts and TLS verification are properties of the injected PSR-18 client. Configure them there
  * (for Guzzle: `timeout`, `connect_timeout`; TLS verification must stay enabled).
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
  */
 final class Transport
 {

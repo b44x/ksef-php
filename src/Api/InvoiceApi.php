@@ -19,7 +19,10 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 
-/** Typed wrapper over the invoice retrieval and search endpoints. */
+/** Typed wrapper over the invoice retrieval and search endpoints.
+ *
+ * @internal Not part of the public API: it may change in any release. Use {@see \B4x\Ksef\KsefClient}.
+ */
 final class InvoiceApi
 {
     public function __construct(private readonly AuthorizedClient $client) {}

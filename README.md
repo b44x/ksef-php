@@ -468,6 +468,10 @@ invoice and verify duplicate detection. No credentials are needed:
 KSEF_LIVE=1 composer test:live
 ```
 
+## Stability
+
+The public API follows semantic versioning; what counts as public (and what is `@internal`) is in [docs/STABILITY.md](docs/STABILITY.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Run `composer install && composer check` before opening a pull request.
