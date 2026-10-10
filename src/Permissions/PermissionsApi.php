@@ -23,6 +23,7 @@ final class PermissionsApi
      */
     public function grantToPerson(PersonSubject $subject, array $permissions, string $description): string
     {
+        self::description($description);
         $body = $subject->toArray() + [
             'permissions' => array_map(static fn(Permission $p): string => $p->value, $permissions),
             'description' => $description,
@@ -38,6 +39,8 @@ final class PermissionsApi
      */
     public function grantToEntity(Nip $nip, string $fullName, array $permissions, string $description): string
     {
+        self::description($description);
+        self::name($fullName);
         $list = [];
         foreach ($permissions as $type => $canDelegate) {
             $list[] = ['type' => $type, 'canDelegate' => $canDelegate];
@@ -60,6 +63,8 @@ final class PermissionsApi
      */
     public function grantAuthorization(Nip|string $subject, EntityAuthorizationType $type, string $fullName, string $description): string
     {
+        self::description($description);
+        self::name($fullName);
         $identifier = $subject instanceof Nip ? ['type' => 'Nip', 'value' => $subject->value] : ['type' => 'PeppolId', 'value' => self::nonEmpty($subject, 'Peppol ID')];
 
         return $this->operation(ApiRequest::post('/permissions/authorizations/grants', [
@@ -86,6 +91,7 @@ final class PermissionsApi
      */
     public function grantIndirect(PersonSubject $subject, array $permissions, string $description, ?IndirectTarget $target = null): string
     {
+        self::description($description);
         $body = $subject->toArray() + [
             'permissions' => array_map(static fn(EntityPermissionType $p): string => $p->value, $permissions),
             'description' => $description,
@@ -104,6 +110,7 @@ final class PermissionsApi
      */
     public function grantSubunitAdministrator(PersonSubject $subject, SubunitContext $unit, string $description, ?string $subunitName = null): string
     {
+        self::description($description);
         $body = $subject->toArray() + ['contextIdentifier' => $unit->toArray(), 'description' => $description];
         if ($subunitName !== null) {
             $body['subunitName'] = $subunitName;
@@ -121,6 +128,7 @@ final class PermissionsApi
      */
     public function grantEuEntityAdministrator(EuEntitySubject $subject, string $vatUe, string $euEntityName, string $euEntityAddress, string $description): string
     {
+        self::description($description);
         return $this->operation(ApiRequest::post('/permissions/eu-entities/administration/grants', $subject->toArray() + [
             'contextIdentifier' => ['type' => 'NipVatUe', 'value' => self::nonEmpty($vatUe, 'NIP-VAT UE')],
             'description' => $description,
@@ -138,6 +146,7 @@ final class PermissionsApi
      */
     public function grantEuEntityRepresentative(EuEntitySubject $subject, array $permissions, string $description): string
     {
+        self::description($description);
         return $this->operation(ApiRequest::post('/permissions/eu-entities/grants', $subject->toArray() + [
             'permissions' => array_map(static fn(EuEntityPermissionType $p): string => $p->value, $permissions),
             'description' => $description,
@@ -210,6 +219,24 @@ final class PermissionsApi
         $data = new Payload($this->client->send(ApiRequest::get('/permissions/attachments/status'))->json());
 
         return new AttachmentStatus($data->optionalBool('isAttachmentAllowed') ?? false, $data->optionalDate('revokedDate'));
+    }
+
+    /** KSeF requires a description of 5 to 256 characters and refuses shorter ones with a 400. */
+    private static function description(string $description): void
+    {
+        $length = mb_strlen($description, 'UTF-8');
+        if ($length < 5 || $length > 256) {
+            throw new ValidationException(\sprintf('The permission description must have 5 to 256 characters, "%s" has %d.', $description, $length));
+        }
+    }
+
+    /** KSeF requires the full name of an entity to have 5 to 90 characters. */
+    private static function name(string $fullName): void
+    {
+        $length = mb_strlen($fullName, 'UTF-8');
+        if ($length < 5 || $length > 90) {
+            throw new ValidationException(\sprintf('The entity name must have 5 to 90 characters, "%s" has %d.', $fullName, $length));
+        }
     }
 
     private static function nonEmpty(string $value, string $label): string

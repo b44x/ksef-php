@@ -185,6 +185,24 @@ final class PermissionsFlowTest extends KsefTestCase
         self::assertNull($attachments->revokedAt);
     }
 
+    public function testDescriptionsAndNamesAreCheckedBeforeAnythingIsSent(): void
+    {
+        $client = $this->client();
+        foreach ([
+            'short description' => fn() => $client->grantPersonPermissions(PersonSubject::byPesel('90010112345', 'A', 'B'), [Permission::InvoiceRead], 'abc'),
+            'short entity name' => fn() => $client->grantEntityPermissions(Nip::of('5265877635'), 'Ab', ['InvoiceRead' => true], 'a valid description'),
+            'short authorisation name' => fn() => $client->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Ab', 'a valid description'),
+        ] as $label => $call) {
+            try {
+                $call();
+                self::fail('Expected ValidationException for: ' . $label);
+            } catch (ValidationException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        self::assertCount(0, $this->ksef->requestsTo('POST', '/permissions/persons/grants'));
+    }
+
     public function testIdentifiersAreValidatedLocally(): void
     {
         $this->expectException(ValidationException::class);

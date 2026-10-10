@@ -37,7 +37,7 @@ php examples/01-send-invoice.php
 ```
 
 This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
-use Guzzle, a dev dependency). See [examples/](examples/README.md) for the twelve guided examples and
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the thirteen guided examples and
 [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
 
 ## Quick start
@@ -172,8 +172,8 @@ GTU codes, payment details, annotations and a footer. Corrections: mark the orig
 **Other invoice forms.** Besides FA(3) the SDK handles FA_RR (1) farmer purchase invoices with a typed model
 (`RrInvoice`, see `examples/11-farmer-rr-invoice.php`) and accepts Peppol documents (PEF (3) invoices and PEF_KOR (3)
 credit notes) as verified raw XML: `InvoiceDocument::fromXml($ublXml)` recognises the form from the root element
-and checks it against the bundled schema. The PEF path is validated against the official XSD but, unlike FA(3) and
-FA_RR, was not exercised end to end against KSeF (it needs a Peppol service provider setup).
+and checks it against the bundled schema. Sending PEF invoices as a Peppol provider is verified end to end on TEST
+(`examples/13-peppol-invoice.php`, [docs/PEPPOL.md](docs/PEPPOL.md)); credit notes (PEF_KOR) are not verified yet.
 
 **Optional extras** (all in `examples/12-rich-invoice.php`): `InvoiceLine::withDiscount()`, `deliveredOn()`,
 `withProcedure()`, `withExcise()`; `addInfo()` remarks, `addWarehouseDocument()`; `additionalSettlement()` (charges and

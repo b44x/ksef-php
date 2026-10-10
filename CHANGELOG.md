@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Peppol provider flow verified on TEST: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`.
+
+### Changed
+
+- Permission descriptions (5 to 256 characters) and entity names (5 to 90) are validated locally, as KSeF refuses shorter ones with a 400.
+
 ## [0.5.0] - 2026-10-09
 
 ### Added

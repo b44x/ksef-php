@@ -14,8 +14,10 @@ use B4x\Ksef\Invoice\Attachment;
 use B4x\Ksef\Invoice\AttachmentBlock;
 use B4x\Ksef\Invoice\CorrectedInvoice;
 use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceBuilder;
+use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Invoice\InvoiceLine;
 use B4x\Ksef\Invoice\Money;
 use B4x\Ksef\Invoice\Settlement;
@@ -142,6 +144,33 @@ final class LiveFeaturesTest extends TestCase
         $batch = $client->sendBatch([$rich]);
         $status = $client->waitForSession($batch->sessionReference, $this->policy);
         self::assertSame(1, $status->successfulInvoiceCount);
+    }
+
+    public function testPeppolProvidersSendPefInvoicesOnBehalfOfACompany(): void
+    {
+        [$company, $companyClient] = $this->taxpayer();
+        $provider = TestEnvironment::createPeppolProvider();
+        $providerClient = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($this->http, $this->factory, $this->factory)
+            ->context($provider->context())
+            ->credentials($provider->credentials())
+            ->build();
+
+        $providerClient->openOnlineSession(FormCode::pef())->close(); // first sign-in registers the provider
+        $companyClient->grantAuthorization($provider->id, EntityAuthorizationType::PefInvoicing, 'Test Peppol provider', 'PEF invoicing', $this->policy);
+
+        $xml = strtr((string) file_get_contents(__DIR__ . '/../../examples/fixtures/pef-invoice.xml'), [
+            '{{NUMBER}}' => 'PEF/' . random_int(1000, 999_999),
+            '{{DATE}}' => date('Y-m-d'),
+            '{{SELLER_NIP}}' => $company->nip->value,
+            '{{BUYER_NIP}}' => '5265877635',
+        ]);
+        $session = $providerClient->openOnlineSession(FormCode::pef());
+        $result = $providerClient->waitForInvoice($session->send(InvoiceDocument::fromXml($xml)), $this->policy, true)->assertAccepted();
+        $session->close();
+
+        self::assertStringStartsWith($company->nip->value . '-', (string) $result->ksefNumber);
     }
 
     /**

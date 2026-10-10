@@ -33,6 +33,7 @@ can use any PSR-18 client.
 | 10 | `10-offline-invoicing.php` | Issuing without KSeF: QR codes, late delivery, technical correction |
 | 11 | `11-farmer-rr-invoice.php` | Flat-rate farmer purchase invoices (FA_RR) and their correction |
 | 12 | `12-rich-invoice.php` | Optional extras: discounts, remarks, partial payments, terms, attachment, third party |
+| 13 | `13-peppol-invoice.php` | Peppol (PEF): a provider sends a UBL invoice on behalf of a company |
 
 Start with 01, then 04 and 09: they cover what matters most in production.
 

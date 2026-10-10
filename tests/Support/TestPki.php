@@ -54,6 +54,18 @@ final class TestPki
     }
 
     /**
+     * Seal-like certificate with arbitrary extra subject attributes (experiments with identifier formats).
+     *
+     * @param array<string, string> $attributes
+     *
+     * @return array{privateKeyPem: string, certificatePem: string, certificateDer: string}
+     */
+    public static function sealCustom(array $attributes, string $type = 'rsa'): array
+    {
+        return self::issue(array_merge(['countryName' => 'PL', 'organizationName' => 'Provider', 'commonName' => 'Provider Seal'], $attributes), $type);
+    }
+
+    /**
      * @param array<string, string> $dn
      *
      * @return array{privateKeyPem: string, certificatePem: string, certificateDer: string}

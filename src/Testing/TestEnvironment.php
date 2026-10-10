@@ -71,6 +71,19 @@ final class TestEnvironment
     }
 
     /**
+     * Creates a Peppol service provider identity for the TEST environment: a random Peppol ID and a self-signed
+     * certificate whose common name is that ID. KSeF registers the provider automatically the first time it
+     * signs in (context type PeppolId). No request is made here.
+     */
+    public static function createPeppolProvider(): TestPeppolProvider
+    {
+        $id = 'P' . \chr(random_int(65, 90)) . \chr(random_int(65, 90)) . str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
+        [$certificate, $key] = self::selfSignedCertificate(['countryName' => 'PL', 'organizationName' => 'ksef-php test Peppol provider', 'commonName' => $id]);
+
+        return new TestPeppolProvider($id, $certificate, $key);
+    }
+
+    /**
      * Lets a test taxpayer send invoices with attachments (the consent real taxpayers give the Ministry beforehand).
      *
      * @throws ConfigurationException when called for anything but the TEST environment
@@ -96,6 +109,17 @@ final class TestEnvironment
      */
     private static function selfSignedPersonalCertificate(string $nip): array
     {
+        // Subject shaped like a qualified personal certificate: KSeF reads the NIP from serialNumber.
+        return self::selfSignedCertificate(['countryName' => 'PL', 'givenName' => 'Jan', 'surname' => 'Testowy', 'serialNumber' => 'TINPL-' . $nip, 'commonName' => 'Jan Testowy']);
+    }
+
+    /**
+     * @param array<string, string> $subject
+     *
+     * @return array{string, string} certificate PEM and private key PEM
+     */
+    private static function selfSignedCertificate(array $subject): array
+    {
         $config = tempnam(sys_get_temp_dir(), 'ksef-cnf-');
         if ($config === false) {
             throw new SigningException('Cannot create a temporary OpenSSL configuration.');
@@ -108,8 +132,6 @@ final class TestEnvironment
                 throw new SigningException('Cannot generate a key: ' . (string) openssl_error_string());
             }
 
-            // Subject shaped like a qualified personal certificate: KSeF reads the NIP from serialNumber.
-            $subject = ['countryName' => 'PL', 'givenName' => 'Jan', 'surname' => 'Testowy', 'serialNumber' => 'TINPL-' . $nip, 'commonName' => 'Jan Testowy'];
             $keyCopy = $key;
             $csr = openssl_csr_new($subject, $keyCopy, ['digest_alg' => 'sha256', 'config' => $config]);
             $certificate = $csr instanceof OpenSSLCertificateSigningRequest ? openssl_csr_sign($csr, null, $key, 30, ['digest_alg' => 'sha256', 'config' => $config]) : false;
