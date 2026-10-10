@@ -49,8 +49,9 @@ common name, which is what KSeF TEST accepts). The sample UBL invoice is `exampl
 ## Status
 
 - PEF (3) invoices: verified end to end against KSeF TEST (provider sign-in, authorisation, send, acceptance).
-- PEF_KOR (3): the form code, schema validation and transport are in place, but a hand-made credit note was
-  rejected by KSeF TEST with a semantic error ("invalid XML") that I could not narrow down without the provider
-  rules; treat credit notes as unverified and check them with your Peppol provider's tooling.
+- PEF_KOR (3): verified end to end with the Ministry of Finance's own correction template
+  (`examples/fixtures/pef-correction.xml`, see `NOTICE.md` there). A bare-bones UBL credit note is **not** enough:
+  KSeF expects the Polish extension (`ext:UBLExtensions` with the data of the corrected invoice and the differences),
+  so build corrections from that template. It carries an attachment, so the seller needs the attachment consent.
 - The production provider certificate format is issued by the Peppol authority; only the TEST variant is documented
   publicly.

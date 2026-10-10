@@ -173,7 +173,7 @@ GTU codes, payment details, annotations and a footer. Corrections: mark the orig
 (`RrInvoice`, see `examples/11-farmer-rr-invoice.php`) and accepts Peppol documents (PEF (3) invoices and PEF_KOR (3)
 credit notes) as verified raw XML: `InvoiceDocument::fromXml($ublXml)` recognises the form from the root element
 and checks it against the bundled schema. Sending PEF invoices as a Peppol provider is verified end to end on TEST
-(`examples/13-peppol-invoice.php`, [docs/PEPPOL.md](docs/PEPPOL.md)); credit notes (PEF_KOR) are not verified yet.
+(`examples/13-peppol-invoice.php`, [docs/PEPPOL.md](docs/PEPPOL.md)), credit notes (PEF_KOR) included.
 
 **Optional extras** (all in `examples/12-rich-invoice.php`): `InvoiceLine::withDiscount()`, `deliveredOn()`,
 `withProcedure()`, `withExcise()`; `addInfo()` remarks, `addWarehouseDocument()`; `additionalSettlement()` (charges and

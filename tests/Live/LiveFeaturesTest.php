@@ -169,8 +169,23 @@ final class LiveFeaturesTest extends TestCase
         $session = $providerClient->openOnlineSession(FormCode::pef());
         $result = $providerClient->waitForInvoice($session->send(InvoiceDocument::fromXml($xml)), $this->policy, true)->assertAccepted();
         $session->close();
-
         self::assertStringStartsWith($company->nip->value . '-', (string) $result->ksefNumber);
+
+        // The correction template of the Ministry of Finance carries an attachment: the seller must allow it first.
+        TestEnvironment::allowAttachments($company->nip, $this->http, $this->factory, $this->factory);
+        $correction = InvoiceDocument::fromXml(strtr((string) file_get_contents(__DIR__ . '/../../examples/fixtures/pef-correction.xml'), [
+            '#supplier_nip#' => 'PL' . $company->nip->value,
+            '#buyer_nip#' => 'PL5265877635',
+            '#buyer_reference#' => 'PL5265877635',
+            '#iban#' => 'PL61109010140000071219812874',
+            '#invoice_number#' => 'KOR/' . random_int(1000, 999_999),
+            '#issue_date#' => date('Y-m-d'),
+            '#due_date#' => date('Y-m-d', strtotime('+14 days')),
+            '#ksef_number#' => (string) $result->ksefNumber,
+        ]));
+        $correctionSession = $providerClient->openOnlineSession(FormCode::pefCorrection());
+        $providerClient->waitForInvoice($correctionSession->send($correction), $this->policy, true)->assertAccepted();
+        $correctionSession->close();
     }
 
     /**

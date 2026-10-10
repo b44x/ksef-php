@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Peppol provider flow verified on TEST: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`.
+- Peppol provider flow verified on TEST, PEF invoices and PEF_KOR credit notes: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`, fixtures under `examples/fixtures/`.
 
 ### Changed
 
