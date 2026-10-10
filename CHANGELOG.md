@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-10
+
 ### Added
 
 - `docs/STABILITY.md`: what the public API is; the endpoint wrappers, transport, serializers, validators and XML helpers are now marked `@internal`.
@@ -97,7 +99,8 @@ Findings of an independent review of the sources:
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/b44x/ksef-php/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/b44x/ksef-php/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/b44x/ksef-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/b44x/ksef-php/compare/v0.2.0...v0.3.0
