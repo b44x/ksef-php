@@ -102,7 +102,15 @@ final readonly class Invoice
     /** Net and tax of everything the lines sell, before any advances are deducted. */
     public function saleTotals(): InvoiceTotals
     {
-        return InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate);
+        return $this->isCollectiveCorrection()
+            ? InvoiceTotals::fromCorrectionAmounts($this->correction->amounts ?? [], $this->currency, $this->exchangeRate)
+            : InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate);
+    }
+
+    /** A correction under art. 106j(3): a discount for a period, given as amounts per rate instead of lines. */
+    public function isCollectiveCorrection(): bool
+    {
+        return $this->type === InvoiceType::Correction && $this->correction?->period !== null;
     }
 
     /**
@@ -164,6 +172,11 @@ final readonly class Invoice
     {
         foreach ($this->lines as $line) {
             if ($line->vatRate === $rate) {
+                return true;
+            }
+        }
+        foreach ($this->correction->amounts ?? [] as $amount) {
+            if ($amount->rate === $rate) {
                 return true;
             }
         }

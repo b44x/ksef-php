@@ -12,6 +12,7 @@ use B4x\Ksef\Invoice\Buyer;
 use B4x\Ksef\Invoice\BuyerIdentifier;
 use B4x\Ksef\Invoice\CorrectedInvoice;
 use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\CorrectionAmount;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
@@ -209,6 +210,53 @@ final class InvoiceKindsTest extends TestCase
         self::assertStringContainsString('between zero and the invoice total', $violations['settlement too large']);
         self::assertStringContainsString('not a valid KSeF number', $violations['bad ksef number']);
         self::assertStringContainsString('currency differs', $violations['advance in wrong currency']);
+    }
+
+    public function testCollectiveCorrectionHasAPeriodAndAmountsPerRateButNoLines(): void
+    {
+        $invoice = Invoice::builder()
+            ->number('KOR/2026/Q2')->issueDate('2026-07-05')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
+            ->correction(new Correction(
+                [new CorrectedInvoice(new DateTimeImmutable('2026-04-10'), 'FV/1'), new CorrectedInvoice(new DateTimeImmutable('2026-05-10'), 'FV/2')],
+                reason: 'Quarterly volume discount',
+                period: '2026-04-01 - 2026-06-30',
+                amounts: [CorrectionAmount::of(VatRate::Rate23, '-100.00', '-23.00')],
+            ))
+            ->build();
+
+        self::assertTrue($invoice->isCollectiveCorrection());
+        self::assertSame('-100.00', $invoice->totals()->net()->toString(2));
+        self::assertSame('-123.00', $invoice->amountDue()->toString(2));
+
+        $xpath = $this->xpath($invoice);
+        self::assertSame('KOR', $xpath->evaluate('string(//f:RodzajFaktury)'));
+        self::assertSame('2026-04-01 - 2026-06-30', $xpath->evaluate('string(//f:OkresFaKorygowanej)'));
+        self::assertSame('-100.00', $xpath->evaluate('string(//f:P_13_1)'));
+        self::assertSame('-23.00', $xpath->evaluate('string(//f:P_14_1)'));
+        self::assertSame('-123.00', $xpath->evaluate('string(//f:P_15)'));
+        self::assertSame(0.0, $xpath->evaluate('count(//f:FaWiersz)'));
+    }
+
+    public function testCollectiveCorrectionRulesAreChecked(): void
+    {
+        $corrected = [new CorrectedInvoice(new DateTimeImmutable('2026-04-10'), 'FV/1')];
+        $amount = [CorrectionAmount::of(VatRate::Rate23, '-100.00', '-23.00')];
+        $line = InvoiceLine::of('A', '1', null, '1.00', VatRate::Rate23);
+
+        $cases = [
+            'amounts without period' => [fn() => Fixtures::builder()->correction(new Correction($corrected, amounts: $amount))->build(), 'period'],
+            'period without amounts' => [fn() => Fixtures::builder()->correction(new Correction($corrected, period: 'Q2'))->build(), 'amounts'],
+            'with lines' => [fn() => Fixtures::builder()->correction(new Correction($corrected, period: 'Q2', amounts: $amount))->addLine($line)->build(), 'line'],
+            'taxed rate without vat' => [fn() => Fixtures::builder()->correction(new Correction($corrected, period: 'Q2', amounts: [CorrectionAmount::of(VatRate::Rate23, '-100.00')]))->build(), 'tax'],
+        ];
+        foreach ($cases as $label => [$build, $needle]) {
+            try {
+                $build();
+                self::fail('Expected a ValidationException for: ' . $label);
+            } catch (ValidationException $e) {
+                self::assertStringContainsStringIgnoringCase($needle, implode(' ', $e->violations), $label);
+            }
+        }
     }
 
     private function xpath(Invoice $invoice): DOMXPath

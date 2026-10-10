@@ -17,6 +17,10 @@ final readonly class Correction
      * @param Money|null $amountBefore for `KOR_ZAL`: the payment documented by the corrected advance invoice; for `KOR_ROZ`:
      *                                 the amount that remained to be paid before the correction (`P_15ZK`)
      * @param Decimal|null $exchangeRateBefore the exchange rate used before the correction, for foreign currency (`KursWalutyZK`)
+     * @param string|null $period makes this a collective correction under art. 106j(3): the period the discount or price
+     *                            reduction refers to (`OkresFaKorygowanej`, a date range or free text). The invoice then has
+     *                            no lines; give the corrections of the tax base and tax in {@see self::$amounts}.
+     * @param list<CorrectionAmount> $amounts the differences per VAT rate of a collective correction
      */
     public function __construct(
         public array $correctedInvoices,
@@ -26,5 +30,7 @@ final readonly class Correction
         public array $buyersBefore = [],
         public ?Money $amountBefore = null,
         public ?Decimal $exchangeRateBefore = null,
+        public ?string $period = null,
+        public array $amounts = [],
     ) {}
 }

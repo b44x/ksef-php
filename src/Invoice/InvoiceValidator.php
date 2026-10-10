@@ -81,6 +81,13 @@ final class InvoiceValidator
     {
         $i = $this->invoice;
         $count = \count($i->lines);
+        if ($i->isCollectiveCorrection()) {
+            if ($count !== 0) {
+                $this->add('A collective correction (art. 106j(3)) has no lines: give the differences per rate in Correction::$amounts.');
+            }
+
+            return;
+        }
         if ($count < 1 || $count > self::MAX_LINES) {
             $this->add(\sprintf('An invoice needs between 1 and %d lines, %d given.', self::MAX_LINES, $count));
         }
@@ -163,6 +170,9 @@ final class InvoiceValidator
         foreach ($i->lines as $line) {
             $ratesPerBucket[$line->vatRate->bucket()][$line->vatRate->value] = true;
         }
+        foreach ($i->correction->amounts ?? [] as $amount) {
+            $ratesPerBucket[$amount->rate->bucket()][$amount->rate->value] = true;
+        }
         foreach ($ratesPerBucket as $rates) {
             if (\count($rates) > 1) {
                 $this->add(\sprintf('Rates %s cannot be mixed on one invoice (they share a totals field).', implode(' and ', array_keys($rates))));
@@ -181,6 +191,9 @@ final class InvoiceValidator
         $taxed = false;
         foreach ($i->lines as $line) {
             $taxed = $taxed || $line->vatRate->isTaxed();
+        }
+        foreach ($i->correction->amounts ?? [] as $amount) {
+            $taxed = $taxed || $amount->rate->isTaxed();
         }
         if ($i->currency !== 'PLN' && $taxed) {
             if ($i->exchangeRate === null || !$i->exchangeRate->isPositive()) {
@@ -229,6 +242,10 @@ final class InvoiceValidator
             if ($i->correction->reason !== null) {
                 $this->text('Correction reason', $i->correction->reason, 256);
             }
+            if (\count($i->correction->correctedInvoices) > 50_000) {
+                $this->add('A correction can refer to at most 50,000 invoices.');
+            }
+            $this->collectiveCorrection();
             foreach ($i->correction->correctedInvoices as $index => $corrected) {
                 $this->text(\sprintf('Corrected invoice %d number', $index + 1), $corrected->number, 256);
                 $this->date(\sprintf('Corrected invoice %d date', $index + 1), $corrected->issueDate);
@@ -238,6 +255,38 @@ final class InvoiceValidator
             }
         } elseif ($i->correction !== null) {
             $this->add('Correction details are only allowed on correction invoices.');
+        }
+    }
+
+    private function collectiveCorrection(): void
+    {
+        $i = $this->invoice;
+        $correction = $i->correction;
+        if ($correction === null) {
+            return;
+        }
+        if ($correction->period === null) {
+            if ($correction->amounts !== []) {
+                $this->add('Amounts per rate belong to collective corrections: give the period (Correction::$period) as well.');
+            }
+
+            return;
+        }
+        if ($i->type !== InvoiceType::Correction) {
+            $this->add('Only a plain correction (KOR) can be a collective correction.');
+        }
+        $this->text('Correction period', $correction->period, 256);
+        if ($correction->amounts === []) {
+            $this->add('A collective correction needs the correction of the tax base and tax per rate (Correction::$amounts).');
+        }
+        foreach ($correction->amounts as $index => $amount) {
+            $label = \sprintf('Collective correction amount %d (%s)', $index + 1, $amount->rate->value);
+            if ($amount->rate->isTaxed() && $amount->vat === null) {
+                $this->add($label . ' needs the correction of the tax.');
+            }
+            if (!$amount->rate->isTaxed() && $amount->vat !== null) {
+                $this->add($label . ' is not taxed and takes no tax amount.');
+            }
         }
     }
 

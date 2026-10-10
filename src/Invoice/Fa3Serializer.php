@@ -363,6 +363,9 @@ final class Fa3Serializer
                 $this->el($d, $node, 'NrKSeFN', '1');
             }
         }
+        if ($correction->period !== null) {
+            $this->el($d, $fa, 'OkresFaKorygowanej', $correction->period);
+        }
         if ($correction->sellerBefore !== null) {
             $this->sellerBefore($d, $fa, $correction->sellerBefore);
         }

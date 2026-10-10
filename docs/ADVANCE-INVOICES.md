@@ -36,8 +36,8 @@ correction, the sum of the gross values of the order rows in the corrected state
 invoices should show the rows before and after the correction even when a row does not change; `P_15` is the difference
 against the original. Settlement invoices show only the remaining amount in `P_13` / `P_14` / `P_15` (2.7).
 
-1. Collective corrections for a period (art. 106j(3), `OkresFaKorygowanej`, no lines) are not modelled; send them as
-   raw XML.
+1. Collective corrections for a period (art. 106j(3)) are modelled (`Correction::$period` and `$amounts`, no lines) and
+   pass the schema, but were not yet sent to KSeF TEST.
 2. A `ROZ` that also documents a part payment received before delivery (`ZaliczkaCzesciowa` with `P_6Z` / `P_15Z`) is
    not modelled.
 3. Foreign-currency corrections: `Correction::$exchangeRateBefore` (`KursWalutyZK`) is written, but only PLN

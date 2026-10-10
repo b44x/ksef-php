@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Collective corrections under art. 106j(3): `Correction::$period` (`OkresFaKorygowanej`) and `Correction::$amounts` (`CorrectionAmount`, the differences per VAT rate); such a correction has no lines.
+
 ### Security
 
 - A published KSeF public key is only used if its `publicKeyId` equals the SHA-256 of the key inside its certificate (as the specification defines it); otherwise the listing is refused. A key list without a usable key is re-fetched at most every 30 seconds.

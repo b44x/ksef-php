@@ -208,6 +208,9 @@ Invoice::builder()->...->correction($correction)->advance(new AdvancePayment(Mon
 // Correction of a final invoice (KOR_ROZ): combine correction() and settlement(); before/after lines.
 Invoice::builder()->...->correction($correction)->settlement($settlement)->addLine($line->asBefore())->addLine($newLine)->build();
 
+// Collective correction for a period (art. 106j(3)): no lines, differences per rate.
+Invoice::builder()->...->correction(new Correction($corrected, period: '2026-04-01 - 2026-06-30', amounts: [CorrectionAmount::of(VatRate::Rate23, '-100.00', '-23.00')]))->build();
+
 // Simplified invoice (UPR): up to PLN 450 / EUR 100, buyer identified by NIP.
 Invoice::builder()->...->simplified()->addLine(...)->build();
 ```

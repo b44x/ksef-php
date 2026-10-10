@@ -65,6 +65,37 @@ final readonly class InvoiceTotals
     }
 
     /**
+     * Totals of a collective correction, taken from the given differences.
+     *
+     * @param list<CorrectionAmount> $amounts
+     */
+    public static function fromCorrectionAmounts(array $amounts, string $currency, ?Decimal $exchangeRate): self
+    {
+        $order = ['1', '2', '3', '6_1', '6_2', '6_3', '7', '8', '9', '10'];
+
+        /** @var array<string, array{VatRate, Decimal, Decimal|null}> $sums */
+        $sums = [];
+        foreach ($amounts as $amount) {
+            $key = $amount->rate->bucket();
+            $previous = $sums[$key] ?? [$amount->rate, Decimal::of('0.00'), null];
+            $vat = $amount->vat === null ? $previous[2] : ($previous[2] ?? Decimal::of('0.00'))->add($amount->vat->roundTo(2));
+            $sums[$key] = [$amount->rate, $previous[1]->add($amount->net->roundTo(2)), $vat];
+        }
+
+        $buckets = [];
+        foreach ($order as $key) {
+            if (!isset($sums[$key])) {
+                continue;
+            }
+            [$rate, $net, $vat] = $sums[$key];
+            $vatPln = $vat !== null && $currency !== 'PLN' && $exchangeRate !== null ? $vat->multiply($exchangeRate)->roundTo(2) : null;
+            $buckets[] = new TotalsBucket($key, $rate, $net, $vat, $vatPln);
+        }
+
+        return new self($buckets);
+    }
+
+    /**
      * Totals of an advance invoice: the tax is contained in the gross payment (`gross * rate / (100 + rate)`).
      */
     public static function forAdvance(AdvancePayment $advance, string $currency, ?Decimal $exchangeRate): self
