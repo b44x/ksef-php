@@ -36,3 +36,10 @@ never run by default (`KSEF_LIVE=1 composer test:live`).
 - `main` holds released code and is tagged (`vX.Y.Z`).
 - `develop` is the integration branch; open pull requests against it.
 - Use short topic branches (`feat/...`, `fix/...`, `docs/...`).
+
+## Following the KSeF specification
+
+KSeF changes its API from time to time. `composer spec:check` compares the published OpenAPI specification with
+`resources/spec/ksef-api-snapshot.json` (a weekly workflow runs it too). When it reports a change: read it, adapt the
+SDK (and add tests), then refresh the snapshot with `php tools/spec.php snapshot > resources/spec/ksef-api-snapshot.json`
+in the same commit.

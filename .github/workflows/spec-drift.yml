@@ -1,0 +1,25 @@
+name: Specification drift
+
+# KSeF evolves its API. Once a week (and on demand) compare the published OpenAPI specification with the snapshot the
+# SDK was built against. A failure means: read the report, follow the change in the SDK, refresh the snapshot.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Compare the production specification with the snapshot
+        run: php tools/spec.php check https://api.ksef.mf.gov.pl/docs/v2/openapi.json
+      - name: Compare the TEST specification with the snapshot
+        run: php tools/spec.php check https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json

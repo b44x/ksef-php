@@ -1,0 +1,3178 @@
+{
+    "apiVersion": "2.8.1",
+    "operations": {
+        "DELETE /auth/sessions/current": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "DELETE /auth/sessions/{referenceNumber}": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "DELETE /permissions/authorizations/grants/{permissionId}": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:permissionId": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "DELETE /permissions/common/grants/{permissionId}": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:permissionId": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "DELETE /tokens/{referenceNumber}": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /auth/sessions": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /auth/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "410",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /certificates/enrollments/data": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /certificates/enrollments/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "410",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /certificates/limits": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /collective-identifiers/ksef/{ksefNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "path:ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$",
+                    "required": true
+                },
+                "query:pageSize": {
+                    "maximum": 200,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /invoices/exports/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "410",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /invoices/ksef/{ksefNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$",
+                    "required": true
+                }
+            }
+        },
+        "GET /limits/context": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /limits/subject": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /peppol/query": {
+            "responses": [
+                "200",
+                "400",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /permissions/attachments/status": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /permissions/operations/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "410",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /permissions/query/entities/roles": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /rate-limits": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "GET /security/public-key-certificates": {
+            "responses": [
+                "200",
+                "400",
+                "429"
+            ]
+        },
+        "GET /sessions": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "query:dateClosedFrom": {
+                    "required": false
+                },
+                "query:dateClosedTo": {
+                    "required": false
+                },
+                "query:dateCreatedFrom": {
+                    "required": false
+                },
+                "query:dateCreatedTo": {
+                    "required": false
+                },
+                "query:dateModifiedFrom": {
+                    "required": false
+                },
+                "query:dateModifiedTo": {
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 1000,
+                    "minimum": 10,
+                    "required": false
+                },
+                "query:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": false
+                },
+                "query:sessionType": {
+                    "enum": [
+                        "Online",
+                        "Batch"
+                    ],
+                    "required": true
+                },
+                "query:statuses": {
+                    "required": false
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/invoices": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                },
+                "query:pageSize": {
+                    "maximum": 1000,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/invoices/failed": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                },
+                "query:pageSize": {
+                    "maximum": 1000,
+                    "minimum": 10,
+                    "required": false
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/invoices/ksef/{ksefNumber}/upo": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$",
+                    "required": true
+                },
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/invoices/{invoiceReferenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:invoiceReferenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                },
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/invoices/{invoiceReferenceNumber}/upo": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:invoiceReferenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                },
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /sessions/{referenceNumber}/upo/{upoReferenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                },
+                "path:upoReferenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "GET /tokens": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "query:authorIdentifier": {
+                    "minLength": 3,
+                    "required": false
+                },
+                "query:authorIdentifierType": {
+                    "enum": [
+                        "Nip",
+                        "Pesel",
+                        "Fingerprint"
+                    ],
+                    "required": false
+                },
+                "query:description": {
+                    "minLength": 3,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                },
+                "query:status": {
+                    "required": false
+                }
+            }
+        },
+        "GET /tokens/{referenceNumber}": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "POST /auth/challenge": {
+            "responses": [
+                "200",
+                "400",
+                "429"
+            ]
+        },
+        "POST /auth/ksef-token": {
+            "responses": [
+                "202",
+                "400",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "challenge",
+                        "contextIdentifier",
+                        "encryptedToken"
+                    ]
+                },
+                "body.authorizationPolicy.allowedIps.ip4Addresses": {
+                    "maximum": 10,
+                    "minimum": 0
+                },
+                "body.authorizationPolicy.allowedIps.ip4Addresses[]": {
+                    "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                },
+                "body.authorizationPolicy.allowedIps.ip4Masks": {
+                    "maximum": 10,
+                    "minimum": 0
+                },
+                "body.authorizationPolicy.allowedIps.ip4Masks[]": {
+                    "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])/(0|[1-9]|[12][0-9]|3[0-2])$"
+                },
+                "body.authorizationPolicy.allowedIps.ip4Ranges": {
+                    "maximum": 10,
+                    "minimum": 0
+                },
+                "body.authorizationPolicy.allowedIps.ip4Ranges[]": {
+                    "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])-((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                },
+                "body.challenge": {
+                    "maxLength": 36,
+                    "minLength": 36
+                },
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip",
+                        "NipVatUe",
+                        "PeppolId"
+                    ]
+                },
+                "body.publicKeyId": {
+                    "maxLength": 44,
+                    "minLength": 44
+                }
+            }
+        },
+        "POST /auth/token/redeem": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "POST /auth/token/refresh": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ]
+        },
+        "POST /auth/xades-signature": {
+            "responses": [
+                "202",
+                "400",
+                "429"
+            ],
+            "parameters": {
+                "query:verifyCertificateChain": {
+                    "required": false
+                }
+            }
+        },
+        "POST /certificates/enrollments": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "certificateName",
+                        "certificateType",
+                        "csr"
+                    ]
+                },
+                "body.certificateName": {
+                    "maxLength": 100,
+                    "minLength": 5,
+                    "pattern": "^[a-zA-Z0-9_\\-\\ ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$"
+                },
+                "body.certificateType": {
+                    "enum": [
+                        "Authentication",
+                        "Offline"
+                    ]
+                }
+            }
+        },
+        "POST /certificates/query": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 50,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.certificateSerialNumber": {
+                    "maxLength": 16,
+                    "minLength": 16,
+                    "pattern": "^[0-9A-F]{16}$"
+                },
+                "body.status": {
+                    "enum": [
+                        "Active",
+                        "Blocked",
+                        "Expired",
+                        "Revoked"
+                    ]
+                },
+                "body.type": {
+                    "enum": [
+                        "Authentication",
+                        "Offline"
+                    ]
+                }
+            }
+        },
+        "POST /certificates/retrieve": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "certificateSerialNumbers"
+                    ]
+                },
+                "body.certificateSerialNumbers": {
+                    "maxItems": 10,
+                    "minItems": 1
+                },
+                "body.certificateSerialNumbers[]": {
+                    "maxLength": 16,
+                    "minLength": 16,
+                    "pattern": "^[0-9A-F]{16}$"
+                }
+            }
+        },
+        "POST /certificates/{certificateSerialNumber}/revoke": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:certificateSerialNumber": {
+                    "maxLength": 16,
+                    "minLength": 16,
+                    "pattern": "^[0-9A-F]{16}$",
+                    "required": true
+                }
+            },
+            "body": {
+                "body.revocationReason": {
+                    "enum": [
+                        "KeyCompromise",
+                        "Superseded",
+                        "Unspecified"
+                    ]
+                }
+            }
+        },
+        "POST /collective-identifiers": {
+            "responses": [
+                "201",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "invoices"
+                    ]
+                },
+                "body.invoices": {
+                    "minItems": 2
+                },
+                "body.invoices[]": {
+                    "required": [
+                        "ksefNumber"
+                    ]
+                },
+                "body.invoices[].description": {
+                    "maxLength": 512
+                },
+                "body.invoices[].ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$"
+                },
+                "body.invoices[].payment": {
+                    "required": [
+                        "amount",
+                        "currency"
+                    ]
+                },
+                "body.invoices[].payment.currency": {
+                    "enum": [
+                        "AED",
+                        "AFN",
+                        "ALL",
+                        "AMD",
+                        "ANG",
+                        "AOA",
+                        "ARS",
+                        "AUD",
+                        "AWG",
+                        "AZN",
+                        "BAM",
+                        "BBD",
+                        "BDT",
+                        "BGN",
+                        "BHD",
+                        "BIF",
+                        "BMD",
+                        "BND",
+                        "BOB",
+                        "BOV",
+                        "BRL",
+                        "BSD",
+                        "BTN",
+                        "BWP",
+                        "BYN",
+                        "BZD",
+                        "CAD",
+                        "CDF",
+                        "CHE",
+                        "CHF",
+                        "CHW",
+                        "CLF",
+                        "CLP",
+                        "CNH",
+                        "CNY",
+                        "COP",
+                        "COU",
+                        "CRC",
+                        "CUC",
+                        "CUP",
+                        "CVE",
+                        "CZK",
+                        "DJF",
+                        "DKK",
+                        "DOP",
+                        "DZD",
+                        "EGP",
+                        "ERN",
+                        "ETB",
+                        "EUR",
+                        "FJD",
+                        "FKP",
+                        "GBP",
+                        "GEL",
+                        "GGP",
+                        "GHS",
+                        "GIP",
+                        "GMD",
+                        "GNF",
+                        "GTQ",
+                        "GYD",
+                        "HKD",
+                        "HNL",
+                        "HRK",
+                        "HTG",
+                        "HUF",
+                        "IDR",
+                        "ILS",
+                        "IMP",
+                        "INR",
+                        "IQD",
+                        "IRR",
+                        "ISK",
+                        "JEP",
+                        "JMD",
+                        "JOD",
+                        "JPY",
+                        "KES",
+                        "KGS",
+                        "KHR",
+                        "KMF",
+                        "KPW",
+                        "KRW",
+                        "KWD",
+                        "KYD",
+                        "KZT",
+                        "LAK",
+                        "LBP",
+                        "LKR",
+                        "LRD",
+                        "LSL",
+                        "LYD",
+                        "MAD",
+                        "MDL",
+                        "MGA",
+                        "MKD",
+                        "MMK",
+                        "MNT",
+                        "MOP",
+                        "MRU",
+                        "MUR",
+                        "MVR",
+                        "MWK",
+                        "MXN",
+                        "MXV",
+                        "MYR",
+                        "MZN",
+                        "NAD",
+                        "NGN",
+                        "NIO",
+                        "NOK",
+                        "NPR",
+                        "NZD",
+                        "OMR",
+                        "PAB",
+                        "PEN",
+                        "PGK",
+                        "PHP",
+                        "PKR",
+                        "PLN",
+                        "PYG",
+                        "QAR",
+                        "RON",
+                        "RSD",
+                        "RUB",
+                        "RWF",
+                        "SAR",
+                        "SBD",
+                        "SCR",
+                        "SDG",
+                        "SEK",
+                        "SGD",
+                        "SHP",
+                        "SLE",
+                        "SLL",
+                        "SOS",
+                        "SRD",
+                        "SSP",
+                        "STN",
+                        "SVC",
+                        "SYP",
+                        "SZL",
+                        "THB",
+                        "TJS",
+                        "TMT",
+                        "TND",
+                        "TOP",
+                        "TRY",
+                        "TTD",
+                        "TWD",
+                        "TZS",
+                        "UAH",
+                        "UGX",
+                        "USD",
+                        "USN",
+                        "UYI",
+                        "UYU",
+                        "UYW",
+                        "UZS",
+                        "VED",
+                        "VES",
+                        "VND",
+                        "VUV",
+                        "WST",
+                        "XAF",
+                        "XAG",
+                        "XAU",
+                        "XBA",
+                        "XBB",
+                        "XBC",
+                        "XBD",
+                        "XCD",
+                        "XCG",
+                        "XDR",
+                        "XOF",
+                        "XPD",
+                        "XPF",
+                        "XPT",
+                        "XSU",
+                        "XTS",
+                        "XUA",
+                        "XXX",
+                        "YER",
+                        "ZAR",
+                        "ZMW",
+                        "ZWG",
+                        "ZWL"
+                    ]
+                }
+            }
+        },
+        "POST /collective-identifiers/invoices": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 500,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "collectiveIdentifierNumbers"
+                    ]
+                }
+            }
+        },
+        "POST /collective-identifiers/query": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "header:x-continuation-token": {
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 200,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "dateCreatedFrom",
+                        "dateCreatedTo"
+                    ]
+                }
+            }
+        },
+        "POST /invoices/exports": {
+            "responses": [
+                "201",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "encryption",
+                        "filters"
+                    ]
+                },
+                "body.compressionType": {
+                    "enum": [
+                        "TarGz",
+                        "Zip"
+                    ]
+                },
+                "body.encryption": {
+                    "required": [
+                        "encryptedSymmetricKey",
+                        "initializationVector"
+                    ]
+                },
+                "body.encryption.publicKeyId": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.filters": {
+                    "required": [
+                        "dateRange",
+                        "subjectType"
+                    ]
+                },
+                "body.filters.amount": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.filters.amount.type": {
+                    "enum": [
+                        "Brutto",
+                        "Netto",
+                        "Vat"
+                    ]
+                },
+                "body.filters.buyerIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.filters.buyerIdentifier.type": {
+                    "enum": [
+                        "Nip",
+                        "None",
+                        "Other",
+                        "VatUe"
+                    ]
+                },
+                "body.filters.buyerIdentifier.value": {
+                    "maxLength": 50
+                },
+                "body.filters.currencyCodes[]": {
+                    "enum": [
+                        "AED",
+                        "AFN",
+                        "ALL",
+                        "AMD",
+                        "ANG",
+                        "AOA",
+                        "ARS",
+                        "AUD",
+                        "AWG",
+                        "AZN",
+                        "BAM",
+                        "BBD",
+                        "BDT",
+                        "BGN",
+                        "BHD",
+                        "BIF",
+                        "BMD",
+                        "BND",
+                        "BOB",
+                        "BOV",
+                        "BRL",
+                        "BSD",
+                        "BTN",
+                        "BWP",
+                        "BYN",
+                        "BZD",
+                        "CAD",
+                        "CDF",
+                        "CHE",
+                        "CHF",
+                        "CHW",
+                        "CLF",
+                        "CLP",
+                        "CNH",
+                        "CNY",
+                        "COP",
+                        "COU",
+                        "CRC",
+                        "CUC",
+                        "CUP",
+                        "CVE",
+                        "CZK",
+                        "DJF",
+                        "DKK",
+                        "DOP",
+                        "DZD",
+                        "EGP",
+                        "ERN",
+                        "ETB",
+                        "EUR",
+                        "FJD",
+                        "FKP",
+                        "GBP",
+                        "GEL",
+                        "GGP",
+                        "GHS",
+                        "GIP",
+                        "GMD",
+                        "GNF",
+                        "GTQ",
+                        "GYD",
+                        "HKD",
+                        "HNL",
+                        "HRK",
+                        "HTG",
+                        "HUF",
+                        "IDR",
+                        "ILS",
+                        "IMP",
+                        "INR",
+                        "IQD",
+                        "IRR",
+                        "ISK",
+                        "JEP",
+                        "JMD",
+                        "JOD",
+                        "JPY",
+                        "KES",
+                        "KGS",
+                        "KHR",
+                        "KMF",
+                        "KPW",
+                        "KRW",
+                        "KWD",
+                        "KYD",
+                        "KZT",
+                        "LAK",
+                        "LBP",
+                        "LKR",
+                        "LRD",
+                        "LSL",
+                        "LYD",
+                        "MAD",
+                        "MDL",
+                        "MGA",
+                        "MKD",
+                        "MMK",
+                        "MNT",
+                        "MOP",
+                        "MRU",
+                        "MUR",
+                        "MVR",
+                        "MWK",
+                        "MXN",
+                        "MXV",
+                        "MYR",
+                        "MZN",
+                        "NAD",
+                        "NGN",
+                        "NIO",
+                        "NOK",
+                        "NPR",
+                        "NZD",
+                        "OMR",
+                        "PAB",
+                        "PEN",
+                        "PGK",
+                        "PHP",
+                        "PKR",
+                        "PLN",
+                        "PYG",
+                        "QAR",
+                        "RON",
+                        "RSD",
+                        "RUB",
+                        "RWF",
+                        "SAR",
+                        "SBD",
+                        "SCR",
+                        "SDG",
+                        "SEK",
+                        "SGD",
+                        "SHP",
+                        "SLE",
+                        "SLL",
+                        "SOS",
+                        "SRD",
+                        "SSP",
+                        "STN",
+                        "SVC",
+                        "SYP",
+                        "SZL",
+                        "THB",
+                        "TJS",
+                        "TMT",
+                        "TND",
+                        "TOP",
+                        "TRY",
+                        "TTD",
+                        "TWD",
+                        "TZS",
+                        "UAH",
+                        "UGX",
+                        "USD",
+                        "USN",
+                        "UYI",
+                        "UYU",
+                        "UYW",
+                        "UZS",
+                        "VED",
+                        "VES",
+                        "VND",
+                        "VUV",
+                        "WST",
+                        "XAF",
+                        "XAG",
+                        "XAU",
+                        "XBA",
+                        "XBB",
+                        "XBC",
+                        "XBD",
+                        "XCD",
+                        "XCG",
+                        "XDR",
+                        "XOF",
+                        "XPD",
+                        "XPF",
+                        "XPT",
+                        "XSU",
+                        "XTS",
+                        "XUA",
+                        "XXX",
+                        "YER",
+                        "ZAR",
+                        "ZMW",
+                        "ZWG",
+                        "ZWL"
+                    ]
+                },
+                "body.filters.dateRange": {
+                    "required": [
+                        "dateType",
+                        "from"
+                    ]
+                },
+                "body.filters.dateRange.dateType": {
+                    "enum": [
+                        "Invoicing",
+                        "Issue",
+                        "PermanentStorage"
+                    ]
+                },
+                "body.filters.formType": {
+                    "enum": [
+                        "FA",
+                        "FA_RR",
+                        "PEF"
+                    ]
+                },
+                "body.filters.invoiceNumber": {
+                    "maxLength": 256
+                },
+                "body.filters.invoiceTypes[]": {
+                    "enum": [
+                        "Kor",
+                        "KorPef",
+                        "KorRoz",
+                        "KorVatRr",
+                        "KorZal",
+                        "Roz",
+                        "Upr",
+                        "Vat",
+                        "VatPef",
+                        "VatPefSp",
+                        "VatRr",
+                        "Zal"
+                    ]
+                },
+                "body.filters.invoicingMode": {
+                    "enum": [
+                        "Offline",
+                        "Online"
+                    ]
+                },
+                "body.filters.ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$"
+                },
+                "body.filters.sellerNip": {
+                    "maxLength": 10,
+                    "minLength": 10,
+                    "pattern": "^[1-9]((\\d[1-9])|([1-9]\\d))\\d{7}$"
+                },
+                "body.filters.subjectType": {
+                    "enum": [
+                        "Subject1",
+                        "Subject2",
+                        "Subject3",
+                        "SubjectAuthorized"
+                    ]
+                }
+            }
+        },
+        "POST /invoices/query/metadata": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 250,
+                    "minimum": 10,
+                    "required": false
+                },
+                "query:sortOrder": {
+                    "enum": [
+                        "Asc",
+                        "Desc"
+                    ],
+                    "required": false
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "dateRange",
+                        "subjectType"
+                    ]
+                },
+                "body.amount": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.amount.type": {
+                    "enum": [
+                        "Brutto",
+                        "Netto",
+                        "Vat"
+                    ]
+                },
+                "body.buyerIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.buyerIdentifier.type": {
+                    "enum": [
+                        "Nip",
+                        "None",
+                        "Other",
+                        "VatUe"
+                    ]
+                },
+                "body.buyerIdentifier.value": {
+                    "maxLength": 50
+                },
+                "body.currencyCodes[]": {
+                    "enum": [
+                        "AED",
+                        "AFN",
+                        "ALL",
+                        "AMD",
+                        "ANG",
+                        "AOA",
+                        "ARS",
+                        "AUD",
+                        "AWG",
+                        "AZN",
+                        "BAM",
+                        "BBD",
+                        "BDT",
+                        "BGN",
+                        "BHD",
+                        "BIF",
+                        "BMD",
+                        "BND",
+                        "BOB",
+                        "BOV",
+                        "BRL",
+                        "BSD",
+                        "BTN",
+                        "BWP",
+                        "BYN",
+                        "BZD",
+                        "CAD",
+                        "CDF",
+                        "CHE",
+                        "CHF",
+                        "CHW",
+                        "CLF",
+                        "CLP",
+                        "CNH",
+                        "CNY",
+                        "COP",
+                        "COU",
+                        "CRC",
+                        "CUC",
+                        "CUP",
+                        "CVE",
+                        "CZK",
+                        "DJF",
+                        "DKK",
+                        "DOP",
+                        "DZD",
+                        "EGP",
+                        "ERN",
+                        "ETB",
+                        "EUR",
+                        "FJD",
+                        "FKP",
+                        "GBP",
+                        "GEL",
+                        "GGP",
+                        "GHS",
+                        "GIP",
+                        "GMD",
+                        "GNF",
+                        "GTQ",
+                        "GYD",
+                        "HKD",
+                        "HNL",
+                        "HRK",
+                        "HTG",
+                        "HUF",
+                        "IDR",
+                        "ILS",
+                        "IMP",
+                        "INR",
+                        "IQD",
+                        "IRR",
+                        "ISK",
+                        "JEP",
+                        "JMD",
+                        "JOD",
+                        "JPY",
+                        "KES",
+                        "KGS",
+                        "KHR",
+                        "KMF",
+                        "KPW",
+                        "KRW",
+                        "KWD",
+                        "KYD",
+                        "KZT",
+                        "LAK",
+                        "LBP",
+                        "LKR",
+                        "LRD",
+                        "LSL",
+                        "LYD",
+                        "MAD",
+                        "MDL",
+                        "MGA",
+                        "MKD",
+                        "MMK",
+                        "MNT",
+                        "MOP",
+                        "MRU",
+                        "MUR",
+                        "MVR",
+                        "MWK",
+                        "MXN",
+                        "MXV",
+                        "MYR",
+                        "MZN",
+                        "NAD",
+                        "NGN",
+                        "NIO",
+                        "NOK",
+                        "NPR",
+                        "NZD",
+                        "OMR",
+                        "PAB",
+                        "PEN",
+                        "PGK",
+                        "PHP",
+                        "PKR",
+                        "PLN",
+                        "PYG",
+                        "QAR",
+                        "RON",
+                        "RSD",
+                        "RUB",
+                        "RWF",
+                        "SAR",
+                        "SBD",
+                        "SCR",
+                        "SDG",
+                        "SEK",
+                        "SGD",
+                        "SHP",
+                        "SLE",
+                        "SLL",
+                        "SOS",
+                        "SRD",
+                        "SSP",
+                        "STN",
+                        "SVC",
+                        "SYP",
+                        "SZL",
+                        "THB",
+                        "TJS",
+                        "TMT",
+                        "TND",
+                        "TOP",
+                        "TRY",
+                        "TTD",
+                        "TWD",
+                        "TZS",
+                        "UAH",
+                        "UGX",
+                        "USD",
+                        "USN",
+                        "UYI",
+                        "UYU",
+                        "UYW",
+                        "UZS",
+                        "VED",
+                        "VES",
+                        "VND",
+                        "VUV",
+                        "WST",
+                        "XAF",
+                        "XAG",
+                        "XAU",
+                        "XBA",
+                        "XBB",
+                        "XBC",
+                        "XBD",
+                        "XCD",
+                        "XCG",
+                        "XDR",
+                        "XOF",
+                        "XPD",
+                        "XPF",
+                        "XPT",
+                        "XSU",
+                        "XTS",
+                        "XUA",
+                        "XXX",
+                        "YER",
+                        "ZAR",
+                        "ZMW",
+                        "ZWG",
+                        "ZWL"
+                    ]
+                },
+                "body.dateRange": {
+                    "required": [
+                        "dateType",
+                        "from"
+                    ]
+                },
+                "body.dateRange.dateType": {
+                    "enum": [
+                        "Invoicing",
+                        "Issue",
+                        "PermanentStorage"
+                    ]
+                },
+                "body.formType": {
+                    "enum": [
+                        "FA",
+                        "FA_RR",
+                        "PEF"
+                    ]
+                },
+                "body.invoiceNumber": {
+                    "maxLength": 256
+                },
+                "body.invoiceTypes[]": {
+                    "enum": [
+                        "Kor",
+                        "KorPef",
+                        "KorRoz",
+                        "KorVatRr",
+                        "KorZal",
+                        "Roz",
+                        "Upr",
+                        "Vat",
+                        "VatPef",
+                        "VatPefSp",
+                        "VatRr",
+                        "Zal"
+                    ]
+                },
+                "body.invoicingMode": {
+                    "enum": [
+                        "Offline",
+                        "Online"
+                    ]
+                },
+                "body.ksefNumber": {
+                    "maxLength": 36,
+                    "minLength": 35,
+                    "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$"
+                },
+                "body.sellerNip": {
+                    "maxLength": 10,
+                    "minLength": 10,
+                    "pattern": "^[1-9]((\\d[1-9])|([1-9]\\d))\\d{7}$"
+                },
+                "body.subjectType": {
+                    "enum": [
+                        "Subject1",
+                        "Subject2",
+                        "Subject3",
+                        "SubjectAuthorized"
+                    ]
+                }
+            }
+        },
+        "POST /permissions/authorizations/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permission",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permission": {
+                    "enum": [
+                        "PefInvoicing",
+                        "RRInvoicing",
+                        "SelfInvoicing",
+                        "TaxRepresentative"
+                    ]
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "fullName"
+                    ]
+                },
+                "body.subjectDetails.fullName": {
+                    "maxLength": 90,
+                    "minLength": 5
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Nip",
+                        "PeppolId"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 10,
+                    "minLength": 9
+                }
+            }
+        },
+        "POST /permissions/entities/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permissions",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permissions[]": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.permissions[].type": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "InvoiceRead",
+                        "InvoiceWrite"
+                    ]
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "fullName"
+                    ]
+                },
+                "body.subjectDetails.fullName": {
+                    "maxLength": 90,
+                    "minLength": 5
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Nip"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 10,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/eu-entities/administration/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "contextIdentifier",
+                        "description",
+                        "euEntityDetails",
+                        "euEntityName",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "NipVatUe"
+                    ]
+                },
+                "body.contextIdentifier.value": {
+                    "maxLength": 25,
+                    "minLength": 15
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.euEntityDetails": {
+                    "required": [
+                        "address",
+                        "fullName"
+                    ]
+                },
+                "body.euEntityDetails.address": {
+                    "maxLength": 512
+                },
+                "body.euEntityDetails.fullName": {
+                    "maxLength": 100
+                },
+                "body.euEntityName": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "subjectDetailsType"
+                    ]
+                },
+                "body.subjectDetails.entityByFp": {
+                    "required": [
+                        "address",
+                        "fullName"
+                    ]
+                },
+                "body.subjectDetails.entityByFp.address": {
+                    "maxLength": 512
+                },
+                "body.subjectDetails.entityByFp.fullName": {
+                    "maxLength": 100
+                },
+                "body.subjectDetails.personByFpNoId": {
+                    "required": [
+                        "birthDate",
+                        "firstName",
+                        "idDocument",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument": {
+                    "required": [
+                        "country",
+                        "number",
+                        "type"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.country": {
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.number": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.type": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId": {
+                    "required": [
+                        "firstName",
+                        "identifier",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId.identifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.type": {
+                    "enum": [
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.value": {
+                    "maxLength": 11,
+                    "minLength": 10
+                },
+                "body.subjectDetails.personByFpWithId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.subjectDetailsType": {
+                    "enum": [
+                        "EntityByFingerprint",
+                        "PersonByFingerprintWithIdentifier",
+                        "PersonByFingerprintWithoutIdentifier"
+                    ]
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Fingerprint"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 64
+                }
+            }
+        },
+        "POST /permissions/eu-entities/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permissions",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permissions[]": {
+                    "enum": [
+                        "InvoiceRead",
+                        "InvoiceWrite"
+                    ]
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "subjectDetailsType"
+                    ]
+                },
+                "body.subjectDetails.entityByFp": {
+                    "required": [
+                        "address",
+                        "fullName"
+                    ]
+                },
+                "body.subjectDetails.entityByFp.address": {
+                    "maxLength": 512
+                },
+                "body.subjectDetails.entityByFp.fullName": {
+                    "maxLength": 100
+                },
+                "body.subjectDetails.personByFpNoId": {
+                    "required": [
+                        "birthDate",
+                        "firstName",
+                        "idDocument",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument": {
+                    "required": [
+                        "country",
+                        "number",
+                        "type"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.country": {
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.number": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.type": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId": {
+                    "required": [
+                        "firstName",
+                        "identifier",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId.identifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.type": {
+                    "enum": [
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.value": {
+                    "maxLength": 11,
+                    "minLength": 10
+                },
+                "body.subjectDetails.personByFpWithId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.subjectDetailsType": {
+                    "enum": [
+                        "EntityByFingerprint",
+                        "PersonByFingerprintWithIdentifier",
+                        "PersonByFingerprintWithoutIdentifier"
+                    ]
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Fingerprint"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 64
+                }
+            }
+        },
+        "POST /permissions/indirect/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permissions",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permissions[]": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "InvoiceRead",
+                        "InvoiceWrite"
+                    ]
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "subjectDetailsType"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId": {
+                    "required": [
+                        "birthDate",
+                        "firstName",
+                        "idDocument",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument": {
+                    "required": [
+                        "country",
+                        "number",
+                        "type"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.country": {
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.number": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.type": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId": {
+                    "required": [
+                        "firstName",
+                        "identifier",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId.identifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.type": {
+                    "enum": [
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.value": {
+                    "maxLength": 11,
+                    "minLength": 10
+                },
+                "body.subjectDetails.personByFpWithId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById": {
+                    "required": [
+                        "firstName",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personById.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.subjectDetailsType": {
+                    "enum": [
+                        "PersonByFingerprintWithIdentifier",
+                        "PersonByFingerprintWithoutIdentifier",
+                        "PersonByIdentifier"
+                    ]
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Fingerprint",
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 10
+                },
+                "body.targetIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.targetIdentifier.type": {
+                    "enum": [
+                        "AllPartners",
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.targetIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/persons/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permissions",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permissions[]": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "CredentialsManage",
+                        "CredentialsRead",
+                        "EnforcementOperations",
+                        "Introspection",
+                        "InvoiceRead",
+                        "InvoiceWrite",
+                        "SubunitManage"
+                    ]
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "subjectDetailsType"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId": {
+                    "required": [
+                        "birthDate",
+                        "firstName",
+                        "idDocument",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument": {
+                    "required": [
+                        "country",
+                        "number",
+                        "type"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.country": {
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.number": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.type": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId": {
+                    "required": [
+                        "firstName",
+                        "identifier",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId.identifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.type": {
+                    "enum": [
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.value": {
+                    "maxLength": 11,
+                    "minLength": 10
+                },
+                "body.subjectDetails.personByFpWithId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById": {
+                    "required": [
+                        "firstName",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personById.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.subjectDetailsType": {
+                    "enum": [
+                        "PersonByFingerprintWithIdentifier",
+                        "PersonByFingerprintWithoutIdentifier",
+                        "PersonByIdentifier"
+                    ]
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Fingerprint",
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/query/authorizations/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "queryType"
+                    ]
+                },
+                "body.authorizedIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.authorizedIdentifier.type": {
+                    "enum": [
+                        "Nip",
+                        "PeppolId"
+                    ]
+                },
+                "body.authorizedIdentifier.value": {
+                    "maxLength": 10,
+                    "minLength": 9
+                },
+                "body.authorizingIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.authorizingIdentifier.type": {
+                    "enum": [
+                        "Nip"
+                    ]
+                },
+                "body.authorizingIdentifier.value": {
+                    "maxLength": 10,
+                    "minLength": 10
+                },
+                "body.permissionTypes[]": {
+                    "enum": [
+                        "PefInvoicing",
+                        "RRInvoicing",
+                        "SelfInvoicing",
+                        "TaxRepresentative"
+                    ]
+                },
+                "body.queryType": {
+                    "enum": [
+                        "Granted",
+                        "Received"
+                    ]
+                }
+            }
+        },
+        "POST /permissions/query/entities/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.contextIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/query/eu-entities/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.permissionTypes[]": {
+                    "enum": [
+                        "Introspection",
+                        "InvoiceRead",
+                        "InvoiceWrite",
+                        "VatUeManage"
+                    ]
+                },
+                "body.vatUeIdentifier": {
+                    "pattern": "^(ATU\\d{8}|BE[01]{1}\\d{9}|BG\\d{9,10}|CY\\d{8}[A-Z]|CZ\\d{8,10}|DE\\d{9}|DK\\d{8}|EE\\d{9}|EL\\d{9}|ES([A-Z]\\d{8}|\\d{8}[A-Z]|[A-Z]\\d{7}[A-Z])|FI\\d{8}|FR[A-Z0-9]{2}\\d{9}|HR\\d{11}|HU\\d{8}|IE(\\d{7}[A-Z]{2}|\\d[A-Z0-9+*]\\d{5}[A-Z])|IT\\d{11}|LT(\\d{9}|\\d{12})|LU\\d{8}|LV\\d{11}|MT\\d{8}|NL[A-Z0-9+*]{12}|PT\\d{9}|RO\\d{2,10}|SE\\d{12}|SI\\d{8}|SK\\d{10}|XI((\\d{9}|\\d{12})|(GD|HA)\\d{3}))$"
+                }
+            }
+        },
+        "POST /permissions/query/personal/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.contextIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                },
+                "body.permissionState": {
+                    "enum": [
+                        "Active",
+                        "Inactive"
+                    ]
+                },
+                "body.permissionTypes[]": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "CredentialsManage",
+                        "CredentialsRead",
+                        "EnforcementOperations",
+                        "Introspection",
+                        "InvoiceRead",
+                        "InvoiceWrite",
+                        "SubunitManage",
+                        "VatUeManage"
+                    ]
+                },
+                "body.targetIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.targetIdentifier.type": {
+                    "enum": [
+                        "AllPartners",
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.targetIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/query/persons/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "queryType"
+                    ]
+                },
+                "body.authorIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.authorIdentifier.type": {
+                    "enum": [
+                        "Fingerprint",
+                        "Nip",
+                        "Pesel",
+                        "System"
+                    ]
+                },
+                "body.authorIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 10
+                },
+                "body.authorizedIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.authorizedIdentifier.type": {
+                    "enum": [
+                        "Fingerprint",
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.authorizedIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 10
+                },
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.contextIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                },
+                "body.permissionState": {
+                    "enum": [
+                        "Active",
+                        "Inactive"
+                    ]
+                },
+                "body.permissionTypes[]": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "CredentialsManage",
+                        "CredentialsRead",
+                        "EnforcementOperations",
+                        "Introspection",
+                        "InvoiceRead",
+                        "InvoiceWrite",
+                        "SubunitManage"
+                    ]
+                },
+                "body.queryType": {
+                    "enum": [
+                        "PermissionsGrantedInCurrentContext",
+                        "PermissionsInCurrentContext"
+                    ]
+                },
+                "body.targetIdentifier": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "body.targetIdentifier.type": {
+                    "enum": [
+                        "AllPartners",
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.targetIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/query/subordinate-entities/roles": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.subordinateEntityIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subordinateEntityIdentifier.type": {
+                    "enum": [
+                        "Nip"
+                    ]
+                },
+                "body.subordinateEntityIdentifier.value": {
+                    "maxLength": 10,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/query/subunits/grants": {
+            "responses": [
+                "200",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "query:pageOffset": {
+                    "minimum": 0,
+                    "required": false
+                },
+                "query:pageSize": {
+                    "maximum": 100,
+                    "minimum": 10,
+                    "required": false
+                }
+            },
+            "body": {
+                "body.subunitIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subunitIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.subunitIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                }
+            }
+        },
+        "POST /permissions/subunits/grants": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "contextIdentifier",
+                        "description",
+                        "subjectDetails",
+                        "subjectIdentifier"
+                    ]
+                },
+                "body.contextIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.contextIdentifier.type": {
+                    "enum": [
+                        "InternalId",
+                        "Nip"
+                    ]
+                },
+                "body.contextIdentifier.value": {
+                    "maxLength": 16,
+                    "minLength": 10
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.subjectDetails": {
+                    "required": [
+                        "subjectDetailsType"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId": {
+                    "required": [
+                        "birthDate",
+                        "firstName",
+                        "idDocument",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument": {
+                    "required": [
+                        "country",
+                        "number",
+                        "type"
+                    ]
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.country": {
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.number": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.idDocument.type": {
+                    "maxLength": 20
+                },
+                "body.subjectDetails.personByFpNoId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId": {
+                    "required": [
+                        "firstName",
+                        "identifier",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personByFpWithId.identifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.type": {
+                    "enum": [
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectDetails.personByFpWithId.identifier.value": {
+                    "maxLength": 11,
+                    "minLength": 10
+                },
+                "body.subjectDetails.personByFpWithId.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById": {
+                    "required": [
+                        "firstName",
+                        "lastName"
+                    ]
+                },
+                "body.subjectDetails.personById.firstName": {
+                    "maxLength": 30,
+                    "minLength": 2
+                },
+                "body.subjectDetails.personById.lastName": {
+                    "maxLength": 81,
+                    "minLength": 2
+                },
+                "body.subjectDetails.subjectDetailsType": {
+                    "enum": [
+                        "PersonByFingerprintWithIdentifier",
+                        "PersonByFingerprintWithoutIdentifier",
+                        "PersonByIdentifier"
+                    ]
+                },
+                "body.subjectIdentifier": {
+                    "required": [
+                        "type",
+                        "value"
+                    ]
+                },
+                "body.subjectIdentifier.type": {
+                    "enum": [
+                        "Fingerprint",
+                        "Nip",
+                        "Pesel"
+                    ]
+                },
+                "body.subjectIdentifier.value": {
+                    "maxLength": 64,
+                    "minLength": 10
+                },
+                "body.subunitName": {
+                    "maxLength": 256,
+                    "minLength": 5
+                }
+            }
+        },
+        "POST /sessions/batch": {
+            "responses": [
+                "201",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "batchFile",
+                        "encryption",
+                        "formCode"
+                    ]
+                },
+                "body.batchFile": {
+                    "required": [
+                        "fileHash",
+                        "fileParts",
+                        "fileSize"
+                    ]
+                },
+                "body.batchFile.compressionType": {
+                    "enum": [
+                        "TarGz",
+                        "Zip"
+                    ]
+                },
+                "body.batchFile.fileHash": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.batchFile.fileParts": {
+                    "maxItems": 50,
+                    "minItems": 1
+                },
+                "body.batchFile.fileParts[]": {
+                    "required": [
+                        "fileHash",
+                        "fileSize",
+                        "ordinalNumber"
+                    ]
+                },
+                "body.batchFile.fileParts[].fileHash": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.batchFile.fileParts[].fileSize": {
+                    "minimum": 1
+                },
+                "body.batchFile.fileParts[].ordinalNumber": {
+                    "minimum": 1
+                },
+                "body.batchFile.fileSize": {
+                    "maximum": 5000000000,
+                    "minimum": 1
+                },
+                "body.encryption": {
+                    "required": [
+                        "encryptedSymmetricKey",
+                        "initializationVector"
+                    ]
+                },
+                "body.encryption.publicKeyId": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.formCode": {
+                    "required": [
+                        "schemaVersion",
+                        "systemCode",
+                        "value"
+                    ]
+                }
+            }
+        },
+        "POST /sessions/batch/{referenceNumber}/close": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "POST /sessions/online": {
+            "responses": [
+                "201",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "encryption",
+                        "formCode"
+                    ]
+                },
+                "body.encryption": {
+                    "required": [
+                        "encryptedSymmetricKey",
+                        "initializationVector"
+                    ]
+                },
+                "body.encryption.publicKeyId": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.formCode": {
+                    "required": [
+                        "schemaVersion",
+                        "systemCode",
+                        "value"
+                    ]
+                }
+            }
+        },
+        "POST /sessions/online/{referenceNumber}/close": {
+            "responses": [
+                "204",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            }
+        },
+        "POST /sessions/online/{referenceNumber}/invoices": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "parameters": {
+                "path:referenceNumber": {
+                    "maxLength": 36,
+                    "minLength": 36,
+                    "required": true
+                }
+            },
+            "body": {
+                "body": {
+                    "required": [
+                        "encryptedInvoiceContent",
+                        "encryptedInvoiceHash",
+                        "encryptedInvoiceSize",
+                        "invoiceHash",
+                        "invoiceSize"
+                    ]
+                },
+                "body.encryptedInvoiceHash": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.encryptedInvoiceSize": {
+                    "minimum": 1
+                },
+                "body.hashOfCorrectedInvoice": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.invoiceHash": {
+                    "maxLength": 44,
+                    "minLength": 44
+                },
+                "body.invoiceSize": {
+                    "minimum": 1
+                }
+            }
+        },
+        "POST /tokens": {
+            "responses": [
+                "202",
+                "400",
+                "401",
+                "403",
+                "429"
+            ],
+            "body": {
+                "body": {
+                    "required": [
+                        "description",
+                        "permissions"
+                    ]
+                },
+                "body.description": {
+                    "maxLength": 256,
+                    "minLength": 5
+                },
+                "body.permissions[]": {
+                    "enum": [
+                        "CollectiveIdentifierManage",
+                        "CredentialsManage",
+                        "CredentialsRead",
+                        "EnforcementOperations",
+                        "Introspection",
+                        "InvoiceRead",
+                        "InvoiceWrite",
+                        "SubunitManage"
+                    ]
+                }
+            }
+        }
+    }
+}
