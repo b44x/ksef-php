@@ -290,9 +290,10 @@ final class InvoiceValidator
                 if ($paid->currency !== $i->currency) {
                     $this->add('The amount paid in advances must be in the invoice currency.');
                 }
-                if ($i->type === InvoiceType::Settlement && ($paid->isNegative() || $paid->amount->roundTo(2)->compare($i->totals()->gross()) > 0)) {
+                if ($i->type === InvoiceType::Settlement && ($paid->isNegative() || $paid->amount->roundTo(2)->compare($i->saleTotals()->gross()) > 0)) {
                     $this->add('The advances paid must be between zero and the invoice total.');
                 }
+                $this->advanceParts($paid);
 
                 break;
             case InvoiceType::Simplified:
@@ -313,6 +314,39 @@ final class InvoiceValidator
                 break;
             default:
                 break;
+        }
+    }
+
+    private function advanceParts(Money $paid): void
+    {
+        $settlement = $this->invoice->settlement;
+        if ($settlement === null) {
+            return;
+        }
+
+        if ($settlement->advanceAmounts !== []) {
+            $sum = Decimal::of('0.00');
+            foreach ($settlement->advanceAmounts as $part) {
+                if ($part->gross->currency !== $this->invoice->currency) {
+                    $this->add('The advance amounts must be in the invoice currency.');
+                }
+                $sum = $sum->add($part->gross->amount->roundTo(2));
+            }
+            if (!$sum->equals($paid->amount->roundTo(2))) {
+                $this->add('The advance amounts per rate must add up to the amount paid in advances.');
+            }
+        } elseif (!$paid->amount->isZero() && $this->invoice->advanceParts() === []) {
+            $this->add('Give the VAT rate of the advances (Settlement::$advanceRate) or split them by rate (Settlement::$advanceAmounts): the invoice has several rates.');
+        }
+
+        $buckets = [];
+        foreach ($this->invoice->lines as $line) {
+            $buckets[$line->vatRate->bucket()] = true;
+        }
+        foreach ($this->invoice->advanceParts() as $part) {
+            if (!isset($buckets[$part->rate->bucket()])) {
+                $this->add(\sprintf('The advances were taxed at %s, but no line of the invoice has that rate.', $part->rate->value));
+            }
         }
     }
 

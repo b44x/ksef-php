@@ -27,6 +27,7 @@ Findings of an independent review of the sources:
 
 ### Changed
 
+- **Final invoices (`ROZ`) now report what remains to be paid in `P_13_x` / `P_14_x`**, as the Ministry of Finance's handbook prescribes: the net value and tax of the advances are deducted from the sale per VAT rate. Before, only `P_15` was reduced. `Settlement` gained `advanceRate` / `advanceAmounts` for sales with several rates; `Invoice::saleTotals()` gives the full sale.
 - Request limits from the KSeF OpenAPI specification are checked locally instead of surfacing as a 400: page sizes (10 minimum, endpoint specific maximum), permission descriptions (5 to 256) and entity names (5 to 90), first names (2 to 30) and surnames (2 to 81), token description, certificate name and serial number format, subunit and EU entity names and addresses, and at least two invoices per collective identifier.
 
 ## [0.5.0] - 2026-10-09

@@ -50,7 +50,7 @@ $final = $example->invoice('ROZ')
     ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsef)], Money::pln('1230.00')))
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
     ->build();
-say(sprintf('  total %s, advances 1230.00, still due %s', $final->totals()->gross(), $final->amountDue()));
+say(sprintf('  total %s, advances 1230.00, still due %s', $final->saleTotals()->gross(), $final->amountDue()));
 $finalKsef = $send('ROZ', $final);
 
 step('Correction (KOR): the customer returned 2 of 10 pieces');

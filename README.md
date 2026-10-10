@@ -196,7 +196,7 @@ Special kinds (how each field is filled, and what to confirm with an accountant:
 Invoice::builder()->...->advance(new AdvancePayment(Money::pln('1230.00'), VatRate::Rate23, $paidOn))
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))->build();
 
-// Final invoice (ROZ): full sale; P_15 is the remainder after the advances.
+// Final invoice (ROZ): the lines carry the full sale; P_13/P_14/P_15 show what remains after the advances.
 Invoice::builder()->...->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsefNumber)], Money::pln('1230.00')))
     ->addLine(...)->build();
 

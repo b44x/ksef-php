@@ -36,6 +36,35 @@ final readonly class InvoiceTotals
     }
 
     /**
+     * What remains of a sale after advances were paid: per rate, the tax contained in the advances is deducted from
+     * the tax and the rest of the gross advance from the net value (art. 106f(3) of the VAT Act).
+     *
+     * @param list<AdvanceAmount> $advances
+     */
+    public function withoutAdvances(array $advances, string $currency, ?Decimal $exchangeRate): self
+    {
+        $buckets = [];
+        foreach ($this->buckets as $bucket) {
+            $net = $bucket->net;
+            $vat = $bucket->vat;
+            foreach ($advances as $advance) {
+                if ($advance->rate->bucket() !== $bucket->key) {
+                    continue;
+                }
+                $gross = $advance->gross->amount->roundTo(2);
+                $percentage = $advance->rate->percentage();
+                $advanceVat = $percentage !== null ? $gross->multiply($percentage)->dividedBy($percentage->add(Decimal::of(100)), 2) : Decimal::of('0.00');
+                $net = $net->subtract($gross->subtract($advanceVat));
+                $vat = $vat?->subtract($advanceVat);
+            }
+            $vatPln = $bucket->vatPln !== null && $vat !== null && $exchangeRate !== null ? $vat->multiply($exchangeRate)->roundTo(2) : $bucket->vatPln;
+            $buckets[] = new TotalsBucket($bucket->key, $bucket->rate, $net, $vat, $vatPln);
+        }
+
+        return new self($buckets);
+    }
+
+    /**
      * Totals of an advance invoice: the tax is contained in the gross payment (`gross * rate / (100 + rate)`).
      */
     public static function forAdvance(AdvancePayment $advance, string $currency, ?Decimal $exchangeRate): self

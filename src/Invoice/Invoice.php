@@ -84,15 +84,55 @@ final readonly class Invoice
     }
 
     /**
-     * Net and tax sums. For an advance invoice these describe the advance payment, otherwise the lines.
+     * The sums the header reports (`P_13_x`, `P_14_x`): for an advance invoice the advance payment, for a settlement
+     * invoice the part of the sale that remains after the advances, otherwise the lines.
      */
     public function totals(): InvoiceTotals
     {
         if ($this->type->isAdvance() && $this->advance !== null) {
             return InvoiceTotals::forAdvance($this->advance, $this->currency, $this->exchangeRate);
         }
+        if ($this->type->isSettlement()) {
+            return $this->saleTotals()->withoutAdvances($this->advanceParts(), $this->currency, $this->exchangeRate);
+        }
 
+        return $this->saleTotals();
+    }
+
+    /** Net and tax of everything the lines sell, before any advances are deducted. */
+    public function saleTotals(): InvoiceTotals
+    {
         return InvoiceTotals::calculate($this->lines, $this->currency, $this->exchangeRate);
+    }
+
+    /**
+     * The advances of a settlement invoice split by VAT rate; empty when there are none or when the rate cannot be
+     * determined (the validator reports that case).
+     *
+     * @return list<AdvanceAmount>
+     */
+    public function advanceParts(): array
+    {
+        $settlement = $this->settlement;
+        if ($settlement === null) {
+            return [];
+        }
+        if ($settlement->advanceAmounts !== []) {
+            return $settlement->advanceAmounts;
+        }
+        if ($settlement->advancesPaid->amount->isZero()) {
+            return [];
+        }
+        if ($settlement->advanceRate !== null) {
+            return [new AdvanceAmount($settlement->advancesPaid, $settlement->advanceRate)];
+        }
+
+        $rates = [];
+        foreach ($this->lines as $line) {
+            $rates[$line->vatRate->bucket()] = $line->vatRate;
+        }
+
+        return \count($rates) === 1 ? [new AdvanceAmount($settlement->advancesPaid, array_values($rates)[0])] : [];
     }
 
     /**
@@ -116,7 +156,6 @@ final readonly class Invoice
     {
         return match ($this->type) {
             InvoiceType::Advance, InvoiceType::AdvanceCorrection => $this->advance?->paid->amount->roundTo(2) ?? $this->totals()->gross(),
-            InvoiceType::Settlement, InvoiceType::SettlementCorrection => $this->totals()->gross()->subtract($this->settlement?->advancesPaid->amount->roundTo(2) ?? Decimal::of('0.00')),
             default => $this->totals()->gross(),
         };
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Tests\Unit\Invoice;
 
 use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Invoice\AdvanceAmount;
 use B4x\Ksef\Invoice\AdvanceInvoiceReference;
 use B4x\Ksef\Invoice\AdvancePayment;
 use B4x\Ksef\Invoice\Buyer;
@@ -63,13 +64,17 @@ final class InvoiceKindsTest extends TestCase
             ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
             ->build();
 
-        self::assertSame('6150.00', $invoice->totals()->gross()->toString(2));
+        self::assertSame('6150.00', $invoice->saleTotals()->gross()->toString(2), 'the lines sell 5000.00 net + 1150.00 VAT');
+        self::assertSame('4000.00', $invoice->totals()->net()->toString(2), 'the advance of 1230.00 gross contained 1000.00 net');
+        self::assertSame('920.00', $invoice->totals()->vat()->toString(2), 'and 230.00 VAT');
         self::assertSame('4920.00', $invoice->amountDue()->toString(2));
 
         $xpath = $this->xpath($invoice);
         self::assertSame('ROZ', $xpath->evaluate('string(//f:RodzajFaktury)'));
-        self::assertSame('5000.00', $xpath->evaluate('string(//f:P_13_1)'), 'a settlement invoice reports the whole sale');
+        self::assertSame('4000.00', $xpath->evaluate('string(//f:P_13_1)'), 'P_13 and P_14 show only what remains to be paid (art. 106f(3))');
+        self::assertSame('920.00', $xpath->evaluate('string(//f:P_14_1)'));
         self::assertSame('4920.00', $xpath->evaluate('string(//f:P_15)'));
+        self::assertSame('5000.00', $xpath->evaluate('string(//f:FaWiersz/f:P_11)'), 'the lines carry the full values');
         self::assertSame(self::KSEF_NUMBER, $xpath->evaluate('string(//f:FakturaZaliczkowa[1]/f:NrKSeFFaZaliczkowej)'));
         self::assertSame('1', $xpath->evaluate('string(//f:FakturaZaliczkowa[2]/f:NrKSeFZN)'));
         self::assertSame('ZAL/OUT/7', $xpath->evaluate('string(//f:FakturaZaliczkowa[2]/f:NrFaZaliczkowej)'));
@@ -130,6 +135,37 @@ final class InvoiceKindsTest extends TestCase
             ->addLine(InvoiceLine::of('Widget', '10', 'szt.', '10.00', VatRate::Rate23)->asBefore())
             ->addLine(InvoiceLine::of('Widget', '8', 'szt.', '10.00', VatRate::Rate23))
             ->build();
+    }
+
+    public function testSettlementWithSeveralRatesNeedsTheRatesOfTheAdvances(): void
+    {
+        $lines = [InvoiceLine::of('Software', '1', 'szt.', '1000.00', VatRate::Rate23), InvoiceLine::of('Books', '1', 'szt.', '100.00', VatRate::Rate5)];
+        $build = static fn(Settlement $settlement): Invoice => Fixtures::builder()->settlement($settlement)->addLine($lines[0])->addLine($lines[1])->build();
+
+        try {
+            $build(new Settlement([AdvanceInvoiceReference::external('ZAL/1')], Money::pln('500.00')));
+            self::fail('Expected ValidationException: the rate of the advances is ambiguous');
+        } catch (ValidationException $e) {
+            self::assertStringContainsString('Give the VAT rate of the advances', implode(' ', $e->violations));
+        }
+
+        $invoice = $build(new Settlement([AdvanceInvoiceReference::external('ZAL/1')], Money::pln('1230.00'), advanceAmounts: [new AdvanceAmount(Money::pln('1230.00'), VatRate::Rate23)]));
+        self::assertSame('0.00', $invoice->totals()->buckets[0]->net->toString(2), 'the whole 23% sale was paid in advance');
+        self::assertSame('100.00', $invoice->totals()->buckets[1]->net->toString(2), 'the 5% part is untouched');
+        self::assertSame('105.00', $invoice->amountDue()->toString(2));
+    }
+
+    public function testCorrectionOfASettlementWithUnchangedAdvancesReportsTheDifferenceOfTheSale(): void
+    {
+        $invoice = Fixtures::builder()
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-06-01'), 'ROZ/1')], amountBefore: Money::pln('4920.00')))
+            ->settlement(new Settlement([AdvanceInvoiceReference::ksef(self::KSEF_NUMBER)], Money::pln('0.00')))
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4000.00', VatRate::Rate23))
+            ->build();
+
+        self::assertSame('-1000.00', $invoice->totals()->net()->toString(2));
+        self::assertSame('-1230.00', $invoice->amountDue()->toString(2));
     }
 
     public function testSimplifiedInvoiceIsLimitedAndNeedsTheBuyersNip(): void
