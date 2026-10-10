@@ -71,13 +71,13 @@ final class LiveFeaturesTest extends TestCase
         $settlementNumber = $this->accept($client, $settlement);
 
         $this->accept($client, $base('KZAL')
-            ->correction(new Correction([new CorrectedInvoice($advance->issueDate, $advance->number, $advanceNumber)]))
+            ->correction(new Correction([new CorrectedInvoice($advance->issueDate, $advance->number, $advanceNumber)], amountBefore: Money::pln('1230.00')))
             ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, $today))
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4500.00', VatRate::Rate23))
             ->build());
         $this->accept($client, $base('KROZ')
-            ->correction(new Correction([new CorrectedInvoice($settlement->issueDate, $settlement->number, $settlementNumber)]))
+            ->correction(new Correction([new CorrectedInvoice($settlement->issueDate, $settlement->number, $settlementNumber)], amountBefore: Money::pln('4920.00')))
             ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceNumber)], Money::pln('0.00')))
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4000.00', VatRate::Rate23))

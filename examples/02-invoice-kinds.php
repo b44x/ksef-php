@@ -66,7 +66,7 @@ $send('KOR', $correction);
 
 step('Correction of the advance invoice (KOR_ZAL): the order shrinks to 4500.00 net, the customer gets 615.00 back');
 $advanceCorrection = $example->invoice('KZAL')
-    ->correction(new Correction([new CorrectedInvoice($advanceInvoice->issueDate, $advanceInvoice->number, $advanceKsef)], reason: 'Smaller order'))
+    ->correction(new Correction([new CorrectedInvoice($advanceInvoice->issueDate, $advanceInvoice->number, $advanceKsef)], reason: 'Smaller order', amountBefore: Money::pln('1230.00')))   // P_15ZK: the payment BEFORE the correction
     ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, new DateTimeImmutable('today')))   // the CHANGE of the payment
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4500.00', VatRate::Rate23))
@@ -75,7 +75,7 @@ $send('KOR_ZAL', $advanceCorrection);
 
 step('Correction of the final invoice (KOR_ROZ): the delivered scope was 4000.00 net after all');
 $finalCorrection = $example->invoice('KROZ')
-    ->correction(new Correction([new CorrectedInvoice($final->issueDate, $final->number, $finalKsef)], reason: 'Reduced scope'))
+    ->correction(new Correction([new CorrectedInvoice($final->issueDate, $final->number, $finalKsef)], reason: 'Reduced scope', amountBefore: Money::pln('4920.00')))   // P_15ZK: what was left to pay BEFORE the correction
     ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceKsef)], Money::pln('0.00')))   // advances paid: no change
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
     ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4000.00', VatRate::Rate23))

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Correction::$amountBefore` / `$exchangeRateBefore` (`P_15ZK`, `KursWalutyZK`) for corrections of advance and settlement invoices, and `docs/ADVANCE-INVOICES.md` explaining how those documents are filled and what is still open.
 - Peppol provider flow verified on TEST, PEF invoices and PEF_KOR credit notes: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`, fixtures under `examples/fixtures/`.
 
 ### Changed

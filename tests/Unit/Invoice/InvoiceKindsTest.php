@@ -79,7 +79,7 @@ final class InvoiceKindsTest extends TestCase
     {
         $invoice = Invoice::builder()
             ->number('KZAL/2026/05/001')->issueDate('2026-05-25')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
-            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-20'), 'ZAL/2026/05/001', self::KSEF_NUMBER)], reason: 'Smaller order'))
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-20'), 'ZAL/2026/05/001', self::KSEF_NUMBER)], reason: 'Smaller order', amountBefore: Money::pln('1230.00')))
             ->advance(new AdvancePayment(Money::pln('-615.00'), VatRate::Rate23, new DateTimeImmutable('2026-05-20')))
             ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
             ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '4500.00', VatRate::Rate23))
@@ -93,6 +93,7 @@ final class InvoiceKindsTest extends TestCase
 
         $xpath = $this->xpath($invoice);
         self::assertSame('KOR_ZAL', $xpath->evaluate('string(//f:RodzajFaktury)'));
+        self::assertSame('1230.00', $xpath->evaluate('string(//f:P_15ZK)'), 'the payment documented before the correction');
         self::assertSame('Smaller order', $xpath->evaluate('string(//f:PrzyczynaKorekty)'));
         self::assertSame(0.0, $xpath->evaluate('count(//f:FaWiersz)'));
         self::assertSame(2.0, $xpath->evaluate('count(//f:ZamowienieWiersz)'));
@@ -118,6 +119,17 @@ final class InvoiceKindsTest extends TestCase
         self::assertSame('-1000.00', $xpath->evaluate('string(//f:P_13_1)'));
         self::assertSame(self::KSEF_NUMBER, $xpath->evaluate('string(//f:FakturaZaliczkowa/f:NrKSeFFaZaliczkowej)'));
         self::assertSame(2.0, $xpath->evaluate('count(//f:FaWiersz)'));
+    }
+
+    public function testTheAmountBeforeACorrectionBelongsToAdvanceAndSettlementCorrectionsOnly(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('P_15ZK');
+        Fixtures::builder()
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-02'), 'FV/1')], amountBefore: Money::pln('10.00')))
+            ->addLine(InvoiceLine::of('Widget', '10', 'szt.', '10.00', VatRate::Rate23)->asBefore())
+            ->addLine(InvoiceLine::of('Widget', '8', 'szt.', '10.00', VatRate::Rate23))
+            ->build();
     }
 
     public function testSimplifiedInvoiceIsLimitedAndNeedsTheBuyersNip(): void

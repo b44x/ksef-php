@@ -354,6 +354,17 @@ final class InvoiceValidator
         if ($correction->sellerBefore !== null) {
             $this->party('Seller before correction', $correction->sellerBefore->name, $correction->sellerBefore->address, null, null);
         }
+        if ($correction->amountBefore !== null) {
+            if (!$i->type->isAdvance() && !$i->type->isSettlement()) {
+                $this->add('The amount before the correction (P_15ZK) belongs to corrections of advance (KOR_ZAL) and settlement (KOR_ROZ) invoices.');
+            }
+            if ($correction->amountBefore->currency !== $i->currency) {
+                $this->add('The amount before the correction must be in the invoice currency.');
+            }
+        }
+        if ($correction->exchangeRateBefore !== null && ($correction->amountBefore === null || !$correction->exchangeRateBefore->isPositive())) {
+            $this->add('The exchange rate before the correction needs the amount before the correction and must be positive.');
+        }
         if (\count($correction->buyersBefore) > 101) {
             $this->add('At most 101 buyers can be given for the state before the correction.');
         }

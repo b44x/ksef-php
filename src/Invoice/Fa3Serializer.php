@@ -367,6 +367,12 @@ final class Fa3Serializer
         foreach ($correction->buyersBefore as $before) {
             $this->buyer($d, $fa, $before, 'Podmiot2K', false);
         }
+        if ($correction->amountBefore !== null) {
+            $this->el($d, $fa, 'P_15ZK', $correction->amountBefore->amount->roundTo(2)->toString(2));
+            if ($correction->exchangeRateBefore !== null) {
+                $this->el($d, $fa, 'KursWalutyZK', $correction->exchangeRateBefore->toTrimmedString(2));
+            }
+        }
     }
 
     private function line(DOMDocument $d, DOMElement $fa, int $number, InvoiceLine $line): void

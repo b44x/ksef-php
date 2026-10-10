@@ -189,7 +189,7 @@ The typed model covers every part of FA(3), including the intra-Community supply
 contractual currency into `TransactionTerms`, EORI numbers, the JST/VAT-group flags and correspondence addresses
 into `Seller` and `Buyer`.
 
-Special kinds:
+Special kinds (how each field is filled, and what to confirm with an accountant: [docs/ADVANCE-INVOICES.md](docs/ADVANCE-INVOICES.md)):
 
 ```php
 // Advance invoice (ZAL): the tax is taken out of the gross payment; the lines describe the order.
