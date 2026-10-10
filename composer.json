@@ -31,7 +31,7 @@
         "ext-libxml": "*",
         "ext-mbstring": "*",
         "ext-openssl": "*",
-        "phpseclib/phpseclib": "^3.0.43",
+        "phpseclib/phpseclib": "^3.0.43 || ^4.0.0",
         "psr/clock": "^1.0",
         "psr/http-client": "^1.0",
         "psr/http-factory": "^1.1",
