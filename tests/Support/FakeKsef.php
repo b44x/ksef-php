@@ -27,6 +27,12 @@ final class FakeKsef
 
     private readonly string $certificateDer;
 
+    /** The `publicKeyId` KSeF publishes for the (single) test certificate. */
+    public function publicKeyId(): string
+    {
+        return TestPki::publicKeyId($this->certificateDer);
+    }
+
     public function __construct(public readonly string $basePath = '/v2')
     {
         $pki = TestPki::selfSigned();
@@ -40,8 +46,8 @@ final class FakeKsef
         });
 
         $this->on('GET', '/security/public-key-certificates', fn(): ResponseInterface => Http::json(200, [
-            $this->keyEntry('token-key', 'KsefTokenEncryption'),
-            $this->keyEntry('symmetric-key', 'SymmetricKeyEncryption'),
+            $this->keyEntry('KsefTokenEncryption'),
+            $this->keyEntry('SymmetricKeyEncryption'),
         ]));
     }
 
@@ -118,8 +124,10 @@ final class FakeKsef
     /**
      * @return array<string, mixed>
      */
-    private function keyEntry(string $id, string $usage): array
+    private function keyEntry(string $usage): array
     {
+        $id = $this->publicKeyId();
+
         return [
             'certificate' => base64_encode($this->certificateDer),
             'certificateId' => 'cert-' . $id,

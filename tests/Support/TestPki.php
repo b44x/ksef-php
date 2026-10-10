@@ -22,6 +22,20 @@ final class TestPki
         return self::issue(['countryName' => 'PL', 'commonName' => $commonName], $type, $bits);
     }
 
+    /** What KSeF calls `publicKeyId`: Base64 SHA-256 of the DER SubjectPublicKeyInfo of the certificate. */
+    public static function publicKeyId(string $certificateDer): string
+    {
+        $pem = "-----BEGIN CERTIFICATE-----\n" . chunk_split(base64_encode($certificateDer), 64, "\n") . "-----END CERTIFICATE-----\n";
+        $key = openssl_pkey_get_public($pem);
+        $details = $key === false ? false : openssl_pkey_get_details($key);
+        if ($details === false || !isset($details['key']) || !\is_string($details['key'])) {
+            throw new RuntimeException('Cannot read the public key.');
+        }
+        $spki = base64_decode((string) preg_replace('/-----[A-Z ]+-----|\s+/', '', $details['key']), true);
+
+        return base64_encode(hash('sha256', (string) $spki, true));
+    }
+
     /**
      * Certificate shaped like a KSeF test personal signature (givenName, surname, serialNumber with NIP).
      *

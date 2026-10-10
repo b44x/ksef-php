@@ -43,7 +43,7 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         self::assertSame(['systemCode' => 'FA (3)', 'schemaVersion' => '1-0E', 'value' => 'FA'], $this->openedSession['formCode']);
         $encryption = $this->openedSession['encryption'];
         self::assertIsArray($encryption);
-        self::assertSame('symmetric-key', $encryption['publicKeyId']);
+        self::assertSame($this->ksef->publicKeyId(), $encryption['publicKeyId']);
 
         // KSeF can decrypt the payload and the hashes/sizes describe plaintext and ciphertext exactly.
         $send = $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0];

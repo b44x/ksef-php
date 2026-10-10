@@ -24,6 +24,9 @@ final class ApiPublicKeyProvider implements PublicKeyProvider
     private ?array $certificates = null;
     private ?DateTimeImmutable $fetchedAt = null;
 
+    /** A list without a usable key is not re-fetched more often than this. */
+    private const MIN_REFETCH_SECONDS = 30;
+
     public function __construct(
         private readonly Transport $transport,
         private readonly ClockInterface $clock,
@@ -39,8 +42,8 @@ final class ApiPublicKeyProvider implements PublicKeyProvider
         }
 
         $selected = $this->select($usage, $now);
-        if ($selected === null) {
-            // A rotation may have happened after the cache was filled: fetch once more.
+        if ($selected === null && $this->fetchedAt !== null && $now->getTimestamp() - $this->fetchedAt->getTimestamp() >= self::MIN_REFETCH_SECONDS) {
+            // A rotation may have happened after the cache was filled: fetch once more (but not on every call).
             $this->refresh($now);
             $selected = $this->select($usage, $now);
         }

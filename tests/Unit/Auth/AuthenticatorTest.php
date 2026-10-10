@@ -63,7 +63,7 @@ final class AuthenticatorTest extends TestCase
         $body = FakeKsef::body($submit);
         self::assertSame('20260601-CR-ABCDEF0123-0123456789-AB', $body['challenge']);
         self::assertSame(['type' => 'Nip', 'value' => self::NIP], $body['contextIdentifier']);
-        self::assertSame('token-key', $body['publicKeyId']);
+        self::assertSame($this->ksef->publicKeyId(), $body['publicKeyId']);
         self::assertIsString($body['encryptedToken']);
         self::assertSame('my-ksef-token|1780308000000', $this->decrypt((string) base64_decode($body['encryptedToken'], true)));
         self::assertArrayNotHasKey('authorizationPolicy', $body);

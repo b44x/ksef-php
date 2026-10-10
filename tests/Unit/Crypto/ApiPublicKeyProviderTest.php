@@ -17,6 +17,9 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiPublicKeyProviderTest extends TestCase
 {
+    /** @var array<string, string> label => the real publicKeyId of its certificate */
+    private array $ids = [];
+
     public function testSelectsTheNewestValidKeyForTheUsageAndCachesIt(): void
     {
         $clock = new MutableClock('2026-06-01T10:00:00+00:00');
@@ -28,8 +31,8 @@ final class ApiPublicKeyProviderTest extends TestCase
         ]));
         $provider = $this->provider($client, $clock);
 
-        self::assertSame('new', $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
-        self::assertSame('token', $provider->get(KeyUsage::KsefTokenEncryption)->publicKeyId);
+        self::assertSame($this->ids['new'], $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
+        self::assertSame($this->ids['token'], $provider->get(KeyUsage::KsefTokenEncryption)->publicKeyId);
         self::assertCount(1, $client->requests, 'The key list must be cached.');
         self::assertFalse($client->lastRequest()->hasHeader('Authorization'), 'Public keys are fetched anonymously.');
     }
@@ -43,11 +46,11 @@ final class ApiPublicKeyProviderTest extends TestCase
         );
         $provider = $this->provider($client, $clock);
 
-        self::assertSame('a', $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
+        self::assertSame($this->ids['a'], $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
 
         $clock->set('2026-06-02T10:00:00+00:00');
         // Cached key 'a' expired, so a refresh is triggered.
-        self::assertSame('b', $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
+        self::assertSame($this->ids['b'], $provider->get(KeyUsage::SymmetricKeyEncryption)->publicKeyId);
         self::assertCount(2, $client->requests);
     }
 
@@ -62,6 +65,36 @@ final class ApiPublicKeyProviderTest extends TestCase
         $this->provider($client, new MutableClock('2026-06-01T10:00:00+00:00'))->get(KeyUsage::SymmetricKeyEncryption);
     }
 
+    public function testAListingWhoseKeyIdDoesNotMatchItsCertificateIsRefused(): void
+    {
+        $entry = $this->entry('x', '2025-01-01', '2027-01-01', 'SymmetricKeyEncryption');
+        $entry['publicKeyId'] = 'bm90LXRoZS1oYXNoLW9mLXRoZS1rZXk='; // not the hash of this certificate
+        $client = (new FakeHttpClient())->queue(Http::json(200, [$entry]));
+
+        $this->expectException(EncryptionException::class);
+        $this->expectExceptionMessage('does not match its publicKeyId');
+        $this->provider($client, new MutableClock('2026-06-01T10:00:00+00:00'))->get(KeyUsage::SymmetricKeyEncryption);
+    }
+
+    public function testAListWithoutAUsableKeyIsNotRefetchedOnEveryCall(): void
+    {
+        $client = (new FakeHttpClient())->queue(
+            Http::json(200, [$this->entry('x', '2020-01-01', '2021-01-01', 'SymmetricKeyEncryption')]),
+            Http::json(200, [$this->entry('x', '2020-01-01', '2021-01-01', 'SymmetricKeyEncryption')]),
+        );
+        $provider = $this->provider($client, new MutableClock('2026-06-01T10:00:00+00:00'));
+
+        for ($i = 0; $i < 3; ++$i) {
+            try {
+                $provider->get(KeyUsage::SymmetricKeyEncryption);
+            } catch (EncryptionException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+
+        self::assertCount(1, $client->requests);
+    }
+
     private function provider(FakeHttpClient $client, MutableClock $clock): ApiPublicKeyProvider
     {
         $transport = new Transport('https://api.example.test/v2', $client, Http::factory(), Http::factory(), RetryPolicy::none());
@@ -74,10 +107,13 @@ final class ApiPublicKeyProviderTest extends TestCase
      */
     private function entry(string $id, string $from, string $to, string $usage): array
     {
+        $der = TestPki::selfSigned()['certificateDer'];
+        $this->ids[$id] = TestPki::publicKeyId($der);
+
         return [
-            'certificate' => base64_encode(TestPki::selfSigned()['certificateDer']),
+            'certificate' => base64_encode($der),
             'certificateId' => 'cert-' . $id,
-            'publicKeyId' => $id,
+            'publicKeyId' => $this->ids[$id],
             'validFrom' => $from . 'T00:00:00+00:00',
             'validTo' => $to . 'T00:00:00+00:00',
             'usage' => [$usage],
