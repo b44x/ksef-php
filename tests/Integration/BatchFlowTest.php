@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace B4x\Ksef\Tests\Integration;
 
+use B4x\Ksef\Exception\ApiException;
 use B4x\Ksef\Exception\SessionException;
 use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Invoice\InvoiceDocument;
@@ -130,6 +131,19 @@ final class BatchFlowTest extends KsefTestCase
             $this->client()->sendBatch($this->invoices(2));
         } finally {
             self::assertSame([], $this->uploaded);
+        }
+    }
+
+    public function testAFailedUploadClosesTheSessionAndKeepsTheOriginalError(): void
+    {
+        $this->routeBatch(parts: 1);
+        $this->ksef->routesReset('PUT', '/upload/1')->on('PUT', '/upload/1', static fn() => Http::raw(403, ''));
+
+        try {
+            $this->client()->sendBatch($this->invoices(2));
+            self::fail('Expected the upload failure.');
+        } catch (ApiException) {
+            self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/batch/batch-1/close'), 'The half-filled session is not left open.');
         }
     }
 

@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `composer bench` (`tools/bench.php`): micro benchmarks for invoice building, serialization, encryption and batch packaging; a Polish README (`README.pl.md`).
 - Collective corrections under art. 106j(3): `Correction::$period` (`OkresFaKorygowanej`) and `Correction::$amounts` (`CorrectionAmount`, the differences per VAT rate); such a correction has no lines.
 
+### Fixed
+
+- A batch session whose upload failed is closed (best effort) instead of being left open until it expires; the original error is still thrown.
+- A 2xx answer to an invoice submission that cannot be read is reconciled like a lost response (look up by hash, re-send identically) instead of surfacing as a malformed response while KSeF may have stored the invoice.
+
 ### Security
 
 - Response bodies are read with a size cap (32 MiB for API calls, 64 MiB for part downloads; error bodies are cut at 1 MiB), so a misbehaving server cannot exhaust memory.

@@ -13,7 +13,9 @@ use B4x\Ksef\Http\Transport;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Status\BatchSubmission;
+use B4x\Ksef\Status\OpenedBatch;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Runs the batch flow: package -> encrypt parts -> open session -> upload parts -> close.
@@ -57,19 +59,12 @@ final class BatchSender
             ], $offline);
             $this->logger->info('KSeF batch session opened.', ['session' => $opened->referenceNumber, 'parts' => $package->partCount]);
 
-            if (\count($opened->uploads) !== $package->partCount) {
-                throw new SessionException(\sprintf('KSeF announced %d upload slots for %d parts.', \count($opened->uploads), $package->partCount));
-            }
-            foreach ($opened->uploads as $upload) {
-                if ($upload->ordinalNumber < 1 || $upload->ordinalNumber > $package->partCount) {
-                    throw new SessionException(\sprintf('KSeF asked for an undeclared batch part %d.', $upload->ordinalNumber));
-                }
-                $cipher = $encryption->encrypt($package->part($upload->ordinalNumber));
-                if (!hash_equals($declared[$upload->ordinalNumber - 1]['fileHash'], Digest::sha256Base64($cipher))) {
-                    throw new SessionException(\sprintf('Batch part %d no longer encrypts to the declared bytes.', $upload->ordinalNumber));
-                }
-                $this->transport->upload($upload->url, $upload->method, $upload->headers, $cipher);
-                unset($cipher);
+            try {
+                $this->upload($opened, $package, $encryption, $declared);
+            } catch (Throwable $e) {
+                $this->abandon($opened->referenceNumber);
+
+                throw $e;
             }
 
             $this->api->closeBatch($opened->referenceNumber);
@@ -78,6 +73,41 @@ final class BatchSender
             return new BatchSubmission($opened->referenceNumber, $package->invoiceHashes);
         } finally {
             $package->dispose();
+        }
+    }
+
+    /**
+     * Closing a session whose parts are incomplete makes KSeF reject it right away (the archive hash cannot match),
+     * instead of leaving it open until it expires. Best effort: the original failure is what matters.
+     */
+    private function abandon(string $reference): void
+    {
+        try {
+            $this->api->closeBatch($reference);
+            $this->logger->warning('KSeF batch session closed after a failed upload.', ['session' => $reference]);
+        } catch (Throwable) {
+            $this->logger->warning('KSeF batch session could not be closed after a failed upload; it will expire.', ['session' => $reference]);
+        }
+    }
+
+    /**
+     * @param list<array{ordinalNumber: int, fileSize: int, fileHash: string}> $declared
+     */
+    private function upload(OpenedBatch $opened, BatchPackage $package, SessionEncryption $encryption, array $declared): void
+    {
+        if (\count($opened->uploads) !== $package->partCount) {
+            throw new SessionException(\sprintf('KSeF announced %d upload slots for %d parts.', \count($opened->uploads), $package->partCount));
+        }
+        foreach ($opened->uploads as $upload) {
+            if ($upload->ordinalNumber < 1 || $upload->ordinalNumber > $package->partCount) {
+                throw new SessionException(\sprintf('KSeF asked for an undeclared batch part %d.', $upload->ordinalNumber));
+            }
+            $cipher = $encryption->encrypt($package->part($upload->ordinalNumber));
+            if (!hash_equals($declared[$upload->ordinalNumber - 1]['fileHash'], Digest::sha256Base64($cipher))) {
+                throw new SessionException(\sprintf('Batch part %d no longer encrypts to the declared bytes.', $upload->ordinalNumber));
+            }
+            $this->transport->upload($upload->url, $upload->method, $upload->headers, $cipher);
+            unset($cipher);
         }
     }
 }

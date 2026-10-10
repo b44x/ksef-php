@@ -171,6 +171,24 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'No re-send is needed when KSeF already has the document.');
     }
 
+    public function testAnUnreadableSuccessAnswerIsReconciledLikeALostResponse(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => Http::raw(202, 'not json'));
+        $this->ksef->on('GET', '/sessions/sess-1/invoices', function (RequestInterface $request) {
+            $mine = $this->invoiceStatus(150, 'Processing');
+            $mine['invoiceHash'] = FakeKsef::body($this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices')[0])['invoiceHash'];
+            $mine['referenceNumber'] = 'inv-found';
+
+            return Http::json(200, ['invoices' => [$mine]]);
+        });
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-found', $submission->invoiceReference);
+        self::assertTrue($submission->recovered);
+    }
+
     public function testDocumentThatNeverArrivedIsResentAfterABackoff(): void
     {
         $this->routeSession();

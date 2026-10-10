@@ -8,6 +8,7 @@ use B4x\Ksef\Api\SessionApi;
 use B4x\Ksef\Crypto\Digest;
 use B4x\Ksef\Crypto\SessionEncryption;
 use B4x\Ksef\Exception\ApiException;
+use B4x\Ksef\Exception\MalformedResponseException;
 use B4x\Ksef\Exception\SessionException;
 use B4x\Ksef\Exception\SubmissionOutcomeUnknownException;
 use B4x\Ksef\Exception\TransportException;
@@ -109,7 +110,8 @@ final class OnlineSession
                 $this->logger->info('Invoice accepted by KSeF for processing.', ['session' => $this->referenceNumber, 'invoice_reference' => $invoiceReference, 'resends' => $resends]);
 
                 return new InvoiceSubmission($this->referenceNumber, $invoiceReference, $hash, $resends > 0);
-            } catch (TransportException $e) {
+            } catch (TransportException|MalformedResponseException $e) {
+                // A 2xx answer that cannot be read proves nothing either: KSeF may well have accepted the invoice.
                 $failure = $e;
             } catch (ApiException $e) {
                 if ($e->httpStatus < 500) {
