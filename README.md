@@ -1,5 +1,7 @@
 # ksef-php
 
+**English** · [Polski](README.pl.md)
+
 Framework-agnostic PHP SDK for the Polish **National e-Invoice System (KSeF) API 2.0**.
 
 It takes care of everything between your application and KSeF: authentication (XAdES certificate
@@ -414,6 +416,7 @@ Messages and exception data never contain tokens, private keys or request bodies
   Secret-holding objects hide their values from `var_dump()`/logs and are marked `#[\SensitiveParameter]`.
 - Tokens live in memory only. The SDK never writes credentials to disk or logs.
 - Private keys: RSA < 2048 bits are rejected; the key must match the certificate.
+- Response bodies are read with a size cap (32 MiB for API calls, 64 MiB for part downloads), so a hostile server cannot exhaust memory.
 - XML: documents containing a `DOCTYPE` are refused (no XXE/entity expansion), network access is disabled
   in libxml, and signed/serialized documents are produced with DOM (no string concatenation).
 - TLS: configure certificate verification on your PSR-18 client; the SDK refuses non-HTTPS base URLs
@@ -460,6 +463,7 @@ composer test        # unit + integration (deterministic PSR-18 fakes, no networ
 composer analyse     # PHPStan, level max + strict rules
 composer lint        # php-cs-fixer (composer fix applies)
 composer check       # all of the above plus composer validate
+composer bench       # micro benchmarks (time and memory), no network
 ```
 
 **Live tests** (opt-in) run the complete lifecycle against the public KSeF TEST environment: they create a
@@ -470,6 +474,22 @@ invoice and verify duplicate detection. No credentials are needed:
 ```bash
 KSEF_LIVE=1 composer test:live
 ```
+
+## Performance
+
+`composer bench` (`tools/bench.php`) measures the CPU and memory bound parts. Sample run (one sandbox core, PHP 8.3;
+numbers depend on the machine, compare runs on the same one):
+
+| Scenario | Time |
+| --- | ---: |
+| build and validate an invoice, 1000 lines | ~4 ms |
+| serialize + XSD validate, 1 / 100 / 1000 lines | ~5 / ~7 / ~32 ms |
+| AES-256-CBC, 10 MiB: encrypt / decrypt | ~15 / ~5 ms |
+| batch: serialize + zip 100 invoices | ~0.5 s |
+| batch: serialize + zip 1000 invoices | ~6 s (peak memory ~2 MiB) |
+
+A batch is dominated by XSD validation (a few ms per invoice); memory grows by a few bytes per invoice (its hash),
+while zipping and encryption stream one part at a time.
 
 ## Stability
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `composer bench` (`tools/bench.php`): micro benchmarks for invoice building, serialization, encryption and batch packaging; a Polish README (`README.pl.md`).
 - Collective corrections under art. 106j(3): `Correction::$period` (`OkresFaKorygowanej`) and `Correction::$amounts` (`CorrectionAmount`, the differences per VAT rate); such a correction has no lines.
 
 ### Security

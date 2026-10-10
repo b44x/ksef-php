@@ -73,6 +73,7 @@
         "lint": "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
         "fix": "php-cs-fixer fix --allow-risky=yes",
         "spec:check": "php tools/spec.php check",
+        "bench": "php tools/bench.php",
         "check": [
             "@composer validate --strict",
             "@lint",
@@ -86,6 +87,7 @@
         "analyse": "Run PHPStan static analysis.",
         "lint": "Check coding standards without modifying files.",
         "fix": "Fix coding standard violations.",
+        "bench": "Run the micro benchmarks (time and memory, no network).",
         "check": "Run every quality gate used by CI."
     },
     "config": {
