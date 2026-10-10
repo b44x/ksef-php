@@ -91,7 +91,7 @@ final class LiveFeaturesTest extends TestCase
         [$farmer, $farmerClient] = $this->taxpayer();
 
         $farmerClient->grantAuthorization($buyerTaxpayer->nip, EntityAuthorizationType::RrInvoicing, 'Buyer', 'RR invoices', $this->policy);
-        $granted = $farmerClient->authorizations(AuthorizationDirection::Granted)->items;
+        $granted = $farmerClient->listAuthorizations(AuthorizationDirection::Granted)->items;
         self::assertSame('RRInvoicing', $granted[0]->scope);
 
         $address = \B4x\Ksef\Invoice\Address::poland('ul. Polna 1', '00-001 Wieś');
@@ -132,7 +132,7 @@ final class LiveFeaturesTest extends TestCase
 
         $id = $client->createCollectiveIdentifier([new CollectiveInvoice($numbers[0], Money::pln('123.00')), new CollectiveInvoice($numbers[1])]);
         self::assertStringContainsString('-IZ', $id);
-        $invoices = $client->collectiveIdentifierInvoices([$id]);
+        $invoices = $client->listCollectiveIdentifierInvoices([$id]);
         self::assertCount(2, $invoices->items);
 
         // Attachments: consent, batch only.

@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Breaking (pre-1.0 API review):** listings return `Pagination\Page` (`items`, `hasMore`, `continuationToken`; iterable and countable) instead of arrays with varying keys. Affects `authSessions()`, `myPermissions()`, `personPermissions()`, `entityPermissions()`, `authorizations()`, `subunitAdministrators()`, `euEntityPermissions()`, `entityRoles()`, `subordinateEntities()`, `peppolProviders()` and `searchCertificates()`: replace `$result['permissions']` (`['roles']`, `['providers']`, `['certificates']`, `['sessions']`) with `$result->items` and `$result['hasMore']` with `$result->hasMore`.
+- **Breaking:** consistent method names on `KsefClient`: paged reads are `list*` (`listSessionInvoices()`, `listFailedSessionInvoices()`, `listAuthSessions()`, `listCollectiveIdentifiers()`, `listCollectiveIdentifierInvoices()`, `listCollectiveIdentifiersOf()`, `listPeppolProviders()`, `listMyPermissions()`, `listPersonPermissions()`, `listEntityPermissions()`, `listAuthorizations()`, `listSubunitAdministrators()`, `listEuEntityPermissions()`, `listEntityRoles()`, `listSubordinateEntities()`) and `generateToken()` is now `createToken()`; `searchInvoices()` and `searchCertificates()` keep `search` because they take filters.
+- **Breaking:** `sendBatch($invoices, ?BatchOptions $options)` replaces the positional `$maxPartBytes`, `$formCode` and `$offline` arguments (`new BatchOptions(maxPartBytes: ..., formCode: ..., offline: ...)`, `BatchOptions::offline()`).
+- **Breaking:** `grantEuEntityAdministrator($administrator, new EuEntity($vatUe, $name, $address), $description)` instead of three loose strings.
+- **Breaking:** `CertificateInfo::$status` and the `searchCertificates()` filter use the new `CertificateStatus` enum instead of a string.
+- `downloadInvoice()` and `listCollectiveIdentifiersOf()` accept a `KsefNumber` as well as a string.
+- The `KsefClient` constructor (not part of the public API) no longer has optional services; the "support is not configured" errors that could never occur through the builder are gone.
 - `fromPayload()` of response objects, `CsrGenerator`, `EcdsaSignature` and `SendOptions::toPayload()` are marked `@internal`; `docs/STABILITY.md` now lists the public types that live in the `Api` namespace, the extension interfaces and the vocabulary enums.
 
 ### Fixed

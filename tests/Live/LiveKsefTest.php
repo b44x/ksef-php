@@ -120,7 +120,7 @@ final class LiveKsefTest extends TestCase
         self::assertTrue($status->isSuccessful(), 'session: ' . $status->code . ' ' . $status->description);
         self::assertSame(5, $status->successfulInvoiceCount);
         self::assertSame(0, $status->failedInvoiceCount);
-        $page = $client->sessionInvoices($submission->sessionReference);
+        $page = $client->listSessionInvoices($submission->sessionReference);
         self::assertCount(5, $page->invoices);
         foreach ($page->invoices as $invoice) {
             self::assertContains($invoice->invoiceHash, $submission->invoiceHashes);
@@ -203,7 +203,7 @@ final class LiveKsefTest extends TestCase
         self::assertGreaterThan(0, $limits->onlineSession->maxInvoices);
         self::assertArrayHasKey('invoiceSend', $client->rateLimits());
 
-        $sessions = $client->authSessions();
+        $sessions = $client->listAuthSessions();
         self::assertNotSame([], $sessions->items);
         self::assertNotSame([], array_filter($sessions->items, static fn(\B4x\Ksef\Auth\AuthSession $s): bool => $s->isCurrent));
     }
@@ -227,19 +227,19 @@ final class LiveKsefTest extends TestCase
         $person = \B4x\Ksef\Permissions\PersonSubject::byPesel($pesel, 'Anna', 'Nowak');
         $client->grantPersonPermissions($person, [\B4x\Ksef\Permissions\Permission::InvoiceRead, \B4x\Ksef\Permissions\Permission::InvoiceWrite], 'ksef-php live test', $policy);
 
-        $granted = $client->personPermissions(true);
+        $granted = $client->listPersonPermissions(true);
         $scopes = array_map(static fn(\B4x\Ksef\Permissions\PermissionGrant $g): string => $g->scope, $granted->items);
         self::assertContains('InvoiceRead', $scopes);
         self::assertContains('InvoiceWrite', $scopes);
         // The owner's own rights are implicit on TEST, so the personal list may legitimately be empty; it must still load.
-        self::assertIsArray($client->myPermissions()->items);
+        self::assertIsArray($client->listMyPermissions()->items);
 
         foreach ($granted->items as $grant) {
             if ($grant->holder === $pesel) {
                 $client->revokePermission($grant->id, $policy);
             }
         }
-        $remaining = array_filter($client->personPermissions(true)->items, static fn(\B4x\Ksef\Permissions\PermissionGrant $g): bool => $g->holder === $pesel);
+        $remaining = array_filter($client->listPersonPermissions(true)->items, static fn(\B4x\Ksef\Permissions\PermissionGrant $g): bool => $g->holder === $pesel);
         self::assertSame([], $remaining);
 
         // Granting something KSeF does not allow in this context is reported with its status.
@@ -298,7 +298,7 @@ final class LiveKsefTest extends TestCase
             ->build();
 
         $certificateClient = $builder(CertificateCredentials::fromPem($pki['certificatePem'], $pki['privateKeyPem']));
-        $token = $certificateClient->generateToken([TokenPermission::InvoiceRead, TokenPermission::InvoiceWrite], 'ksef-php live test');
+        $token = $certificateClient->createToken([TokenPermission::InvoiceRead, TokenPermission::InvoiceWrite], 'ksef-php live test');
         self::assertSame(TokenStatus::Active, $certificateClient->waitForToken($token->referenceNumber, new PollingPolicy(2.0, 5.0, 1.5, 120.0)));
 
         // Authenticate with the token itself: exercises RSA-OAEP encryption of `token|timestamp`.

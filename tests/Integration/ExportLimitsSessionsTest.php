@@ -116,7 +116,7 @@ final class ExportLimitsSessionsTest extends KsefTestCase
         $this->ksef->json('DELETE', '/auth/sessions/current', 204, []);
         $client = $this->client();
 
-        $page = $client->authSessions();
+        $page = $client->listAuthSessions();
         $client->revokeAuthSession('auth-1');
         $client->revokeAuthSession();
 

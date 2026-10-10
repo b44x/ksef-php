@@ -37,7 +37,7 @@ After the provider has signed in once (a company cannot authorise an unknown pro
 
 ```php
 $company->grantAuthorization('PPL123456', EntityAuthorizationType::PefInvoicing, 'Provider name', 'PEF invoicing');
-$company->peppolProviders();       // the providers registered in KSeF
+$company->listPeppolProviders();       // the providers registered in KSeF
 ```
 
 ## Try it on TEST

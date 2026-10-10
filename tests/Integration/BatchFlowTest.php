@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace B4x\Ksef\Tests\Integration;
 
+use B4x\Ksef\Batch\BatchOptions;
 use B4x\Ksef\Exception\ApiException;
 use B4x\Ksef\Exception\SessionException;
 use B4x\Ksef\Exception\ValidationException;
@@ -26,7 +27,7 @@ final class BatchFlowTest extends KsefTestCase
         $this->routeBatch(parts: 3);
         $documents = $this->invoices(40);
 
-        $submission = $this->client()->sendBatch($documents, 4_000);
+        $submission = $this->client()->sendBatch($documents, new BatchOptions(maxPartBytes: 4_000));
 
         self::assertSame('batch-1', $submission->sessionReference);
         self::assertCount(40, $submission->invoiceHashes);
@@ -74,7 +75,7 @@ final class BatchFlowTest extends KsefTestCase
     public function testTheOfflineModeIsDeclaredWhenOpeningTheBatchSession(): void
     {
         $this->routeBatch(parts: 1);
-        $this->client()->sendBatch($this->invoices(2), offline: true);
+        $this->client()->sendBatch($this->invoices(2), BatchOptions::offline());
 
         self::assertTrue(FakeKsef::body($this->ksef->requestsTo('POST', '/sessions/batch')[0])['offlineMode']);
     }

@@ -102,14 +102,14 @@ final class CertificateApi
     /**
      * @return Page<CertificateInfo>
      */
-    public function query(?CertificateType $type = null, ?string $status = null, ?string $name = null, ?string $serialNumber = null, int $pageOffset = 0, int $pageSize = 10): Page
+    public function query(?CertificateType $type = null, ?CertificateStatus $status = null, ?string $name = null, ?string $serialNumber = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 50);
         if ($serialNumber !== null) {
             Constraint::pattern('certificate serial number', $serialNumber, '/^[0-9A-F]{16}$/');
         }
-        $filter = array_filter(['type' => $type?->value, 'status' => $status, 'name' => $name, 'certificateSerialNumber' => $serialNumber], static fn(?string $v): bool => $v !== null);
+        $filter = array_filter(['type' => $type?->value, 'status' => $status?->value, 'name' => $name, 'certificateSerialNumber' => $serialNumber], static fn(?string $v): bool => $v !== null);
         $data = new Payload($this->client->send(ApiRequest::post('/certificates/query', $filter, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return new Page(array_map(CertificateInfo::fromPayload(...), $data->objects('certificates')), $data->bool('hasMore'));

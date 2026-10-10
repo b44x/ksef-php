@@ -41,9 +41,9 @@ final class CollectiveAndPeppolTest extends KsefTestCase
         ]]);
         $client = $this->client();
 
-        $page = $client->collectiveIdentifiers(new DateTimeImmutable('2026-05-01'), new DateTimeImmutable('2026-06-30'), createdInCurrentContext: true, continuationToken: 'prev');
-        $invoices = $client->collectiveIdentifierInvoices(['X-1']);
-        $of = $client->collectiveIdentifiersOf(self::KSEF_NUMBER);
+        $page = $client->listCollectiveIdentifiers(new DateTimeImmutable('2026-05-01'), new DateTimeImmutable('2026-06-30'), createdInCurrentContext: true, continuationToken: 'prev');
+        $invoices = $client->listCollectiveIdentifierInvoices(['X-1']);
+        $of = $client->listCollectiveIdentifiersOf(self::KSEF_NUMBER);
 
         self::assertTrue($page->hasMore());
         self::assertSame(3, $page->items[0]->invoiceCount);
@@ -69,7 +69,7 @@ final class CollectiveAndPeppolTest extends KsefTestCase
         $this->ksef->json('GET', '/limits/subject', 200, ['enrollment' => ['maxEnrollments' => 12], 'certificate' => ['maxCertificates' => 6]]);
         $client = $this->client();
 
-        $providers = $client->peppolProviders();
+        $providers = $client->listPeppolProviders();
         $limits = $client->subjectLimits();
 
         self::assertSame('Provider', $providers->items[0]->name);

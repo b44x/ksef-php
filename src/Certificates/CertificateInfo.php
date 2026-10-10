@@ -15,7 +15,7 @@ final readonly class CertificateInfo
         public string $name,
         public CertificateType $type,
         public string $commonName,
-        public string $status,
+        public CertificateStatus $status,
         public DateTimeImmutable $validFrom,
         public DateTimeImmutable $validTo,
     ) {}
@@ -30,7 +30,7 @@ final readonly class CertificateInfo
             $data->string('name'),
             $type ?? throw new \B4x\Ksef\Exception\MalformedResponseException('KSeF returned an unknown certificate type.'),
             $data->string('commonName'),
-            $data->string('status'),
+            CertificateStatus::tryFrom($data->string('status')) ?? throw new \B4x\Ksef\Exception\MalformedResponseException('KSeF returned an unknown certificate status.'),
             $data->date('validFrom'),
             $data->date('validTo'),
         );
@@ -38,6 +38,6 @@ final readonly class CertificateInfo
 
     public function isActive(): bool
     {
-        return $this->status === 'Active';
+        return $this->status === CertificateStatus::Active;
     }
 }

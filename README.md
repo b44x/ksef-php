@@ -119,7 +119,7 @@ Two kinds of credentials are supported:
 CertificateCredentials::fromPemFiles($certPath, $keyPath, $optionalPassphrase);
 CertificateCredentials::fromPkcs12(file_get_contents($p12), $password);
 
-// 2. KSeF token (generated in the KSeF application or with $ksef->generateToken()).
+// 2. KSeF token (generated in the KSeF application or with $ksef->createToken()).
 //    Sent as RSA-OAEP(SHA-256) encrypted "token|challengeTimestampMs".
 new KsefTokenCredentials(getenv('KSEF_TOKEN'));
 ```
@@ -248,7 +248,7 @@ them to the pre-signed URLs KSeF returns and closes the session. Requires `ext-z
 ```php
 $batch = $ksef->sendBatch($invoices);                         // iterable of Invoice | InvoiceDocument | XML string
 $status = $ksef->waitForSession($batch->sessionReference);    // SessionStatus (aggregate counts, UPO pages)
-$page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ksefNumber, status, invoiceHash
+$page = $ksef->listSessionInvoices($batch->sessionReference);     // per invoice: ksefNumber, status, invoiceHash
 // $batch->invoiceHashes lets you map results back to your own documents.
 ```
 
@@ -257,20 +257,20 @@ $page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ks
 ```php
 $ksef->grantPersonPermissions(PersonSubject::byPesel($pesel, 'Anna', 'Nowak'), [Permission::InvoiceRead, Permission::InvoiceWrite], 'accountant');
 $ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);   // may delegate: true
-foreach ($ksef->personPermissions(grantedByMe: true)->items as $grant) { /* $grant->id, ->scope, ->holder */ }
+foreach ($ksef->listPersonPermissions(grantedByMe: true)->items as $grant) { /* $grant->id, ->scope, ->holder */ }
 $ksef->revokePermission($grant->id);
 ```
 
 Grants and revocations are asynchronous in KSeF; these calls wait for the operation and throw
-`PermissionOperationException` (with KSeF's status code) when it is refused. Also available: `myPermissions()`,
-`entityPermissions()`.
+`PermissionOperationException` (with KSeF's status code) when it is refused. Also available: `listMyPermissions()`,
+`listEntityPermissions()`.
 
 Special arrangements have their own calls, all asynchronous in KSeF and awaited by the SDK:
 
 ```php
 // Entity-level authorisations: self-invoicing, RR, tax representative, Peppol
 $ksef->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing');
-$ksef->authorizations(AuthorizationDirection::Granted);   // ...::Received
+$ksef->listAuthorizations(AuthorizationDirection::Granted);   // ...::Received
 $ksef->revokeAuthorization($authorization->id);           // not revokePermission(): different endpoint
 
 // Accounting office: a person works in the contexts of your customers
@@ -278,10 +278,10 @@ $ksef->grantIndirectPermissions($person, [EntityPermissionType::InvoiceRead], 's
 
 // Subordinate units (local government, VAT groups) and EU entities
 $ksef->grantSubunitAdministrator($person, SubunitContext::internalId('5265877635-12345'), 'branch admin');
-$ksef->grantEuEntityAdministrator(EuEntitySubject::person(PersonSubject::byFingerprint(...)), '5265877635-DE123456789', 'Muster GmbH', 'Berlin', 'admin');
+$ksef->grantEuEntityAdministrator(EuEntitySubject::person(PersonSubject::byFingerprint(...)), new EuEntity('5265877635-DE123456789', 'Muster GmbH', 'Berlin'), 'admin');
 $ksef->grantEuEntityRepresentative(EuEntitySubject::entity($fingerprint, 'Seal GmbH', 'Berlin'), [EuEntityPermissionType::InvoiceWrite], 'rep');
 
-// Reading: subunitAdministrators(), euEntityPermissions(), entityRoles(), subordinateEntities(), attachmentStatus()
+// Reading: listSubunitAdministrators(), listEuEntityPermissions(), listEntityRoles(), listSubordinateEntities(), attachmentStatus()
 ```
 
 ### Export, limits and logins
@@ -293,7 +293,7 @@ if ($package->isTruncated) { $from = $package->continueFrom; /* export again */ 
 
 $ksef->contextLimits();   // max invoices / sizes per session type
 $ksef->rateLimits();      // ['invoiceSend' => RateLimit(perSecond, perMinute, perHour), ...]
-$ksef->authSessions();    // active logins; $ksef->revokeAuthSession($ref) or revokeAuthSession() for the current one
+$ksef->listAuthSessions();    // active logins; $ksef->revokeAuthSession($ref) or revokeAuthSession() for the current one
 ```
 
 ### Collective identifiers and Peppol
@@ -301,11 +301,11 @@ $ksef->authSessions();    // active logins; $ksef->revokeAuthSession($ref) or re
 ```php
 // One payment reference for many invoices of the same seller
 $id = $ksef->createCollectiveIdentifier([new CollectiveInvoice($ksefNumber1, Money::pln('123.00'), 'May'), new CollectiveInvoice($ksefNumber2)]);
-$page = $ksef->collectiveIdentifiers($from, $to);                      // paged; pass $page->continuationToken for the next page
-$ksef->collectiveIdentifierInvoices([$id]);                            // the invoices (payment details only for entitled parties)
-$ksef->collectiveIdentifiersOf($ksefNumber1);                          // which identifiers an invoice belongs to
+$page = $ksef->listCollectiveIdentifiers($from, $to);                      // paged; pass $page->continuationToken for the next page
+$ksef->listCollectiveIdentifierInvoices([$id]);                            // the invoices (payment details only for entitled parties)
+$ksef->listCollectiveIdentifiersOf($ksefNumber1);                          // which identifiers an invoice belongs to
 
-$ksef->peppolProviders();                                             // registered Peppol service providers
+$ksef->listPeppolProviders();                                             // registered Peppol service providers
 $ksef->subjectLimits();                                               // certificate enrolment / certificate limits of the taxpayer
 ```
 

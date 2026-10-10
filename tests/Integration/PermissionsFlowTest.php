@@ -9,6 +9,7 @@ use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
 use B4x\Ksef\Permissions\EntityPermissionType;
+use B4x\Ksef\Permissions\EuEntity;
 use B4x\Ksef\Permissions\EuEntityPermissionType;
 use B4x\Ksef\Permissions\EuEntitySubject;
 use B4x\Ksef\Permissions\IndirectTarget;
@@ -64,7 +65,7 @@ final class PermissionsFlowTest extends KsefTestCase
         $this->ksef->json('GET', '/permissions/operations/op-3', 200, ['status' => ['code' => 200, 'description' => 'done']]);
         $client = $this->client();
 
-        $page = $client->personPermissions(true);
+        $page = $client->listPersonPermissions(true);
         $client->revokePermission($page->items[0]->id);
 
         self::assertSame('Pesel', $page->items[0]->holderType);
@@ -94,7 +95,7 @@ final class PermissionsFlowTest extends KsefTestCase
 
         $client->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self billing');
         $client->grantAuthorization('PL-PEPPOL-1', EntityAuthorizationType::PefInvoicing, 'Peppol partner', 'peppol');
-        $page = $client->authorizations(AuthorizationDirection::Granted);
+        $page = $client->listAuthorizations(AuthorizationDirection::Granted);
         $client->revokeAuthorization($page->items[0]->id);
 
         $bodies = $this->ksef->requestsTo('POST', '/permissions/authorizations/grants');
@@ -139,7 +140,7 @@ final class PermissionsFlowTest extends KsefTestCase
         $client = $this->client();
         $fingerprint = str_repeat('ab', 32);
 
-        $client->grantEuEntityAdministrator(EuEntitySubject::person(PersonSubject::byFingerprint($fingerprint, 'Hans', 'Muster', '90010112345')), '5265877635-DE123456789', 'Muster GmbH', 'Berlin', 'eu admin');
+        $client->grantEuEntityAdministrator(EuEntitySubject::person(PersonSubject::byFingerprint($fingerprint, 'Hans', 'Muster', '90010112345')), new EuEntity('5265877635-DE123456789', 'Muster GmbH', 'Berlin'), 'eu admin');
         $client->grantEuEntityRepresentative(EuEntitySubject::entity($fingerprint, 'Seal GmbH', 'Berlin'), [EuEntityPermissionType::InvoiceWrite], 'eu rep');
 
         $admin = FakeKsef::body($this->ksef->requestsTo('POST', '/permissions/eu-entities/administration/grants')[0]);
@@ -169,10 +170,10 @@ final class PermissionsFlowTest extends KsefTestCase
         $this->ksef->json('GET', '/permissions/attachments/status', 200, ['isAttachmentAllowed' => true, 'revokedDate' => null]);
         $client = $this->client();
 
-        $roles = $client->entityRoles();
-        $subordinates = $client->subordinateEntities(Nip::of('1111111111'));
-        $subunits = $client->subunitAdministrators(SubunitContext::internalId('5265877635-12345'));
-        $eu = $client->euEntityPermissions();
+        $roles = $client->listEntityRoles();
+        $subordinates = $client->listSubordinateEntities(Nip::of('1111111111'));
+        $subunits = $client->listSubunitAdministrators(SubunitContext::internalId('5265877635-12345'));
+        $eu = $client->listEuEntityPermissions();
         $attachments = $client->attachmentStatus();
 
         self::assertSame('5265877635', $roles->items[0]->entity?->value);

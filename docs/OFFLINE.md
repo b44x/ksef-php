@@ -50,7 +50,7 @@ $submission = $ksef->sendOfflineInvoice($offline);                    // sends w
 $ksef->waitForInvoice($submission, untilStored: true)->assertAccepted();
 ```
 
-For many invoices use `sendBatch($documents, offline: true)` or `SendOptions::offline()` on an open session.
+For many invoices use `sendBatch($documents, BatchOptions::offline())` or `SendOptions::offline()` on an open session.
 
 A corrective invoice (KOR) is sent only after the original has a KSeF number.
 

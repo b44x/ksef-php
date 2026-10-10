@@ -81,6 +81,6 @@ $policy = new PollingPolicy(timeoutSeconds: 180.0);
 $batch = $ksef->sendBatch([$invoice]);
 $status = $ksef->waitForSession($batch->sessionReference, $policy);
 say(sprintf('batch %s finished: %d accepted, %d failed', $batch->sessionReference, $status->successfulInvoiceCount ?? 0, $status->failedInvoiceCount ?? 0));
-foreach ($ksef->sessionInvoices($batch->sessionReference)->invoices as $result) {
+foreach ($ksef->listSessionInvoices($batch->sessionReference)->invoices as $result) {
     say('  ' . ($result->ksefNumber ?? 'rejected: ' . $result->status->description));
 }

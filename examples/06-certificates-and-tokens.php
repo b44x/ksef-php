@@ -40,7 +40,7 @@ say('  opened a session as the KSeF certificate: ' . $session->referenceNumber);
 $session->close();
 
 step('3. Alternatively: a KSeF token (secret shown once, valid after its status turns Active)');
-$token = $ksef->generateToken([TokenPermission::InvoiceRead, TokenPermission::InvoiceWrite], 'billing service token');
+$token = $ksef->createToken([TokenPermission::InvoiceRead, TokenPermission::InvoiceWrite], 'billing service token');
 say('  status: ' . $ksef->waitForToken($token->referenceNumber, $policy)->value);
 $withToken = $example->clientWith(new KsefTokenCredentials($token->token));
 $session = $withToken->openOnlineSession();

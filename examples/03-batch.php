@@ -48,7 +48,7 @@ $status = $ksef->waitForSession($batch->sessionReference, $policy);
 say(sprintf('  result: %s (%d accepted, %d failed)', $status->description, $status->successfulInvoiceCount ?? 0, $status->failedInvoiceCount ?? 0));
 
 // Map KSeF's per-invoice results back to your own documents with the hashes returned by sendBatch().
-foreach ($ksef->sessionInvoices($batch->sessionReference)->invoices as $row) {
+foreach ($ksef->listSessionInvoices($batch->sessionReference)->invoices as $row) {
     $position = array_search($row->invoiceHash, $batch->invoiceHashes, true);
     say(sprintf('  your document #%s -> %s', $position === false ? '?' : (string) ($position + 1), $row->ksefNumber ?? 'rejected'));
 }

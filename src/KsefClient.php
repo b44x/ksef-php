@@ -16,11 +16,12 @@ use B4x\Ksef\Api\TokenStatus;
 use B4x\Ksef\Auth\AuthSession;
 use B4x\Ksef\Auth\AuthSessionsApi;
 use B4x\Ksef\Auth\ContextIdentifier;
-use B4x\Ksef\Batch\BatchPackager;
+use B4x\Ksef\Batch\BatchOptions;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
 use B4x\Ksef\Certificates\CertificateInfo;
 use B4x\Ksef\Certificates\CertificateLimits;
+use B4x\Ksef\Certificates\CertificateStatus;
 use B4x\Ksef\Certificates\CertificateType;
 use B4x\Ksef\Certificates\CsrGenerator;
 use B4x\Ksef\Certificates\EnrollmentStatus;
@@ -40,7 +41,6 @@ use B4x\Ksef\Exception\KsefException;
 use B4x\Ksef\Exception\PermissionOperationException;
 use B4x\Ksef\Export\ExportedPackage;
 use B4x\Ksef\Export\InvoiceExporter;
-use B4x\Ksef\Http\NativeSleeper;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
@@ -60,6 +60,7 @@ use B4x\Ksef\Permissions\AuthorizationGrant;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
 use B4x\Ksef\Permissions\EntityPermissionType;
 use B4x\Ksef\Permissions\EntityRole;
+use B4x\Ksef\Permissions\EuEntity;
 use B4x\Ksef\Permissions\EuEntityPermission;
 use B4x\Ksef\Permissions\EuEntityPermissionType;
 use B4x\Ksef\Permissions\EuEntitySubject;
@@ -127,18 +128,18 @@ final class KsefClient
         private readonly PollingPolicy $polling,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
-        private readonly SubmissionRecoveryPolicy $recovery = new SubmissionRecoveryPolicy(),
-        private readonly Sleeper $sleeper = new NativeSleeper(),
-        private readonly ?BatchSender $batches = null,
-        private readonly ?CertificateApi $certificates = null,
-        private readonly ?InvoiceExporter $exporter = null,
-        private readonly ?LimitsApi $limits = null,
-        private readonly ?AuthSessionsApi $authSessions = null,
-        private readonly ?PermissionsApi $permissions = null,
-        private readonly ?Environment $environment = null,
-        private readonly ?ContextIdentifier $context = null,
-        private readonly ?CollectiveIdentifierApi $collective = null,
-        private readonly ?PeppolApi $peppol = null,
+        private readonly SubmissionRecoveryPolicy $recovery,
+        private readonly Sleeper $sleeper,
+        private readonly BatchSender $batches,
+        private readonly CertificateApi $certificates,
+        private readonly InvoiceExporter $exporter,
+        private readonly LimitsApi $limits,
+        private readonly AuthSessionsApi $authSessions,
+        private readonly PermissionsApi $permissions,
+        private readonly ?Environment $environment,
+        private readonly ContextIdentifier $context,
+        private readonly CollectiveIdentifierApi $collective,
+        private readonly PeppolApi $peppol,
     ) {}
 
     public static function builder(): KsefClientBuilder
@@ -200,7 +201,7 @@ final class KsefClient
      */
     public function offlineIssuer(OfflineCertificate $certificate): OfflineIssuer
     {
-        if ($this->environment === null || $this->context === null) {
+        if ($this->environment === null) {
             throw new ConfigurationException('Offline invoicing needs a client configured with environment() so that the QR code links can be built.');
         }
 
@@ -239,15 +240,16 @@ final class KsefClient
      *
      * Everything is verified before upload (XSD, size limits: 10,000 invoices, 50 parts of up to 100 MB).
      * Processing is asynchronous: wait with {@see self::waitForSession()} and read per-invoice results
-     * with {@see self::sessionInvoices()}; correlate them via {@see BatchSubmission::$invoiceHashes}.
+     * with {@see self::listSessionInvoices()}; correlate them via {@see BatchSubmission::$invoiceHashes}.
      * Requires ext-zip.
      *
      * @param iterable<Invoice|RrInvoice|InvoiceDocument|string> $invoices
      */
-    public function sendBatch(iterable $invoices, int $maxPartBytes = BatchPackager::DEFAULT_MAX_PART_BYTES, ?FormCode $formCode = null, bool $offline = false): BatchSubmission
+    public function sendBatch(iterable $invoices, ?BatchOptions $options = null): BatchSubmission
     {
-        $sender = $this->batches ?? throw new ConfigurationException('Batch support is not configured.');
-        $formCode ??= FormCode::fa3();
+        $sender = $this->batches;
+        $options ??= new BatchOptions();
+        $formCode = $options->formCode ?? FormCode::fa3();
         $documents = (function () use ($invoices, $formCode): Generator {
             foreach ($invoices as $invoice) {
                 $document = $this->factory->document($invoice);
@@ -258,7 +260,7 @@ final class KsefClient
             }
         })();
 
-        return $sender->send($documents, $formCode, $maxPartBytes, $offline);
+        return $sender->send($documents, $formCode, $options->maxPartBytes, $options->offline);
     }
 
     /**
@@ -277,13 +279,13 @@ final class KsefClient
     }
 
     /** One page of the invoices of a session with their individual results. */
-    public function sessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
+    public function listSessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
     {
         return $this->sessions->invoices($sessionReference, $continuationToken, $pageSize);
     }
 
     /** One page of the invoices KSeF rejected in a session. */
-    public function failedSessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
+    public function listFailedSessionInvoices(string $sessionReference, ?string $continuationToken = null, int $pageSize = 100): SessionInvoicesPage
     {
         return $this->sessions->failedInvoices($sessionReference, $continuationToken, $pageSize);
     }
@@ -350,9 +352,9 @@ final class KsefClient
      * @throws Exception\PollingTimeoutException when the wait policy is exhausted
      * @throws Exception\ApiException when KSeF refuses the request (for example 403 without permission)
      */
-    public function downloadInvoice(string $ksefNumber, ?PollingPolicy $waitWhileUnavailable = null): DownloadedInvoice
+    public function downloadInvoice(KsefNumber|string $ksefNumber, ?PollingPolicy $waitWhileUnavailable = null): DownloadedInvoice
     {
-        $number = KsefNumber::of($ksefNumber);
+        $number = $ksefNumber instanceof KsefNumber ? $ksefNumber : KsefNumber::of($ksefNumber);
         if ($waitWhileUnavailable === null) {
             return $this->invoices->download($number);
         }
@@ -403,7 +405,7 @@ final class KsefClient
         string $destinationZip,
         ?PollingPolicy $policy = null,
     ): ExportedPackage {
-        $exporter = $this->exporter ?? throw new ConfigurationException('Export support is not configured.');
+        $exporter = $this->exporter;
 
         return $exporter->export($subject, $dateType, $from, $to, $destinationZip, $policy ?? $this->polling);
     }
@@ -411,13 +413,13 @@ final class KsefClient
     /** Limits of the current subject: how many certificate enrolments and certificates it may have. */
     public function subjectLimits(): SubjectLimits
     {
-        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->subject();
+        return $this->limits->subject();
     }
 
     /** Limits of the current authentication context (sessions, invoice sizes). */
     public function contextLimits(): ContextLimits
     {
-        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->context();
+        return $this->limits->context();
     }
 
     /**
@@ -427,7 +429,7 @@ final class KsefClient
      */
     public function rateLimits(): array
     {
-        return ($this->limits ?? throw new ConfigurationException('Limits support is not configured.'))->rates();
+        return $this->limits->rates();
     }
 
     /**
@@ -435,15 +437,15 @@ final class KsefClient
      *
      * @return Page<AuthSession>
      */
-    public function authSessions(?string $continuationToken = null, int $pageSize = 20): Page
+    public function listAuthSessions(?string $continuationToken = null, int $pageSize = 20): Page
     {
-        return ($this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.'))->list($continuationToken, $pageSize);
+        return $this->authSessions->list($continuationToken, $pageSize);
     }
 
     /** Revokes one login; its refresh token stops working. Without a reference the current login is revoked. */
     public function revokeAuthSession(?string $referenceNumber = null): void
     {
-        $api = $this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.');
+        $api = $this->authSessions;
         $referenceNumber === null ? $api->revokeCurrent() : $api->revoke($referenceNumber);
     }
 
@@ -457,7 +459,7 @@ final class KsefClient
      */
     public function grantPersonPermissions(PersonSubject $person, array $permissions, string $description, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantToPerson($person, $permissions, $description), $policy);
     }
 
@@ -470,7 +472,7 @@ final class KsefClient
      */
     public function grantEntityPermissions(Nip $entityNip, string $entityName, array $permissions, string $description, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantToEntity($entityNip, $entityName, $permissions, $description), $policy);
     }
 
@@ -481,7 +483,7 @@ final class KsefClient
      */
     public function revokePermission(string $permissionId, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->revoke($permissionId), $policy);
     }
 
@@ -490,9 +492,9 @@ final class KsefClient
      *
      * @return Page<PermissionGrant>
      */
-    public function myPermissions(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
+    public function listMyPermissions(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->personal($activeOnly, $pageOffset, $pageSize);
+        return $this->permissions->personal($activeOnly, $pageOffset, $pageSize);
     }
 
     /**
@@ -500,9 +502,9 @@ final class KsefClient
      *
      * @return Page<PermissionGrant>
      */
-    public function personPermissions(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
+    public function listPersonPermissions(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->persons($grantedByMe, $activeOnly, $pageOffset, $pageSize);
+        return $this->permissions->persons($grantedByMe, $activeOnly, $pageOffset, $pageSize);
     }
 
     /**
@@ -510,9 +512,9 @@ final class KsefClient
      *
      * @return Page<PermissionGrant>
      */
-    public function entityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
+    public function listEntityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->entities($pageOffset, $pageSize);
+        return $this->permissions->entities($pageOffset, $pageSize);
     }
 
     /**
@@ -525,7 +527,7 @@ final class KsefClient
      */
     public function grantAuthorization(Nip|string $subject, EntityAuthorizationType $type, string $fullName, string $description, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantAuthorization($subject, $type, $fullName, $description), $policy);
     }
 
@@ -537,7 +539,7 @@ final class KsefClient
      */
     public function revokeAuthorization(string $authorizationId, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->revokeAuthorization($authorizationId), $policy);
     }
 
@@ -550,7 +552,7 @@ final class KsefClient
      */
     public function grantIndirectPermissions(PersonSubject $person, array $permissions, string $description, ?IndirectTarget $target = null, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantIndirect($person, $permissions, $description, $target), $policy);
     }
 
@@ -561,21 +563,19 @@ final class KsefClient
      */
     public function grantSubunitAdministrator(PersonSubject $person, SubunitContext $unit, string $description, ?string $subunitName = null, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantSubunitAdministrator($person, $unit, $description, $subunitName), $policy);
     }
 
     /**
      * Makes a certificate holder administrator of an EU entity that may self-invoice.
      *
-     * @param string $vatUe the EU entity's NIP-VAT UE identifier
-     *
      * @throws PermissionOperationException when KSeF refuses the grant
      */
-    public function grantEuEntityAdministrator(EuEntitySubject $administrator, string $vatUe, string $euEntityName, string $euEntityAddress, string $description, ?PollingPolicy $policy = null): void
+    public function grantEuEntityAdministrator(EuEntitySubject $administrator, EuEntity $entity, string $description, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
-        $this->awaitPermissionOperation($api, $api->grantEuEntityAdministrator($administrator, $vatUe, $euEntityName, $euEntityAddress, $description), $policy);
+        $api = $this->permissions;
+        $this->awaitPermissionOperation($api, $api->grantEuEntityAdministrator($administrator, $entity->vatUe, $entity->name, $entity->address, $description), $policy);
     }
 
     /**
@@ -587,7 +587,7 @@ final class KsefClient
      */
     public function grantEuEntityRepresentative(EuEntitySubject $representative, array $permissions, string $description, ?PollingPolicy $policy = null): void
     {
-        $api = $this->permissions ?? throw new ConfigurationException('Permission support is not configured.');
+        $api = $this->permissions;
         $this->awaitPermissionOperation($api, $api->grantEuEntityRepresentative($representative, $permissions, $description), $policy);
     }
 
@@ -596,9 +596,9 @@ final class KsefClient
      *
      * @return Page<AuthorizationGrant>
      */
-    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): Page
+    public function listAuthorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->authorizations($direction, $pageOffset, $pageSize);
+        return $this->permissions->authorizations($direction, $pageOffset, $pageSize);
     }
 
     /**
@@ -606,17 +606,17 @@ final class KsefClient
      *
      * @return Page<SubunitPermission>
      */
-    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): Page
+    public function listSubunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subunitAdministrators($unit, $pageOffset, $pageSize);
+        return $this->permissions->subunitAdministrators($unit, $pageOffset, $pageSize);
     }
 
     /**
      * @return Page<EuEntityPermission>
      */
-    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
+    public function listEuEntityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->euEntityPermissions($pageOffset, $pageSize);
+        return $this->permissions->euEntityPermissions($pageOffset, $pageSize);
     }
 
     /**
@@ -624,9 +624,9 @@ final class KsefClient
      *
      * @return Page<EntityRole>
      */
-    public function entityRoles(int $pageOffset = 0, int $pageSize = 10): Page
+    public function listEntityRoles(int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->roles($pageOffset, $pageSize);
+        return $this->permissions->roles($pageOffset, $pageSize);
     }
 
     /**
@@ -634,15 +634,15 @@ final class KsefClient
      *
      * @return Page<EntityRole>
      */
-    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): Page
+    public function listSubordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subordinateEntities($subordinate, $pageOffset, $pageSize);
+        return $this->permissions->subordinateEntities($subordinate, $pageOffset, $pageSize);
     }
 
     /** Whether the current context may issue invoices with attachments. */
     public function attachmentStatus(): AttachmentStatus
     {
-        return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->attachmentStatus();
+        return $this->permissions->attachmentStatus();
     }
 
     /**
@@ -663,7 +663,7 @@ final class KsefClient
      *
      * @return CollectiveIdentifierPage<CollectiveIdentifier>
      */
-    public function collectiveIdentifiers(DateTimeInterface $from, DateTimeInterface $to, ?string $number = null, ?bool $createdInCurrentContext = null, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    public function listCollectiveIdentifiers(DateTimeInterface $from, DateTimeInterface $to, ?string $number = null, ?bool $createdInCurrentContext = null, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
         return $this->collective()->query($from, $to, $number, $createdInCurrentContext, $continuationToken, $pageSize);
     }
@@ -675,7 +675,7 @@ final class KsefClient
      *
      * @return CollectiveIdentifierPage<CollectiveIdentifierInvoice>
      */
-    public function collectiveIdentifierInvoices(array $numbers, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    public function listCollectiveIdentifierInvoices(array $numbers, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
         return $this->collective()->invoices($numbers, $continuationToken, $pageSize);
     }
@@ -685,9 +685,9 @@ final class KsefClient
      *
      * @return CollectiveIdentifierPage<CollectiveIdentifier>
      */
-    public function collectiveIdentifiersOf(string $ksefNumber, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
+    public function listCollectiveIdentifiersOf(KsefNumber|string $ksefNumber, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
-        return $this->collective()->ofInvoice($ksefNumber, $continuationToken, $pageSize);
+        return $this->collective()->ofInvoice($ksefNumber instanceof KsefNumber ? $ksefNumber->value : $ksefNumber, $continuationToken, $pageSize);
     }
 
     /**
@@ -695,14 +695,14 @@ final class KsefClient
      *
      * @return Page<PeppolProvider>
      */
-    public function peppolProviders(int $pageOffset = 0, int $pageSize = 10): Page
+    public function listPeppolProviders(int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->peppol ?? throw new ConfigurationException('Peppol support is not configured.'))->providers($pageOffset, $pageSize);
+        return $this->peppol->providers($pageOffset, $pageSize);
     }
 
     private function collective(): CollectiveIdentifierApi
     {
-        return $this->collective ?? throw new ConfigurationException('Collective identifier support is not configured.');
+        return $this->collective;
     }
 
     private function awaitPermissionOperation(PermissionsApi $api, string $reference, ?PollingPolicy $policy): void
@@ -724,7 +724,7 @@ final class KsefClient
      *
      * @param non-empty-list<TokenPermission> $permissions
      */
-    public function generateToken(array $permissions, string $description): GeneratedToken
+    public function createToken(array $permissions, string $description): GeneratedToken
     {
         return $this->tokenApi->generate($permissions, $description);
     }
@@ -740,7 +740,7 @@ final class KsefClient
      */
     public function requestCertificate(string $name, CertificateType $type, KeyType $keyType = KeyType::EcP256, ?PollingPolicy $policy = null): IssuedCertificate
     {
-        $api = $this->certificates ?? throw new ConfigurationException('Certificate support is not configured.');
+        $api = $this->certificates;
 
         if (!$api->limits()->canRequest) {
             throw new Exception\SessionException('KSeF reports that no further certificate request is allowed (limit reached).');
@@ -769,20 +769,20 @@ final class KsefClient
 
     public function certificateLimits(): CertificateLimits
     {
-        return ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->limits();
+        return $this->certificates->limits();
     }
 
     /**
      * @return Page<CertificateInfo>
      */
-    public function searchCertificates(?CertificateType $type = null, ?string $status = null, ?string $name = null, int $pageOffset = 0, int $pageSize = 10): Page
+    public function searchCertificates(?CertificateType $type = null, ?CertificateStatus $status = null, ?string $name = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
-        return ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->query($type, $status, $name, null, $pageOffset, $pageSize);
+        return $this->certificates->query($type, $status, $name, null, $pageOffset, $pageSize);
     }
 
     public function revokeCertificate(string $serialNumber, RevocationReason $reason = RevocationReason::Unspecified): void
     {
-        ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->revoke($serialNumber, $reason);
+        $this->certificates->revoke($serialNumber, $reason);
     }
 
     /** Waits until a generated token is Active (or reached a failure state). */
