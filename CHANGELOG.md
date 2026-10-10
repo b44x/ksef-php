@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- 0.7.0 announced that a batch session is closed after a failed upload. Verified on TEST: KSeF refuses to close a batch with missing parts (code 21205) and has no cancel operation, so the session simply expires. The SDK no longer attempts the pointless close; it logs the session reference at warning level and throws the original error.
+
 ## [0.7.0] - 2026-10-10
 
 ### Added

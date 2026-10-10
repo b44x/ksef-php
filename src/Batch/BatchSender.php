@@ -62,7 +62,7 @@ final class BatchSender
             try {
                 $this->upload($opened, $package, $encryption, $declared);
             } catch (Throwable $e) {
-                $this->abandon($opened->referenceNumber);
+                $this->reportLeftOpen($opened->referenceNumber);
 
                 throw $e;
             }
@@ -77,17 +77,12 @@ final class BatchSender
     }
 
     /**
-     * Closing a session whose parts are incomplete makes KSeF reject it right away (the archive hash cannot match),
-     * instead of leaving it open until it expires. Best effort: the original failure is what matters.
+     * KSeF has no way to cancel a batch session and refuses to close one whose declared parts are missing (code 21205),
+     * so an interrupted upload leaves the session open until it expires. Say so, with the reference, instead of hiding it.
      */
-    private function abandon(string $reference): void
+    private function reportLeftOpen(string $reference): void
     {
-        try {
-            $this->api->closeBatch($reference);
-            $this->logger->warning('KSeF batch session closed after a failed upload.', ['session' => $reference]);
-        } catch (Throwable) {
-            $this->logger->warning('KSeF batch session could not be closed after a failed upload; it will expire.', ['session' => $reference]);
-        }
+        $this->logger->warning('KSeF batch upload failed; the session stays open until KSeF expires it.', ['session' => $reference]);
     }
 
     /**

@@ -134,7 +134,7 @@ final class BatchFlowTest extends KsefTestCase
         }
     }
 
-    public function testAFailedUploadClosesTheSessionAndKeepsTheOriginalError(): void
+    public function testAFailedUploadKeepsTheOriginalErrorAndDoesNotTryToCloseAnIncompleteSession(): void
     {
         $this->routeBatch(parts: 1);
         $this->ksef->routesReset('PUT', '/upload/1')->on('PUT', '/upload/1', static fn() => Http::raw(403, ''));
@@ -143,7 +143,7 @@ final class BatchFlowTest extends KsefTestCase
             $this->client()->sendBatch($this->invoices(2));
             self::fail('Expected the upload failure.');
         } catch (ApiException) {
-            self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/batch/batch-1/close'), 'The half-filled session is not left open.');
+            self::assertSame([], $this->ksef->requestsTo('POST', '/sessions/batch/batch-1/close'), 'KSeF refuses to close an incomplete batch (21205).');
         }
     }
 

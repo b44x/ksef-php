@@ -14,6 +14,7 @@ use B4x\Ksef\Invoice\Attachment;
 use B4x\Ksef\Invoice\AttachmentBlock;
 use B4x\Ksef\Invoice\CorrectedInvoice;
 use B4x\Ksef\Invoice\Correction;
+use B4x\Ksef\Invoice\CorrectionAmount;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceBuilder;
@@ -144,6 +145,57 @@ final class LiveFeaturesTest extends TestCase
         $batch = $client->sendBatch([$rich]);
         $status = $client->waitForSession($batch->sessionReference, $this->policy);
         self::assertSame(1, $status->successfulInvoiceCount);
+    }
+
+    public function testCollectiveCorrectionIsAccepted(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $original = $this->builder($taxpayer, 'FV')->addLine(InvoiceLine::of('Item', '1', 'szt.', '100.00', VatRate::Rate23))->build();
+        $number = $this->accept($client, $original);
+
+        $correction = $this->builder($taxpayer, 'KOR')
+            ->correction(new Correction(
+                [new CorrectedInvoice(new DateTimeImmutable('today'), $original->number, $number)],
+                reason: 'Volume discount',
+                period: date('Y-m-01') . ' - ' . date('Y-m-d'),
+                amounts: [CorrectionAmount::of(VatRate::Rate23, '-10.00', '-2.30')],
+            ))
+            ->build();
+
+        $this->accept($client, $correction);
+    }
+
+    public function testAnInterruptedBatchUploadSurfacesTheOriginalErrorAndKsefKeepsTheSessionOpen(): void
+    {
+        [$taxpayer] = $this->taxpayer();
+        $failing = new class ($this->http) implements \Psr\Http\Client\ClientInterface {
+            public function __construct(private readonly \Psr\Http\Client\ClientInterface $inner) {}
+
+            public function sendRequest(\Psr\Http\Message\RequestInterface $request): \Psr\Http\Message\ResponseInterface
+            {
+                if ($request->getMethod() === 'PUT') {
+                    return new \GuzzleHttp\Psr7\Response(403, [], 'denied');
+                }
+
+                return $this->inner->sendRequest($request);
+            }
+        };
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($failing, $this->factory, $this->factory)
+            ->context(ContextIdentifier::nip($taxpayer->nip->value))
+            ->credentials($taxpayer->credentials())
+            ->build();
+
+        $invoice = $this->builder($taxpayer, 'FV')->addLine(InvoiceLine::of('Item', '1', 'szt.', '100.00', VatRate::Rate23))->build();
+        try {
+            $client->sendBatch([$invoice]);
+            self::fail('The upload was refused, so the batch must fail.');
+        } catch (\B4x\Ksef\Exception\ApiException $e) {
+            // KSeF has no cancel for batch sessions and refuses to close one with missing parts (21205):
+            // the SDK reports the upload error as it is and does not pretend to clean up.
+            self::assertSame(403, $e->httpStatus);
+        }
     }
 
     public function testPeppolProvidersSendPefInvoicesOnBehalfOfACompany(): void

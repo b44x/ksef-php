@@ -37,7 +37,7 @@ invoices should show the rows before and after the correction even when a row do
 against the original. Settlement invoices show only the remaining amount in `P_13` / `P_14` / `P_15` (2.7).
 
 1. Collective corrections for a period (art. 106j(3)) are modelled (`Correction::$period` and `$amounts`, no lines) and
-   pass the schema, but were not yet sent to KSeF TEST.
+   pass the schema and were accepted by KSeF TEST.
 2. A `ROZ` that also documents a part payment received before delivery (`ZaliczkaCzesciowa` with `P_6Z` / `P_15Z`) is
    not modelled.
 3. Foreign-currency corrections: `Correction::$exchangeRateBefore` (`KursWalutyZK`) is written, but only PLN
