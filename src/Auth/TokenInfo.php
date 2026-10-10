@@ -7,10 +7,11 @@ namespace B4x\Ksef\Auth;
 use B4x\Ksef\Exception\MalformedResponseException;
 use DateTimeImmutable;
 use Exception;
+use JsonSerializable;
 use SensitiveParameter;
 
 /** A bearer token with its expiry. The token string is a secret and is hidden from dumps. */
-final readonly class TokenInfo
+final readonly class TokenInfo implements JsonSerializable
 {
     public function __construct(
         #[SensitiveParameter]
@@ -38,6 +39,12 @@ final readonly class TokenInfo
     public function expiresWithin(DateTimeImmutable $now, int $marginSeconds = 0): bool
     {
         return $this->validUntil->getTimestamp() - $marginSeconds <= $now->getTimestamp();
+    }
+
+    /** @return array<string, string> */
+    public function jsonSerialize(): array
+    {
+        return ['token' => '***'];
     }
 
     /** @return array<string, string> */

@@ -192,6 +192,9 @@ final class RrValidator
         if (mb_strlen($value, 'UTF-8') > $maxLength) {
             $this->add(\sprintf('%s is longer than %d characters.', $label, $maxLength));
         }
+        if (preg_match('/[\x{00}-\x{08}\x{0B}\x{0C}\x{0E}-\x{1F}\x{7F}-\x{84}\x{86}-\x{9F}]/u', $value) === 1) {
+            $this->add(\sprintf('%s contains characters that KSeF rejects (control characters).', $label));
+        }
     }
 
     private function date(string $label, DateTimeImmutable $date): void

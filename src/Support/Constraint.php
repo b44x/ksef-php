@@ -38,7 +38,8 @@ final class Constraint
 
     public static function pattern(string $label, string $value, string $pattern): void
     {
-        if (preg_match($pattern, $value) !== 1) {
+        // Callers write anchored patterns; a trailing newline must not slip past `$`.
+        if (preg_match($pattern, $value) !== 1 || str_contains($value, "\n")) {
             throw new ValidationException(\sprintf('The %s "%s" has an invalid format.', $label, $value));
         }
     }

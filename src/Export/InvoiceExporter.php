@@ -55,13 +55,26 @@ final class InvoiceExporter
             throw new SessionException(\sprintf('The invoice export did not succeed (%d): %s %s', $status->code, $status->description, implode('; ', $status->details)));
         }
 
-        $handle = fopen($destinationZip, 'wb');
+        $parts = $status->parts;
+        usort($parts, static fn($a, $b): int => $a->ordinalNumber <=> $b->ordinalNumber);
+        foreach ($parts as $index => $part) {
+            if ($part->ordinalNumber !== $index + 1) {
+                throw new MalformedResponseException(\sprintf('The export parts are not numbered 1..%d without gaps (found %d at position %d).', \count($parts), $part->ordinalNumber, $index + 1));
+            }
+        }
+
+        $previousUmask = umask(0o077); // exported invoices are business data: owner-only by default
+        try {
+            $handle = fopen($destinationZip, 'wb');
+        } finally {
+            umask($previousUmask);
+        }
         if ($handle === false) {
             throw new ConfigurationException(\sprintf('Cannot write to "%s".', $destinationZip));
         }
 
         try {
-            foreach ($status->parts as $part) {
+            foreach ($parts as $part) {
                 $cipher = $this->transport->download($part->url, 'application/octet-stream')->body;
                 if (!hash_equals($part->encryptedHash, Digest::sha256Base64($cipher))) {
                     throw new MalformedResponseException(\sprintf('Export part %d is corrupt (encrypted hash mismatch).', $part->ordinalNumber));

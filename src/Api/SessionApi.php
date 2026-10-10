@@ -100,7 +100,11 @@ final class SessionApi
     public function findInvoiceByHash(string $sessionReference, string $invoiceHash): ?SessionInvoice
     {
         $token = null;
+        $seen = [];
         do {
+            if (\count($seen) >= 1000) {
+                throw new MalformedResponseException('KSeF returned more than 1000 pages of session invoices; giving up the search.');
+            }
             $page = $this->invoices($sessionReference, $token);
             foreach ($page->invoices as $invoice) {
                 if ($invoice->invoiceHash === $invoiceHash) {
@@ -108,6 +112,12 @@ final class SessionApi
                 }
             }
             $token = $page->continuationToken;
+            if ($token !== null && isset($seen[$token])) {
+                throw new MalformedResponseException('KSeF repeated a continuation token while listing session invoices.');
+            }
+            if ($token !== null) {
+                $seen[$token] = true;
+            }
         } while ($token !== null);
 
         return null;

@@ -31,7 +31,7 @@ final readonly class Decimal
             return new self($value, 0);
         }
 
-        if (preg_match('/^(-?)(\d+)(?:\.(\d+))?$/', $value, $m) !== 1) {
+        if (preg_match('/^(-?)(\d+)(?:\.(\d+))?$/D', $value, $m) !== 1) {
             throw new ValidationException(\sprintf('"%s" is not a valid decimal number.', $value), [\sprintf('Invalid decimal: %s', $value)]);
         }
 
@@ -251,7 +251,7 @@ final readonly class Decimal
     {
         $result = 1;
         for ($i = 0; $i < $exponent; ++$i) {
-            $result *= 10;
+            $result = self::checkedMultiply($result, 10);
         }
 
         return $result;

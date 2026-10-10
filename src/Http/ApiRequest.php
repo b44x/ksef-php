@@ -24,6 +24,7 @@ final readonly class ApiRequest
         public string $path,
         public array $query = [],
         public array|string|null $body = null,
+        #[SensitiveParameter]
         public ?string $bearerToken = null,
         public RetryMode $retry = RetryMode::Safe,
         public string $contentType = 'application/json',
@@ -31,6 +32,12 @@ final readonly class ApiRequest
         /** @var array<string, string> */
         public array $headers = [],
     ) {}
+
+    /** @return array<string, mixed> */
+    public function __debugInfo(): array
+    {
+        return ['method' => $this->method, 'path' => $this->path, 'query' => $this->query, 'bearerToken' => $this->bearerToken === null ? null : '***', 'retry' => $this->retry];
+    }
 
     public function withBearerToken(#[SensitiveParameter] string $token): self
     {
@@ -48,7 +55,7 @@ final readonly class ApiRequest
     /**
      * @param array<string, scalar|null> $query
      */
-    public static function get(string $path, ?string $bearerToken = null, array $query = [], string $accept = 'application/json'): self
+    public static function get(string $path, #[SensitiveParameter] ?string $bearerToken = null, array $query = [], string $accept = 'application/json'): self
     {
         return new self('GET', $path, $query, null, $bearerToken, RetryMode::Safe, accept: $accept);
     }
@@ -60,6 +67,7 @@ final readonly class ApiRequest
     public static function post(
         string $path,
         array|string|null $body = null,
+        #[SensitiveParameter]
         ?string $bearerToken = null,
         RetryMode $retry = RetryMode::RateLimitOnly,
         array $query = [],
@@ -68,7 +76,7 @@ final readonly class ApiRequest
         return new self('POST', $path, $query, $body, $bearerToken, $retry, $contentType);
     }
 
-    public static function delete(string $path, ?string $bearerToken = null): self
+    public static function delete(string $path, #[SensitiveParameter] ?string $bearerToken = null): self
     {
         return new self('DELETE', $path, [], null, $bearerToken, RetryMode::Never);
     }

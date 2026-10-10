@@ -50,16 +50,22 @@ final class OfflineCertificate
         $bits = \is_array($details) ? ($details['bits'] ?? 0) : 0;
         if ($type === OPENSSL_KEYTYPE_RSA && \is_int($bits) && $bits >= 2048) {
             $this->isEc = false;
-        } elseif ($type === OPENSSL_KEYTYPE_EC && \is_int($bits) && $bits >= 256) {
+        } elseif ($type === OPENSSL_KEYTYPE_EC && \is_array($details) && \is_array($details['ec'] ?? null) && ($details['ec']['curve_name'] ?? null) === 'prime256v1') {
             $this->isEc = true;
         } else {
-            throw new SigningException('Only RSA keys of at least 2048 bits and EC P-256 keys are supported.');
+            throw new SigningException('Only RSA keys of at least 2048 bits and EC P-256 (prime256v1) keys are supported.');
         }
 
         $this->key = $key;
         $this->serialHex = strtoupper($parsed['serialNumberHex']);
         $this->privateKeyPem = $privateKeyPem;
         $this->passphrase = $passphrase;
+    }
+
+    /** @return array<string, string> */
+    public function __debugInfo(): array
+    {
+        return ['serialNumber' => $this->serialHex, 'privateKeyPem' => '***', 'passphrase' => '***'];
     }
 
     /** Certificate serial number as upper-case hexadecimal, the form used in KOD II links. */

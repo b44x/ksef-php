@@ -13,10 +13,10 @@ use B4x\Ksef\Exception\ValidationException;
  */
 final readonly class ContextIdentifier
 {
-    private const NIP = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}$/';
-    private const INTERNAL_ID = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}$/';
-    private const PEPPOL_ID = '/^P[A-Z]{2}[0-9]{6}$/';
-    private const NIP_VAT_UE = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-[A-Z]{2}[A-Z0-9+*]{2,12}$/';
+    private const NIP = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}$/D';
+    private const INTERNAL_ID = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}$/D';
+    private const PEPPOL_ID = '/^P[A-Z]{2}[0-9]{6}$/D';
+    private const NIP_VAT_UE = '/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-[A-Z]{2}[A-Z0-9+*]{2,12}$/D';
 
     private function __construct(
         public ContextIdentifierType $type,

@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Correction::$amountBefore` / `$exchangeRateBefore` (`P_15ZK`, `KursWalutyZK`) for corrections of advance and settlement invoices, and `docs/ADVANCE-INVOICES.md` explaining how those documents are filled and what is still open.
 - Peppol provider flow verified on TEST, PEF invoices and PEF_KOR credit notes: `TestEnvironment::createPeppolProvider()`, `docs/PEPPOL.md`, `examples/13-peppol-invoice.php`, fixtures under `examples/fixtures/`.
 
+### Security
+
+Findings of an independent review of the sources:
+
+- Secrets no longer show up in dumps or serialization: `OfflineCertificate` (private key and passphrase), `ApiRequest` (bearer token), `KsefTokenCredentials` / `TokenInfo` / `GeneratedToken` (also `json_encode()`), and a `SessionEncryption` key cannot be serialized.
+- Transport failures of pre-signed upload and download URLs no longer repeat the signed URL (which acts as a credential) in the exception message or its chain; server-supplied upload headers like `Host` or `Cookie` are ignored.
+- The cleartext-HTTP exception of the base URL checks the parsed host exactly (`localhost.evil.example` used to pass).
+- A DOCTYPE hidden in UTF-16 input is refused after parsing.
+- Trailing newlines are no longer accepted in decimals, currency codes and context identifiers; decimal overflow while scaling is a `ValidationException`.
+- Batches keep one encrypted part in memory instead of the whole archive; the search for an invoice in a session stops on a repeated continuation token or after 1000 pages; export parts are sorted and checked for gaps and the exported ZIP is created owner-only; offline certificates accept EC P-256 keys only (the signature format is fixed at 64 bytes); RR invoices reject control characters.
+
 ### Changed
 
 - Request limits from the KSeF OpenAPI specification are checked locally instead of surfacing as a 400: page sizes (10 minimum, endpoint specific maximum), permission descriptions (5 to 256) and entity names (5 to 90), first names (2 to 30) and surnames (2 to 81), token description, certificate name and serial number format, subunit and EU entity names and addresses, and at least two invoices per collective identifier.

@@ -43,6 +43,10 @@ final class SafeXml
         if (!$loaded || $document->documentElement === null) {
             throw new SerializationException('The XML document is not well-formed: ' . implode('; ', $errors), $errors);
         }
+        // The byte check above cannot see a DOCTYPE in UTF-16 input; the parsed document can.
+        if ($document->doctype !== null) {
+            throw new SerializationException('XML documents with a DOCTYPE declaration are not accepted.');
+        }
 
         return $document;
     }

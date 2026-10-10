@@ -43,7 +43,10 @@ final class Transport
         private readonly string $userAgent = 'ksef-php',
         private readonly ErrorResponseParser $errorParser = new ErrorResponseParser(),
     ) {
-        if (!str_starts_with($baseUrl, 'https://') && !str_starts_with($baseUrl, 'http://localhost') && !str_starts_with($baseUrl, 'http://127.0.0.1')) {
+        $parts = parse_url($baseUrl);
+        $scheme = \is_array($parts) ? ($parts['scheme'] ?? '') : '';
+        $host = \is_array($parts) ? strtolower($parts['host'] ?? '') : '';
+        if ($scheme !== 'https' && !($scheme === 'http' && \in_array($host, ['localhost', '127.0.0.1', '[::1]'], true))) {
             throw new ConfigurationException('The KSeF base URL must use https.');
         }
 
@@ -98,7 +101,8 @@ final class Transport
             ->withHeader('User-Agent', $this->userAgent)
             ->withBody($this->streamFactory->createStream($body));
         foreach ($headers as $name => $value) {
-            if (strtolower($name) !== 'authorization') {
+            // Pre-signed uploads need the headers KSeF names (for example the blob type), nothing that redirects or authenticates.
+            if (!\in_array(strtolower($name), ['authorization', 'host', 'cookie', 'proxy-authorization', 'content-length', 'transfer-encoding'], true)) {
                 $request = $request->withHeader($name, $value);
             }
         }
@@ -175,6 +179,11 @@ final class Transport
                     ++$attempt;
 
                     continue;
+                }
+
+                if (str_contains($label, 'pre-signed')) {
+                    // The client's message (and its previous chain) embeds the signed URL, which works as a bearer credential.
+                    throw new TransportException(\sprintf('HTTP transport failure for %s (%s).', $label, $e::class));
                 }
 
                 throw new TransportException(\sprintf('HTTP transport failure for %s: %s', $label, $e->getMessage()), 0, $e);

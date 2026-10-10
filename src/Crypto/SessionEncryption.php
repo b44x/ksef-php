@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Crypto;
 
 use B4x\Ksef\Exception\EncryptionException;
+use LogicException;
 use SensitiveParameter;
 
 /**
@@ -75,6 +76,16 @@ final class SessionEncryption
     }
 
     /** @return array<string, string> never reveals the key material */
+    /**
+     * The key and IV must never be written to a queue, cache or log by accident.
+     *
+     * @return never
+     */
+    public function __serialize(): array
+    {
+        throw new LogicException('A session encryption key must not be serialized.');
+    }
+
     public function __debugInfo(): array
     {
         return ['key' => '***', 'iv' => '***'];

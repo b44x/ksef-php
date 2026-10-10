@@ -20,7 +20,7 @@ final readonly class Money
      */
     public static function of(string|int $amount, string $currency = 'PLN'): self
     {
-        if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
+        if (preg_match('/^[A-Z]{3}$/D', $currency) !== 1) {
             throw new ValidationException(\sprintf('"%s" is not an ISO 4217 currency code.', $currency), [\sprintf('Invalid currency: %s', $currency)]);
         }
 
