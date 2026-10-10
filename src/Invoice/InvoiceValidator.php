@@ -86,6 +86,7 @@ final class InvoiceValidator
         }
 
         $before = 0;
+        $reversals = 0;
         foreach ($i->lines as $index => $line) {
             $label = \sprintf('Line %d', $index + 1);
             $this->text($label . ' name', $line->name, 512);
@@ -100,14 +101,22 @@ final class InvoiceValidator
             if ($line->gtin !== null) {
                 $this->text($label . ' GTIN', $line->gtin, 20);
             }
-            if ($line->quantity->isNegative() || ($line->state === LineState::Current && !$i->type->isCorrection() && $line->quantity->isZero())) {
+            // Corrections "by difference" or "by reversal" (handbook 2.13.4) show a negative quantity or price.
+            $mayBeNegative = $line->state === LineState::Current && ($i->type === InvoiceType::Correction || $i->type === InvoiceType::SettlementCorrection);
+            if (($line->quantity->isNegative() && !$mayBeNegative) || ($line->state === LineState::Current && !$i->type->isCorrection() && $line->quantity->isZero())) {
                 $this->add($label . ': the quantity must be positive.');
+            }
+            if ($line->quantity->isNegative() && $line->unitNetPrice->isNegative()) {
+                $this->add($label . ': give a negative quantity or a negative price, not both.');
             }
             if ($line->quantity->scale() > 6 && !$line->quantity->equals($line->quantity->roundTo(6))) {
                 $this->add($label . ': the quantity allows at most 6 decimal places.');
             }
-            if ($line->unitNetPrice->isNegative()) {
+            if ($line->unitNetPrice->isNegative() && !$mayBeNegative) {
                 $this->add($label . ': the unit price must not be negative.');
+            }
+            if ($line->state === LineState::Current && $line->netAmount()->isNegative()) {
+                ++$reversals;
             }
             if ($line->unitNetPrice->amount->scale() > 8 && !$line->unitNetPrice->amount->equals($line->unitNetPrice->amount->roundTo(8))) {
                 $this->add($label . ': the unit price allows at most 8 decimal places.');
@@ -140,8 +149,8 @@ final class InvoiceValidator
         if (!$i->type->isCorrection() && $before > 0) {
             $this->add('"Before correction" lines are only allowed on correction invoices.');
         }
-        if ($i->type->isCorrection() && $before === 0) {
-            $this->add('A correction invoice needs at least one "before correction" line (InvoiceLine::asBefore()).');
+        if ($i->type->isCorrection() && $before === 0 && ($reversals === 0 || $i->type === InvoiceType::AdvanceCorrection)) {
+            $this->add('A correction invoice needs at least one "before correction" line (InvoiceLine::asBefore()), or lines with negative values that reverse the original ones.');
         }
     }
 

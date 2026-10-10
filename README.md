@@ -167,7 +167,7 @@ $invoice = Invoice::builder()
 Supported: standard (`VAT`) and correction (`KOR`) invoices, one seller, one buyer (Polish NIP, EU VAT,
 foreign tax id or none), all common VAT treatments (23/22/8/7/5 %, 0 % variants, `zw`, `oo`, `np`),
 GTU codes, payment details, annotations and a footer. Corrections: mark the original state with
-`InvoiceLine::asBefore()` and add the corrected lines; totals become differences automatically.
+`InvoiceLine::asBefore()` and add the corrected lines, or reverse the original lines with a negative quantity or price; totals become differences automatically.
 
 **Other invoice forms.** Besides FA(3) the SDK handles FA_RR (1) farmer purchase invoices with a typed model
 (`RrInvoice`, see `examples/11-farmer-rr-invoice.php`) and accepts Peppol documents (PEF (3) invoices and PEF_KOR (3)

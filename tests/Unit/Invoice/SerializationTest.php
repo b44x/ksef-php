@@ -162,6 +162,20 @@ final class SerializationTest extends TestCase
         self::assertSame('1', $xpath->evaluate('string(//f:DaneFaKorygowanej[2]/f:NrKSeFN)'));
     }
 
+    public function testACorrectionByReversalNeedsNoBeforeLines(): void
+    {
+        $invoice = Fixtures::builder()
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-02'), 'FV/2026/05/009')]))
+            ->addLine(InvoiceLine::of('Widget', '-2', 'pcs', '20.00', VatRate::Rate23))
+            ->build();
+
+        $xpath = $this->xpath(InvoiceDocument::fromInvoice($invoice, $this->clock)->xml);
+
+        self::assertSame('-40.00', $xpath->evaluate('string(//f:P_13_1)'));
+        self::assertSame('-49.20', $xpath->evaluate('string(//f:P_15)'));
+        self::assertSame('-2', $xpath->evaluate('string(//f:FaWiersz/f:P_8B)'));
+    }
+
     public function testRawXmlIsVerifiedBeforeUse(): void
     {
         $valid = InvoiceDocument::fromInvoice(Fixtures::standardInvoice(), $this->clock)->xml;
