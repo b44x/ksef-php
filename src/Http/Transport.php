@@ -30,6 +30,15 @@ use Psr\Log\NullLogger;
  */
 final class Transport
 {
+    /** Largest accepted API (JSON/XML) response body. */
+    private const MAX_API_BODY_BYTES = 32 * 1024 * 1024;
+
+    /** Largest accepted download: an export or batch part is at most 50 MB, plus encryption padding. */
+    private const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
+
+    /** Error bodies are small; anything beyond this is cut off before parsing. */
+    private const MAX_ERROR_BODY_BYTES = 1024 * 1024;
+
     private readonly LoggerInterface $logger;
 
     public function __construct(
@@ -79,7 +88,7 @@ final class Transport
             ->withHeader('Accept', $accept)
             ->withHeader('User-Agent', $this->userAgent);
 
-        return $this->execute($request, RetryMode::Safe, 'GET <pre-signed download url>');
+        return $this->execute($request, RetryMode::Safe, 'GET <pre-signed download url>', self::MAX_DOWNLOAD_BYTES);
     }
 
     /**
@@ -157,7 +166,7 @@ final class Transport
         }
     }
 
-    private function execute(RequestInterface $request, RetryMode $mode, string $label): ApiResponse
+    private function execute(RequestInterface $request, RetryMode $mode, string $label, int $maxBody = self::MAX_API_BODY_BYTES): ApiResponse
     {
         $attempt = 1;
 
@@ -199,11 +208,11 @@ final class Transport
             ]);
 
             if ($status >= 200 && $status < 300) {
-                return $this->toApiResponse($response);
+                return $this->toApiResponse($response, $label, $maxBody);
             }
 
             $retryAfter = $this->retryAfter($response);
-            $error = $this->errorParser->parse($status, (string) $response->getBody(), $retryAfter);
+            $error = $this->errorParser->parse($status, $this->readBody($response, self::MAX_ERROR_BODY_BYTES, false, $label), $retryAfter);
 
             if ($attempt < $this->retryPolicy->maxAttempts && $this->shouldRetry($mode, $status)) {
                 $delay = $this->retryPolicy->delayBefore($attempt, $status === 429 ? $retryAfter : null);
@@ -254,13 +263,46 @@ final class Transport
         return ctype_digit($value) ? (int) $value : null;
     }
 
-    private function toApiResponse(ResponseInterface $response): ApiResponse
+    /**
+     * Reads at most $limit bytes. A larger body is refused ($strict) or cut off, so a misbehaving or hostile
+     * server cannot exhaust memory.
+     */
+    private function readBody(ResponseInterface $response, int $limit, bool $strict, string $label): string
+    {
+        $body = $response->getBody();
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
+        $size = $body->getSize();
+        if ($strict && $size !== null && $size > $limit) {
+            throw new TransportException(\sprintf('The response for %s is larger than the allowed %d bytes.', $label, $limit));
+        }
+
+        $data = '';
+        while (!$body->eof() && \strlen($data) <= $limit) {
+            $chunk = $body->read(min(1024 * 1024, $limit + 1 - \strlen($data)));
+            if ($chunk === '') {
+                break;
+            }
+            $data .= $chunk;
+        }
+        if (\strlen($data) > $limit) {
+            if ($strict) {
+                throw new TransportException(\sprintf('The response for %s is larger than the allowed %d bytes.', $label, $limit));
+            }
+            $data = substr($data, 0, $limit);
+        }
+
+        return $data;
+    }
+
+    private function toApiResponse(ResponseInterface $response, string $label, int $maxBody): ApiResponse
     {
         $headers = [];
         foreach ($response->getHeaders() as $name => $values) {
             $headers[strtolower((string) $name)] = implode(', ', $values);
         }
 
-        return new ApiResponse($response->getStatusCode(), $headers, (string) $response->getBody());
+        return new ApiResponse($response->getStatusCode(), $headers, $this->readBody($response, $maxBody, true, $label));
     }
 }

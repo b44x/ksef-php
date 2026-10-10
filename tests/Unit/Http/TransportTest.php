@@ -267,6 +267,23 @@ final class TransportTest extends TestCase
         self::assertStringContainsString('GET', $log);
     }
 
+    public function testRefusesAnOversizedApiResponse(): void
+    {
+        $this->client->queue(Http::raw(200, str_repeat('a', 32 * 1024 * 1024 + 1)));
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage('larger than the allowed');
+        $this->transport()->send(ApiRequest::get('/x', 't'));
+    }
+
+    public function testAnOversizedErrorBodyIsCutOffButStillReportedAsAnError(): void
+    {
+        $this->client->queue(Http::raw(400, str_repeat('x', 3 * 1024 * 1024)));
+
+        $this->expectException(ApiException::class);
+        $this->transport()->send(ApiRequest::get('/x', 't'));
+    }
+
     private function transport(?RetryPolicy $policy = null): Transport
     {
         return new Transport(

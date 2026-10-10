@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Response bodies are read with a size cap (32 MiB for API calls, 64 MiB for part downloads; error bodies are cut at 1 MiB), so a misbehaving server cannot exhaust memory.
 - A published KSeF public key is only used if its `publicKeyId` equals the SHA-256 of the key inside its certificate (as the specification defines it); otherwise the listing is refused. A key list without a usable key is re-fetched at most every 30 seconds.
 
 ## [0.6.0] - 2026-10-10
