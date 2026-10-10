@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Support\Constraint;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -46,6 +47,8 @@ final class CertificateApi
      */
     public function enroll(string $name, CertificateType $type, string $csrBase64, ?DateTimeInterface $validFrom = null): string
     {
+        Constraint::length('certificate name', $name, 5, 100);
+        Constraint::pattern('certificate name', $name, '/^[a-zA-Z0-9_\\- ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$/u');
         $body = ['certificateName' => $name, 'certificateType' => $type->value, 'csr' => $csrBase64];
         if ($validFrom !== null) {
             $body['validFrom'] = DateTimeImmutable::createFromInterface($validFrom)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
@@ -98,6 +101,11 @@ final class CertificateApi
      */
     public function query(?CertificateType $type = null, ?string $status = null, ?string $name = null, ?string $serialNumber = null, int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 50);
+        if ($serialNumber !== null) {
+            Constraint::pattern('certificate serial number', $serialNumber, '/^[0-9A-F]{16}$/');
+        }
         $filter = array_filter(['type' => $type?->value, 'status' => $status, 'name' => $name, 'certificateSerialNumber' => $serialNumber], static fn(?string $v): bool => $v !== null);
         $data = new Payload($this->client->send(ApiRequest::post('/certificates/query', $filter, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 

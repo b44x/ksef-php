@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Support\Constraint;
 
 /** Typed wrapper over the `/tokens` endpoints (KSeF token management). */
 final class TokenApi
@@ -20,6 +21,7 @@ final class TokenApi
      */
     public function generate(array $permissions, string $description): GeneratedToken
     {
+        Constraint::length('token description', $description, 5, 256);
         $body = [
             'permissions' => array_map(static fn(TokenPermission $p): string => $p->value, $permissions),
             'description' => $description,

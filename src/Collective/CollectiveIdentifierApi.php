@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\KsefNumber;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -26,6 +27,9 @@ final class CollectiveIdentifierApi
      */
     public function generate(array $invoices): string
     {
+        if (\count($invoices) < 2) {
+            throw new ValidationException('A collective identifier needs at least two invoices.');
+        }
         $items = [];
         foreach ($invoices as $invoice) {
             $error = KsefNumber::validate($invoice->ksefNumber);
@@ -37,6 +41,7 @@ final class CollectiveIdentifierApi
                 $item['payment'] = ['amount' => (float) $invoice->payment->amount->toString(2), 'currency' => $invoice->payment->currency];
             }
             if ($invoice->description !== null) {
+                Constraint::length('invoice description', $invoice->description, 1, 512);
                 $item['description'] = $invoice->description;
             }
             $items[] = $item;
@@ -55,6 +60,7 @@ final class CollectiveIdentifierApi
      */
     public function query(DateTimeInterface $from, DateTimeInterface $to, ?string $number = null, ?bool $createdInCurrentContext = null, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
+        Constraint::pageSize($pageSize, 10, 200);
         $body = ['dateCreatedFrom' => self::dateTime($from), 'dateCreatedTo' => self::dateTime($to)];
         if ($number !== null) {
             $body['collectiveIdentifierNumber'] = $number;
@@ -75,6 +81,7 @@ final class CollectiveIdentifierApi
      */
     public function invoices(array $numbers, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
+        Constraint::pageSize($pageSize, 10, 500);
         if (\count($numbers) > 10) {
             throw new ValidationException('At most 10 collective identifiers can be queried at once.');
         }
@@ -90,6 +97,7 @@ final class CollectiveIdentifierApi
      */
     public function ofInvoice(string $ksefNumber, ?string $continuationToken = null, int $pageSize = 10): CollectiveIdentifierPage
     {
+        Constraint::pageSize($pageSize, 10, 200);
         $error = KsefNumber::validate($ksefNumber);
         if ($error !== null) {
             throw new ValidationException(\sprintf('"%s" is not a valid KSeF number (%s).', $ksefNumber, $error));

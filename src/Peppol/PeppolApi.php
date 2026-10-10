@@ -7,6 +7,7 @@ namespace B4x\Ksef\Peppol;
 use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Support\Constraint;
 
 /** Typed wrapper over `/peppol/query`. */
 final class PeppolApi
@@ -18,6 +19,8 @@ final class PeppolApi
      */
     public function providers(int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::get('/peppol/query', null, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return [

@@ -63,7 +63,7 @@ final class CertificateFlowTest extends KsefTestCase
 
         $this->expectException(SessionException::class);
         $this->expectExceptionMessage('already certified');
-        $this->client()->requestCertificate('x', CertificateType::Authentication);
+        $this->client()->requestCertificate('rejected cert', CertificateType::Authentication);
     }
 
     public function testSearchSendsAnObjectEvenWithoutFilters(): void

@@ -13,6 +13,7 @@ use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
 use B4x\Ksef\Status\DownloadedInvoice;
+use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\KsefNumber;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -61,6 +62,8 @@ final class InvoiceApi
         int $pageOffset = 0,
         int $pageSize = 100,
     ): InvoiceMetadataPage {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 250);
         $range = ['dateType' => $dateType->value, 'from' => $this->utc($from)];
         if ($to !== null) {
             $range['to'] = $this->utc($to);

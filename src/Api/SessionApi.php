@@ -17,6 +17,7 @@ use B4x\Ksef\Status\SessionInvoice;
 use B4x\Ksef\Status\SessionInvoicesPage;
 use B4x\Ksef\Status\SessionStatus;
 use B4x\Ksef\Status\Upo;
+use B4x\Ksef\Support\Constraint;
 
 /**
  * Typed wrapper over the interactive-session and status endpoints. No flow logic lives here.
@@ -139,6 +140,7 @@ final class SessionApi
 
     private function invoicePage(string $path, ?string $continuationToken, int $pageSize): SessionInvoicesPage
     {
+        Constraint::pageSize($pageSize, 10, 1000);
         $request = ApiRequest::get($path, null, ['pageSize' => $pageSize]);
         if ($continuationToken !== null) {
             $request = $request->withHeaders(['x-continuation-token' => $continuationToken]);

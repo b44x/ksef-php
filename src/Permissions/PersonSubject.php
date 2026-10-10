@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Permissions;
 
 use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\Nip;
 
 /** The natural person who receives permissions: identified by NIP, PESEL or a certificate fingerprint. */
@@ -21,11 +22,14 @@ final readonly class PersonSubject
 
     public static function byNip(Nip $nip, string $firstName, string $lastName): self
     {
+        self::names($firstName, $lastName);
+
         return new self(['type' => 'Nip', 'value' => $nip->value], self::byIdentifier($firstName, $lastName));
     }
 
     public static function byPesel(string $pesel, string $firstName, string $lastName): self
     {
+        self::names($firstName, $lastName);
         if (preg_match('/^\d{11}$/', $pesel) !== 1) {
             throw new ValidationException('A PESEL has exactly 11 digits.');
         }
@@ -39,6 +43,7 @@ final readonly class PersonSubject
      */
     public static function byFingerprint(string $sha256Fingerprint, string $firstName, string $lastName, Nip|string $nipOrPesel): self
     {
+        self::names($firstName, $lastName);
         if (preg_match('/^[0-9A-Fa-f]{64}$/', $sha256Fingerprint) !== 1) {
             throw new ValidationException('A certificate fingerprint is 64 hexadecimal characters (SHA-256).');
         }
@@ -56,6 +61,13 @@ final readonly class PersonSubject
     public function toArray(): array
     {
         return ['subjectIdentifier' => $this->identifier, 'subjectDetails' => $this->details];
+    }
+
+    /** KSeF accepts first names of 2 to 30 and surnames of 2 to 81 characters. */
+    private static function names(string $firstName, string $lastName): void
+    {
+        Constraint::length('first name', $firstName, 2, 30);
+        Constraint::length('last name', $lastName, 2, 81);
     }
 
     /**

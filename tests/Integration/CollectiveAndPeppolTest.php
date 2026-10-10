@@ -18,11 +18,11 @@ final class CollectiveAndPeppolTest extends KsefTestCase
     {
         $this->ksef->json('POST', '/collective-identifiers', 201, ['collectiveIdentifierNumber' => '5265877635-IZ202606-65ED02180000-E7']);
 
-        $number = $this->client()->createCollectiveIdentifier([new CollectiveInvoice(self::KSEF_NUMBER, Money::pln('123.45'), 'March')]);
+        $number = $this->client()->createCollectiveIdentifier([new CollectiveInvoice(self::KSEF_NUMBER, Money::pln('123.45'), 'March'), new CollectiveInvoice('5265877635-20250826-0100001AF629-AF')]);
 
         self::assertSame('5265877635-IZ202606-65ED02180000-E7', $number);
         self::assertSame(
-            ['invoices' => [['ksefNumber' => self::KSEF_NUMBER, 'payment' => ['amount' => 123.45, 'currency' => 'PLN'], 'description' => 'March']]],
+            ['invoices' => [['ksefNumber' => self::KSEF_NUMBER, 'payment' => ['amount' => 123.45, 'currency' => 'PLN'], 'description' => 'March'], ['ksefNumber' => self::KSEF_NUMBER]]],
             FakeKsef::body($this->ksef->requestsTo('POST', '/collective-identifiers')[0]),
         );
     }
@@ -60,7 +60,7 @@ final class CollectiveAndPeppolTest extends KsefTestCase
     public function testInputIsValidatedLocally(): void
     {
         $this->expectException(ValidationException::class);
-        $this->client()->createCollectiveIdentifier([new CollectiveInvoice('not-a-ksef-number')]);
+        $this->client()->createCollectiveIdentifier([new CollectiveInvoice('not-a-ksef-number'), new CollectiveInvoice(self::KSEF_NUMBER)]);
     }
 
     public function testPeppolProvidersAndSubjectLimits(): void

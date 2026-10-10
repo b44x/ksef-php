@@ -7,6 +7,7 @@ namespace B4x\Ksef\Auth;
 use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Support\Constraint;
 
 /** Typed wrapper over `/auth/sessions` (listing and revoking logins). */
 final class AuthSessionsApi
@@ -18,6 +19,7 @@ final class AuthSessionsApi
      */
     public function list(?string $continuationToken = null, int $pageSize = 20): array
     {
+        Constraint::pageSize($pageSize, 10, 100);
         $request = ApiRequest::get('/auth/sessions', null, ['pageSize' => $pageSize]);
         if ($continuationToken !== null) {
             $request = $request->withHeaders(['x-continuation-token' => $continuationToken]);

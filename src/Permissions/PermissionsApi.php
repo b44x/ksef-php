@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\Nip;
 
 /** Typed wrapper over the commonly used `/permissions/*` endpoints. */
@@ -113,6 +114,7 @@ final class PermissionsApi
         self::description($description);
         $body = $subject->toArray() + ['contextIdentifier' => $unit->toArray(), 'description' => $description];
         if ($subunitName !== null) {
+            Constraint::length('subunit name', $subunitName, 5, 256);
             $body['subunitName'] = $subunitName;
         }
 
@@ -129,6 +131,10 @@ final class PermissionsApi
     public function grantEuEntityAdministrator(EuEntitySubject $subject, string $vatUe, string $euEntityName, string $euEntityAddress, string $description): string
     {
         self::description($description);
+        Constraint::length('EU entity name', $euEntityName, 5, 256);
+        Constraint::length('EU entity name in the details', $euEntityName, 1, 100);
+        Constraint::length('EU entity address', $euEntityAddress, 1, 512);
+
         return $this->operation(ApiRequest::post('/permissions/eu-entities/administration/grants', $subject->toArray() + [
             'contextIdentifier' => ['type' => 'NipVatUe', 'value' => self::nonEmpty($vatUe, 'NIP-VAT UE')],
             'description' => $description,
@@ -160,6 +166,8 @@ final class PermissionsApi
      */
     public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/authorizations/grants', ['queryType' => $direction->value], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return ['permissions' => array_map(AuthorizationGrant::fromPayload(...), $data->objects('authorizationGrants')), 'hasMore' => $data->bool('hasMore')];
@@ -172,6 +180,8 @@ final class PermissionsApi
      */
     public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subunits/grants', $unit === null ? [] : ['subunitIdentifier' => $unit->toArray()], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return ['permissions' => array_map(SubunitPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
@@ -184,6 +194,8 @@ final class PermissionsApi
      */
     public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/eu-entities/grants', [], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return ['permissions' => array_map(EuEntityPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
@@ -196,6 +208,8 @@ final class PermissionsApi
      */
     public function roles(int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::get('/permissions/query/entities/roles', null, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return ['roles' => array_map(EntityRole::ofContext(...), $data->objects('roles')), 'hasMore' => $data->bool('hasMore')];
@@ -208,6 +222,8 @@ final class PermissionsApi
      */
     public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
         $body = $subordinate === null ? [] : ['subordinateEntityIdentifier' => ['type' => 'Nip', 'value' => $subordinate->value]];
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subordinate-entities/roles', $body, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
@@ -221,22 +237,14 @@ final class PermissionsApi
         return new AttachmentStatus($data->optionalBool('isAttachmentAllowed') ?? false, $data->optionalDate('revokedDate'));
     }
 
-    /** KSeF requires a description of 5 to 256 characters and refuses shorter ones with a 400. */
     private static function description(string $description): void
     {
-        $length = mb_strlen($description, 'UTF-8');
-        if ($length < 5 || $length > 256) {
-            throw new ValidationException(\sprintf('The permission description must have 5 to 256 characters, "%s" has %d.', $description, $length));
-        }
+        Constraint::length('permission description', $description, 5, 256);
     }
 
-    /** KSeF requires the full name of an entity to have 5 to 90 characters. */
     private static function name(string $fullName): void
     {
-        $length = mb_strlen($fullName, 'UTF-8');
-        if ($length < 5 || $length > 90) {
-            throw new ValidationException(\sprintf('The entity name must have 5 to 90 characters, "%s" has %d.', $fullName, $length));
-        }
+        Constraint::length('entity name', $fullName, 5, 90);
     }
 
     private static function nonEmpty(string $value, string $label): string
@@ -308,6 +316,9 @@ final class PermissionsApi
      */
     private function query(string $path, array $body, int $pageOffset, int $pageSize): array
     {
+        Constraint::pageOffset($pageOffset);
+        Constraint::pageSize($pageSize, 10, 100);
+
         $data = new Payload($this->client->send(ApiRequest::post($path, $body, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
         return ['permissions' => array_map(PermissionGrant::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];

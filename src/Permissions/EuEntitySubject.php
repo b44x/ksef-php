@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace B4x\Ksef\Permissions;
 
 use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Support\Constraint;
 
 /**
  * Who receives EU-entity permissions. EU representatives sign in with a certificate and are identified by its
@@ -32,6 +33,8 @@ final readonly class EuEntitySubject
     /** An entity that signs in with a seal certificate. */
     public static function entity(string $sha256Fingerprint, string $fullName, string $address): self
     {
+        Constraint::length('entity name', $fullName, 1, 100);
+        Constraint::length('entity address', $address, 1, 512);
         if (preg_match('/^[0-9A-Fa-f]{64}$/', $sha256Fingerprint) !== 1) {
             throw new ValidationException('A certificate fingerprint is 64 hexadecimal characters (SHA-256).');
         }
