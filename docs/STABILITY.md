@@ -16,7 +16,26 @@ Covered by the promise:
   `Session\SubmissionRecoveryPolicy`.
 - Extension points: `Signing\XadesSigner`, `Crypto\PublicKeyProvider`, `Http\Sleeper`.
 - `Support\Decimal`, `Nip`, `KsefNumber`.
+- `Pagination\Page`: what every listing returns (`items`, `hasMore`, `continuationToken`; iterate it or count it).
+- A few result and filter types that live in the `Api` namespace for historical reasons are public: `Api\GeneratedToken`,
+  `TokenStatus`, `TokenPermission`, `InvoiceMetadata`, `InvoiceMetadataPage`, `InvoiceSubjectType`, `InvoiceDateType`.
+  They will not move before a major version.
+- `Export\ExportedPackage`, `Offline\OfflineIssuer`, `Auth\AllowedIps` / `AuthSession`, `Invoice\InvoiceBuilder`,
+  `Rr\RrInvoiceBuilder`, `Peppol\PeppolProvider`, `Signing\OpenSslXadesSigner`, `Crypto\ApiPublicKeyProvider`.
 - `Testing\*` helpers (TEST environment only).
+
+PSR interfaces that appear in signatures (`Psr\Http\Client`, `Psr\Http\Message`, `Psr\Log`, `Psr\Clock`) are part of the
+contract: supporting a new major version of one of them needs a major version of this library only if the old one stops working.
+
+Constructors of **response objects** (`Status\*`, `Permissions\PermissionGrant` and similar, `CertificateInfo`, ...) are
+for the SDK's own use: read their properties, do not rely on the order or number of constructor arguments, and do not
+call `fromPayload()`. The same goes for `KsefClient::__construct()`; build the client with `KsefClient::builder()`.
+
+Tax-law and KSeF vocabulary enums (`VatRate`, `Gtu`, `Permission`, `EntityPermissionType`, `InvoiceType`, `PaymentMethod`,
+`Environment`, ...) gain cases when the law or KSeF does; that is not a breaking change (see below).
+
+`Signing\XadesSigner`, `Crypto\PublicKeyProvider` and `Http\Sleeper` are meant to be implemented by you. New capabilities
+will arrive as new interfaces, not as new methods on these. `Auth\Credentials` cannot be implemented outside the SDK.
 
 **Not** covered: anything marked `@internal` (the `*Api` endpoint wrappers, `Http\Transport` and friends, serializers,
 validators, XML helpers, the poller, the batch packager). They may change in any release; use `KsefClient` instead.

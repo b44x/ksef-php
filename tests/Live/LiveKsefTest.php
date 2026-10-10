@@ -156,7 +156,7 @@ final class LiveKsefTest extends TestCase
 
         $offline = $client->requestCertificate('ksef-php live offline', \B4x\Ksef\Certificates\CertificateType::Offline, policy: $policy);
         $found = $client->searchCertificates(\B4x\Ksef\Certificates\CertificateType::Offline);
-        self::assertContains($offline->serialNumber, array_map(static fn(\B4x\Ksef\Certificates\CertificateInfo $c): string => $c->serialNumber, $found['certificates']));
+        self::assertContains($offline->serialNumber, array_map(static fn(\B4x\Ksef\Certificates\CertificateInfo $c): string => $c->serialNumber, $found->items));
 
         $url = (new \B4x\Ksef\Qr\VerificationLinks(Environment::Test))->certificateUrl(ContextIdentifier::nip($nip), Nip::unchecked($nip), base64_encode(hash('sha256', 'x', true)), $offline->toOfflineCertificate());
         self::assertStringContainsString('/certificate/Nip/' . $nip . '/' . $nip . '/' . $offline->serialNumber . '/', $url);
@@ -204,8 +204,8 @@ final class LiveKsefTest extends TestCase
         self::assertArrayHasKey('invoiceSend', $client->rateLimits());
 
         $sessions = $client->authSessions();
-        self::assertNotSame([], $sessions['sessions']);
-        self::assertNotSame([], array_filter($sessions['sessions'], static fn(\B4x\Ksef\Auth\AuthSession $s): bool => $s->isCurrent));
+        self::assertNotSame([], $sessions->items);
+        self::assertNotSame([], array_filter($sessions->items, static fn(\B4x\Ksef\Auth\AuthSession $s): bool => $s->isCurrent));
     }
 
     public function testPermissionsCanBeGrantedListedAndRevokedOnTheTestEnvironment(): void
@@ -228,18 +228,18 @@ final class LiveKsefTest extends TestCase
         $client->grantPersonPermissions($person, [\B4x\Ksef\Permissions\Permission::InvoiceRead, \B4x\Ksef\Permissions\Permission::InvoiceWrite], 'ksef-php live test', $policy);
 
         $granted = $client->personPermissions(true);
-        $scopes = array_map(static fn(\B4x\Ksef\Permissions\PermissionGrant $g): string => $g->scope, $granted['permissions']);
+        $scopes = array_map(static fn(\B4x\Ksef\Permissions\PermissionGrant $g): string => $g->scope, $granted->items);
         self::assertContains('InvoiceRead', $scopes);
         self::assertContains('InvoiceWrite', $scopes);
         // The owner's own rights are implicit on TEST, so the personal list may legitimately be empty; it must still load.
-        self::assertIsArray($client->myPermissions()['permissions']);
+        self::assertIsArray($client->myPermissions()->items);
 
-        foreach ($granted['permissions'] as $grant) {
+        foreach ($granted->items as $grant) {
             if ($grant->holder === $pesel) {
                 $client->revokePermission($grant->id, $policy);
             }
         }
-        $remaining = array_filter($client->personPermissions(true)['permissions'], static fn(\B4x\Ksef\Permissions\PermissionGrant $g): bool => $g->holder === $pesel);
+        $remaining = array_filter($client->personPermissions(true)->items, static fn(\B4x\Ksef\Permissions\PermissionGrant $g): bool => $g->holder === $pesel);
         self::assertSame([], $remaining);
 
         // Granting something KSeF does not allow in this context is reported with its status.

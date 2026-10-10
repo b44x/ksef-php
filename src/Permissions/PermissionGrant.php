@@ -21,6 +21,7 @@ final readonly class PermissionGrant
         public ?string $holder,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         $holder = $data->optionalObject('authorizedIdentifier');

@@ -120,8 +120,8 @@ final class ExportLimitsSessionsTest extends KsefTestCase
         $client->revokeAuthSession('auth-1');
         $client->revokeAuthSession();
 
-        self::assertTrue($page['sessions'][0]->isCurrent);
-        self::assertSame('next', $page['continuationToken']);
+        self::assertTrue($page->items[0]->isCurrent);
+        self::assertSame('next', $page->continuationToken);
         self::assertCount(1, $this->ksef->requestsTo('DELETE', '/auth/sessions/auth-1'));
         self::assertCount(1, $this->ksef->requestsTo('DELETE', '/auth/sessions/current'));
     }

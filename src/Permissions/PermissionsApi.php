@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Pagination\Page;
 use B4x\Ksef\Support\Constraint;
 use B4x\Ksef\Support\Nip;
 
@@ -165,72 +166,72 @@ final class PermissionsApi
     /**
      * Entity-level authorisations granted by or to the current context.
      *
-     * @return array{permissions: list<AuthorizationGrant>, hasMore: bool}
+     * @return Page<AuthorizationGrant>
      */
-    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): array
+    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/authorizations/grants', ['queryType' => $direction->value], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['permissions' => array_map(AuthorizationGrant::fromPayload(...), $data->objects('authorizationGrants')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(AuthorizationGrant::fromPayload(...), $data->objects('authorizationGrants')), $data->bool('hasMore'));
     }
 
     /**
      * Administrators of the subordinate units of the current context.
      *
-     * @return array{permissions: list<SubunitPermission>, hasMore: bool}
+     * @return Page<SubunitPermission>
      */
-    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subunits/grants', $unit === null ? [] : ['subunitIdentifier' => $unit->toArray()], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['permissions' => array_map(SubunitPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(SubunitPermission::fromPayload(...), $data->objects('permissions')), $data->bool('hasMore'));
     }
 
     /**
      * Administrators and representatives of EU entities in the current context.
      *
-     * @return array{permissions: list<EuEntityPermission>, hasMore: bool}
+     * @return Page<EuEntityPermission>
      */
-    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/eu-entities/grants', [], null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['permissions' => array_map(EuEntityPermission::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(EuEntityPermission::fromPayload(...), $data->objects('permissions')), $data->bool('hasMore'));
     }
 
     /**
      * Roles of the current context (court bailiff, local government unit, VAT group unit, ...).
      *
-     * @return array{roles: list<EntityRole>, hasMore: bool}
+     * @return Page<EntityRole>
      */
-    public function roles(int $pageOffset = 0, int $pageSize = 10): array
+    public function roles(int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
         $data = new Payload($this->client->send(ApiRequest::get('/permissions/query/entities/roles', null, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['roles' => array_map(EntityRole::ofContext(...), $data->objects('roles')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(EntityRole::ofContext(...), $data->objects('roles')), $data->bool('hasMore'));
     }
 
     /**
      * Subordinate entities of the current context (members of a local government unit or VAT group).
      *
-     * @return array{roles: list<EntityRole>, hasMore: bool}
+     * @return Page<EntityRole>
      */
-    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
         $body = $subordinate === null ? [] : ['subordinateEntityIdentifier' => ['type' => 'Nip', 'value' => $subordinate->value]];
         $data = new Payload($this->client->send(ApiRequest::post('/permissions/query/subordinate-entities/roles', $body, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['roles' => array_map(EntityRole::ofSubordinate(...), $data->objects('roles')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(EntityRole::ofSubordinate(...), $data->objects('roles')), $data->bool('hasMore'));
     }
 
     public function attachmentStatus(): AttachmentStatus
@@ -275,9 +276,9 @@ final class PermissionsApi
     /**
      * Permissions the authenticated subject holds.
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function personal(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    public function personal(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return $this->query('/permissions/query/personal/grants', $activeOnly ? ['permissionState' => 'Active'] : [], $pageOffset, $pageSize);
     }
@@ -285,9 +286,9 @@ final class PermissionsApi
     /**
      * Permissions that persons hold in the current context (`$grantedByMe` limits to those this subject granted).
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function persons(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    public function persons(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
         $body = ['queryType' => $grantedByMe ? 'PermissionsGrantedInCurrentContext' : 'PermissionsInCurrentContext'];
         if ($activeOnly) {
@@ -300,9 +301,9 @@ final class PermissionsApi
     /**
      * Invoice-handling permissions other entities granted to the current context.
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function entities(int $pageOffset = 0, int $pageSize = 10): array
+    public function entities(int $pageOffset = 0, int $pageSize = 10): Page
     {
         return $this->query('/permissions/query/entities/grants', [], $pageOffset, $pageSize);
     }
@@ -315,15 +316,15 @@ final class PermissionsApi
     /**
      * @param array<string, mixed> $body
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    private function query(string $path, array $body, int $pageOffset, int $pageSize): array
+    private function query(string $path, array $body, int $pageOffset, int $pageSize): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 100);
 
         $data = new Payload($this->client->send(ApiRequest::post($path, $body, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return ['permissions' => array_map(PermissionGrant::fromPayload(...), $data->objects('permissions')), 'hasMore' => $data->bool('hasMore')];
+        return new Page(array_map(PermissionGrant::fromPayload(...), $data->objects('permissions')), $data->bool('hasMore'));
     }
 }

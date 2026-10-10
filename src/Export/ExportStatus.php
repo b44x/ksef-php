@@ -28,6 +28,7 @@ final readonly class ExportStatus
         public ?DateTimeImmutable $permanentStorageHwmDate,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         $status = $data->object('status');

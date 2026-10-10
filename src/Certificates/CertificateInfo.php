@@ -20,6 +20,7 @@ final readonly class CertificateInfo
         public DateTimeImmutable $validTo,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         $type = CertificateType::tryFrom($data->string('type'));

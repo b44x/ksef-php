@@ -72,7 +72,7 @@ final class CollectiveAndPeppolTest extends KsefTestCase
         $providers = $client->peppolProviders();
         $limits = $client->subjectLimits();
 
-        self::assertSame('Provider', $providers['providers'][0]->name);
+        self::assertSame('Provider', $providers->items[0]->name);
         self::assertSame(12, $limits->maxEnrollments);
         self::assertSame(6, $limits->maxCertificates);
     }

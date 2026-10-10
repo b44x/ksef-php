@@ -20,6 +20,7 @@ final readonly class SubunitPermission
         public ?string $subunitName,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         return new self(

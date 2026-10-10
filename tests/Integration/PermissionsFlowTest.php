@@ -65,10 +65,10 @@ final class PermissionsFlowTest extends KsefTestCase
         $client = $this->client();
 
         $page = $client->personPermissions(true);
-        $client->revokePermission($page['permissions'][0]->id);
+        $client->revokePermission($page->items[0]->id);
 
-        self::assertSame('Pesel', $page['permissions'][0]->holderType);
-        self::assertTrue($page['permissions'][0]->isActive());
+        self::assertSame('Pesel', $page->items[0]->holderType);
+        self::assertTrue($page->items[0]->isActive());
         self::assertSame(['queryType' => 'PermissionsGrantedInCurrentContext', 'permissionState' => 'Active'], FakeKsef::body($this->ksef->requestsTo('POST', '/permissions/query/persons/grants')[0]));
         self::assertCount(1, $this->ksef->requestsTo('DELETE', '/permissions/common/grants/perm-1'));
     }
@@ -95,14 +95,14 @@ final class PermissionsFlowTest extends KsefTestCase
         $client->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self billing');
         $client->grantAuthorization('PL-PEPPOL-1', EntityAuthorizationType::PefInvoicing, 'Peppol partner', 'peppol');
         $page = $client->authorizations(AuthorizationDirection::Granted);
-        $client->revokeAuthorization($page['permissions'][0]->id);
+        $client->revokeAuthorization($page->items[0]->id);
 
         $bodies = $this->ksef->requestsTo('POST', '/permissions/authorizations/grants');
         self::assertSame(['subjectIdentifier' => ['type' => 'Nip', 'value' => '5265877635'], 'permission' => 'SelfInvoicing', 'description' => 'self billing', 'subjectDetails' => ['fullName' => 'Partner sp. z o.o.']], FakeKsef::body($bodies[0]));
         self::assertSame(['type' => 'PeppolId', 'value' => 'PL-PEPPOL-1'], FakeKsef::body($bodies[1])['subjectIdentifier']);
         self::assertSame(['queryType' => 'Granted'], FakeKsef::body($this->ksef->requestsTo('POST', '/permissions/query/authorizations/grants')[0]));
-        self::assertSame('PeppolId', $page['permissions'][0]->authorized->type);
-        self::assertNull($page['permissions'][0]->author);
+        self::assertSame('PeppolId', $page->items[0]->authorized->type);
+        self::assertNull($page->items[0]->author);
         self::assertCount(1, $this->ksef->requestsTo('DELETE', '/permissions/authorizations/grants/auth-1'));
     }
 
@@ -175,12 +175,12 @@ final class PermissionsFlowTest extends KsefTestCase
         $eu = $client->euEntityPermissions();
         $attachments = $client->attachmentStatus();
 
-        self::assertSame('5265877635', $roles['roles'][0]->entity?->value);
-        self::assertTrue($subordinates['hasMore']);
-        self::assertSame('1111111111', $subordinates['roles'][0]->entity?->value);
-        self::assertSame('Branch', $subunits['permissions'][0]->subunitName);
+        self::assertSame('5265877635', $roles->items[0]->entity?->value);
+        self::assertTrue($subordinates->hasMore);
+        self::assertSame('1111111111', $subordinates->items[0]->entity?->value);
+        self::assertSame('Branch', $subunits->items[0]->subunitName);
         self::assertSame(['subunitIdentifier' => ['type' => 'InternalId', 'value' => '5265877635-12345']], FakeKsef::body($this->ksef->requestsTo('POST', '/permissions/query/subunits/grants')[0]));
-        self::assertSame('DE123456789', $eu['permissions'][0]->vatUeIdentifier);
+        self::assertSame('DE123456789', $eu->items[0]->vatUeIdentifier);
         self::assertTrue($attachments->allowed);
         self::assertNull($attachments->revokedAt);
     }

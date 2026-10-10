@@ -9,6 +9,7 @@ use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
 use B4x\Ksef\Http\RetryMode;
+use B4x\Ksef\Pagination\Page;
 use B4x\Ksef\Support\Constraint;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -99,9 +100,9 @@ final class CertificateApi
     }
 
     /**
-     * @return array{certificates: list<CertificateInfo>, hasMore: bool}
+     * @return Page<CertificateInfo>
      */
-    public function query(?CertificateType $type = null, ?string $status = null, ?string $name = null, ?string $serialNumber = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function query(?CertificateType $type = null, ?string $status = null, ?string $name = null, ?string $serialNumber = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         Constraint::pageOffset($pageOffset);
         Constraint::pageSize($pageSize, 10, 50);
@@ -111,9 +112,6 @@ final class CertificateApi
         $filter = array_filter(['type' => $type?->value, 'status' => $status, 'name' => $name, 'certificateSerialNumber' => $serialNumber], static fn(?string $v): bool => $v !== null);
         $data = new Payload($this->client->send(ApiRequest::post('/certificates/query', $filter, null, RetryMode::Safe, ['pageOffset' => $pageOffset, 'pageSize' => $pageSize]))->json());
 
-        return [
-            'certificates' => array_map(CertificateInfo::fromPayload(...), $data->objects('certificates')),
-            'hasMore' => $data->bool('hasMore'),
-        ];
+        return new Page(array_map(CertificateInfo::fromPayload(...), $data->objects('certificates')), $data->bool('hasMore'));
     }
 }

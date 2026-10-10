@@ -51,6 +51,7 @@ use B4x\Ksef\Limits\RateLimit;
 use B4x\Ksef\Limits\SubjectLimits;
 use B4x\Ksef\Offline\OfflineInvoice;
 use B4x\Ksef\Offline\OfflineIssuer;
+use B4x\Ksef\Pagination\Page;
 use B4x\Ksef\Peppol\PeppolApi;
 use B4x\Ksef\Peppol\PeppolProvider;
 use B4x\Ksef\Permissions\AttachmentStatus;
@@ -432,9 +433,9 @@ final class KsefClient
     /**
      * Active logins (authentication sessions) of the subject.
      *
-     * @return array{sessions: list<AuthSession>, continuationToken: string|null}
+     * @return Page<AuthSession>
      */
-    public function authSessions(?string $continuationToken = null, int $pageSize = 20): array
+    public function authSessions(?string $continuationToken = null, int $pageSize = 20): Page
     {
         return ($this->authSessions ?? throw new ConfigurationException('Authentication session support is not configured.'))->list($continuationToken, $pageSize);
     }
@@ -487,9 +488,9 @@ final class KsefClient
     /**
      * Permissions the authenticated subject holds.
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function myPermissions(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    public function myPermissions(bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->personal($activeOnly, $pageOffset, $pageSize);
     }
@@ -497,9 +498,9 @@ final class KsefClient
     /**
      * Permissions persons hold in the current context.
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function personPermissions(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): array
+    public function personPermissions(bool $grantedByMe = false, bool $activeOnly = true, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->persons($grantedByMe, $activeOnly, $pageOffset, $pageSize);
     }
@@ -507,9 +508,9 @@ final class KsefClient
     /**
      * Invoice-handling permissions other entities granted to the current context.
      *
-     * @return array{permissions: list<PermissionGrant>, hasMore: bool}
+     * @return Page<PermissionGrant>
      */
-    public function entityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    public function entityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->entities($pageOffset, $pageSize);
     }
@@ -593,9 +594,9 @@ final class KsefClient
     /**
      * Entity-level authorisations the current context granted or received.
      *
-     * @return array{permissions: list<AuthorizationGrant>, hasMore: bool}
+     * @return Page<AuthorizationGrant>
      */
-    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): array
+    public function authorizations(AuthorizationDirection $direction, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->authorizations($direction, $pageOffset, $pageSize);
     }
@@ -603,17 +604,17 @@ final class KsefClient
     /**
      * Administrators of subordinate units, optionally of one unit only.
      *
-     * @return array{permissions: list<SubunitPermission>, hasMore: bool}
+     * @return Page<SubunitPermission>
      */
-    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function subunitAdministrators(?SubunitContext $unit = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subunitAdministrators($unit, $pageOffset, $pageSize);
     }
 
     /**
-     * @return array{permissions: list<EuEntityPermission>, hasMore: bool}
+     * @return Page<EuEntityPermission>
      */
-    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): array
+    public function euEntityPermissions(int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->euEntityPermissions($pageOffset, $pageSize);
     }
@@ -621,9 +622,9 @@ final class KsefClient
     /**
      * Roles of the current context (court bailiff, local government unit, VAT group unit, ...).
      *
-     * @return array{roles: list<EntityRole>, hasMore: bool}
+     * @return Page<EntityRole>
      */
-    public function entityRoles(int $pageOffset = 0, int $pageSize = 10): array
+    public function entityRoles(int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->roles($pageOffset, $pageSize);
     }
@@ -631,9 +632,9 @@ final class KsefClient
     /**
      * Subordinate entities of the current context.
      *
-     * @return array{roles: list<EntityRole>, hasMore: bool}
+     * @return Page<EntityRole>
      */
-    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function subordinateEntities(?Nip $subordinate = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->permissions ?? throw new ConfigurationException('Permission support is not configured.'))->subordinateEntities($subordinate, $pageOffset, $pageSize);
     }
@@ -692,9 +693,9 @@ final class KsefClient
     /**
      * Peppol service providers registered in KSeF.
      *
-     * @return array{providers: list<PeppolProvider>, hasMore: bool}
+     * @return Page<PeppolProvider>
      */
-    public function peppolProviders(int $pageOffset = 0, int $pageSize = 10): array
+    public function peppolProviders(int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->peppol ?? throw new ConfigurationException('Peppol support is not configured.'))->providers($pageOffset, $pageSize);
     }
@@ -772,9 +773,9 @@ final class KsefClient
     }
 
     /**
-     * @return array{certificates: list<CertificateInfo>, hasMore: bool}
+     * @return Page<CertificateInfo>
      */
-    public function searchCertificates(?CertificateType $type = null, ?string $status = null, ?string $name = null, int $pageOffset = 0, int $pageSize = 10): array
+    public function searchCertificates(?CertificateType $type = null, ?string $status = null, ?string $name = null, int $pageOffset = 0, int $pageSize = 10): Page
     {
         return ($this->certificates ?? throw new ConfigurationException('Certificate support is not configured.'))->query($type, $status, $name, null, $pageOffset, $pageSize);
     }

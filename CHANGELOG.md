@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking (pre-1.0 API review):** listings return `Pagination\Page` (`items`, `hasMore`, `continuationToken`; iterable and countable) instead of arrays with varying keys. Affects `authSessions()`, `myPermissions()`, `personPermissions()`, `entityPermissions()`, `authorizations()`, `subunitAdministrators()`, `euEntityPermissions()`, `entityRoles()`, `subordinateEntities()`, `peppolProviders()` and `searchCertificates()`: replace `$result['permissions']` (`['roles']`, `['providers']`, `['certificates']`, `['sessions']`) with `$result->items` and `$result['hasMore']` with `$result->hasMore`.
+- `fromPayload()` of response objects, `CsrGenerator`, `EcdsaSignature` and `SendOptions::toPayload()` are marked `@internal`; `docs/STABILITY.md` now lists the public types that live in the `Api` namespace, the extension interfaces and the vocabulary enums.
+
 ### Fixed
 
 - 0.7.0 announced that a batch session is closed after a failed upload. Verified on TEST: KSeF refuses to close a batch with missing parts (code 21205) and has no cancel operation, so the session simply expires. The SDK no longer attempts the pointless close; it logs the session reference at warning level and throws the original error.

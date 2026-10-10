@@ -21,12 +21,14 @@ final readonly class EntityRole
     ) {}
 
     /** A role of the current context; {@see self::$entity} is its parent entity, if any. */
+    /** @internal parses a KSeF response */
     public static function ofContext(Payload $data): self
     {
         return new self($data->string('role'), $data->string('description'), $data->date('startDate'), PermissionIdentifier::optional($data, 'parentEntityIdentifier'));
     }
 
     /** A subordinate entity of the current context. */
+    /** @internal parses a KSeF response */
     public static function ofSubordinate(Payload $data): self
     {
         return new self($data->string('role'), $data->string('description'), $data->date('startDate'), PermissionIdentifier::optional($data, 'subordinateEntityIdentifier'));

@@ -7,6 +7,7 @@ namespace B4x\Ksef\Auth;
 use B4x\Ksef\Http\ApiRequest;
 use B4x\Ksef\Http\AuthorizedClient;
 use B4x\Ksef\Http\Payload;
+use B4x\Ksef\Pagination\Page;
 use B4x\Ksef\Support\Constraint;
 
 /** Typed wrapper over `/auth/sessions` (listing and revoking logins).
@@ -18,9 +19,9 @@ final class AuthSessionsApi
     public function __construct(private readonly AuthorizedClient $client) {}
 
     /**
-     * @return array{sessions: list<AuthSession>, continuationToken: string|null}
+     * @return Page<AuthSession>
      */
-    public function list(?string $continuationToken = null, int $pageSize = 20): array
+    public function list(?string $continuationToken = null, int $pageSize = 20): Page
     {
         Constraint::pageSize($pageSize, 10, 100);
         $request = ApiRequest::get('/auth/sessions', null, ['pageSize' => $pageSize]);
@@ -29,10 +30,7 @@ final class AuthSessionsApi
         }
         $data = new Payload($this->client->send($request)->json());
 
-        return [
-            'sessions' => array_map(AuthSession::fromPayload(...), $data->objects('items')),
-            'continuationToken' => $data->optionalString('continuationToken'),
-        ];
+        return new Page(array_map(AuthSession::fromPayload(...), $data->objects('items')), false, $data->optionalString('continuationToken'));
     }
 
     /** Revokes the session of the access token in use; its refresh token stops working. */

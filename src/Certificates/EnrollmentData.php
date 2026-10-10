@@ -26,6 +26,7 @@ final readonly class EnrollmentData
         public ?string $organizationIdentifier = null,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         $given = $data->optionalString('givenName');

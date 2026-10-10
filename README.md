@@ -257,7 +257,7 @@ $page = $ksef->sessionInvoices($batch->sessionReference);     // per invoice: ks
 ```php
 $ksef->grantPersonPermissions(PersonSubject::byPesel($pesel, 'Anna', 'Nowak'), [Permission::InvoiceRead, Permission::InvoiceWrite], 'accountant');
 $ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);   // may delegate: true
-foreach ($ksef->personPermissions(grantedByMe: true)['permissions'] as $grant) { /* $grant->id, ->scope, ->holder */ }
+foreach ($ksef->personPermissions(grantedByMe: true)->items as $grant) { /* $grant->id, ->scope, ->holder */ }
 $ksef->revokePermission($grant->id);
 ```
 

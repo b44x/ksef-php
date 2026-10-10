@@ -91,7 +91,7 @@ final class LiveFeaturesTest extends TestCase
         [$farmer, $farmerClient] = $this->taxpayer();
 
         $farmerClient->grantAuthorization($buyerTaxpayer->nip, EntityAuthorizationType::RrInvoicing, 'Buyer', 'RR invoices', $this->policy);
-        $granted = $farmerClient->authorizations(AuthorizationDirection::Granted)['permissions'];
+        $granted = $farmerClient->authorizations(AuthorizationDirection::Granted)->items;
         self::assertSame('RRInvoicing', $granted[0]->scope);
 
         $address = \B4x\Ksef\Invoice\Address::poland('ul. Polna 1', '00-001 Wieś');

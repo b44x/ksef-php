@@ -83,8 +83,8 @@ final class CertificateFlowTest extends KsefTestCase
         $result = $this->client()->searchCertificates();
 
         self::assertSame('{}', (string) $this->ksef->requestsTo('POST', '/certificates/query')[0]->getBody());
-        self::assertTrue($result['certificates'][0]->isActive());
-        self::assertSame(CertificateType::Offline, $result['certificates'][0]->type);
+        self::assertTrue($result->items[0]->isActive());
+        self::assertSame(CertificateType::Offline, $result->items[0]->type);
     }
 
     public function testCertificatesOnlyServeTheirOwnPurpose(): void

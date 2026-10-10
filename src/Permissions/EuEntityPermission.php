@@ -20,6 +20,7 @@ final readonly class EuEntityPermission
         public string $authorizedFingerprint,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         return new self(

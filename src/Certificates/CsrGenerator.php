@@ -16,6 +16,8 @@ use Throwable;
  *
  * phpseclib builds the request because PHP's OpenSSL bindings cannot express repeated subject
  * attributes (several `givenName` values) or arbitrary OIDs reliably. Requests are signed with SHA-256.
+ *
+ * @internal use KsefClient::requestCertificate()
  */
 final class CsrGenerator
 {

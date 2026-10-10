@@ -20,6 +20,7 @@ final readonly class AuthorizationGrant
         public ?PermissionIdentifier $author,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         return new self(

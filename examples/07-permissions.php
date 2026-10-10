@@ -32,12 +32,12 @@ $ksef->grantPersonPermissions($accountant, [Permission::InvoiceRead, Permission:
 say('  granted.');
 
 step('2. Who has access now?');
-foreach ($ksef->personPermissions()['permissions'] as $grant) {
+foreach ($ksef->personPermissions()->items as $grant) {
     say(sprintf('  %-12s %-8s %s (id %s)', $grant->scope, $grant->holderType, $grant->holder, $grant->id));
 }
 
 step('3. Take it away again');
-foreach ($ksef->personPermissions(grantedByMe: true)['permissions'] as $grant) {
+foreach ($ksef->personPermissions(grantedByMe: true)->items as $grant) {
     if ($grant->holder === $pesel) {
         $ksef->revokePermission($grant->id);
         say('  revoked ' . $grant->scope);
@@ -58,7 +58,7 @@ if ($example->environment !== Environment::Test) {
 } else {
     $partner = TestEnvironment::createTaxpayer($example->http, $example->factory, $example->factory);   // TEST only: a second company
     $ksef->grantAuthorization($partner->nip, EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing agreement');
-    foreach ($ksef->authorizations(AuthorizationDirection::Granted)['permissions'] as $authorization) {
+    foreach ($ksef->authorizations(AuthorizationDirection::Granted)->items as $authorization) {
         say(sprintf('  %-18s -> %s %s (id %s)', $authorization->scope, $authorization->authorized->type, $authorization->authorized->value, $authorization->id));
         $ksef->revokeAuthorization($authorization->id);   // authorisations have their own revoke call
     }

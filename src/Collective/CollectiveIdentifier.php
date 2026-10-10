@@ -18,6 +18,7 @@ final readonly class CollectiveIdentifier
         public ?int $invoiceCount,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         return new self(

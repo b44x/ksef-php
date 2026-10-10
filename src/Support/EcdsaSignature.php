@@ -6,7 +6,11 @@ namespace B4x\Ksef\Support;
 
 use B4x\Ksef\Exception\SigningException;
 
-/** Conversion between ASN.1 DER ECDSA signatures and fixed-width `R||S` (IEEE P1363). */
+/**
+ * Conversion between ASN.1 DER ECDSA signatures and fixed-width `R||S` (IEEE P1363).
+ *
+ * @internal
+ */
 final class EcdsaSignature
 {
     private function __construct() {}

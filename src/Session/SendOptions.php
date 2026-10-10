@@ -49,6 +49,8 @@ final readonly class SendOptions
     }
 
     /**
+     * @internal
+     *
      * @return array<string, mixed>
      */
     public function toPayload(): array

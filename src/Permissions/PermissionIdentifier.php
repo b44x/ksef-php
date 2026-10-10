@@ -11,6 +11,7 @@ final readonly class PermissionIdentifier
 {
     public function __construct(public string $type, public string $value) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         return new self($data->string('type'), $data->optionalString('value') ?? '');

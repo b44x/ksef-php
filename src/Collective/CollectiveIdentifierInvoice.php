@@ -18,6 +18,7 @@ final readonly class CollectiveIdentifierInvoice
         public ?string $description,
     ) {}
 
+    /** @internal parses a KSeF response */
     public static function fromPayload(Payload $data): self
     {
         $payment = $data->optionalObject('payment');
