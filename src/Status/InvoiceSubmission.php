@@ -20,10 +20,17 @@ final readonly class InvoiceSubmission
         public string $invoiceHash,
         /** True when the SDK had to look the document up or re-send it after an ambiguous failure. Use `assertStored()` on the result. */
         public bool $recovered = false,
+        /** True when the invoice was accepted but closing the one-shot session failed afterwards; the invoice itself is unaffected. */
+        public bool $sessionCloseFailed = false,
     ) {}
 
     public function markRecovered(): self
     {
-        return new self($this->sessionReference, $this->invoiceReference, $this->invoiceHash, true);
+        return new self($this->sessionReference, $this->invoiceReference, $this->invoiceHash, true, $this->sessionCloseFailed);
+    }
+
+    public function withSessionCloseFailed(): self
+    {
+        return new self($this->sessionReference, $this->invoiceReference, $this->invoiceHash, $this->recovered, true);
     }
 }

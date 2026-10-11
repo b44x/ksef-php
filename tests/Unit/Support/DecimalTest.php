@@ -111,4 +111,62 @@ final class DecimalTest extends TestCase
         $this->expectException(ValidationException::class);
         Decimal::of('1')->dividedBy(Decimal::of('0'), 2);
     }
+
+    public function testPhpIntMinIsRejectedInsteadOfCorruptingResults(): void
+    {
+        // abs()/negation of PHP_INT_MIN yield a float: toString() used to print "9.2233720368548E+18".
+        $this->expectException(ValidationException::class);
+        Decimal::of(PHP_INT_MIN);
+    }
+
+    public function testResultThatLandsOnPhpIntMinIsRejected(): void
+    {
+        $this->expectException(ValidationException::class);
+        Decimal::of(PHP_INT_MIN + 1)->subtract(Decimal::of(1));
+    }
+
+    public function testIntegerExtremesRoundTripAndOverflowIsReported(): void
+    {
+        $max = Decimal::of(PHP_INT_MAX);
+        self::assertSame((string) PHP_INT_MAX, $max->toString());
+        self::assertSame((string) (PHP_INT_MIN + 1), $max->negate()->toString());
+        self::assertSame((string) PHP_INT_MAX, Decimal::of((string) PHP_INT_MAX)->toString());
+
+        foreach ([static fn() => $max->add(Decimal::of(1)), static fn() => $max->multiply(Decimal::of(2)), static fn() => $max->negate()->subtract(Decimal::of(2))] as $overflow) {
+            try {
+                $overflow();
+                self::fail('Expected an overflow to be reported.');
+            } catch (ValidationException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        $this->expectException(ValidationException::class);
+        Decimal::of('-9223372036854775808');
+    }
+
+    public function testRandomisedAlgebraicProperties(): void
+    {
+        mt_srand(20261011);
+        for ($i = 0; $i < 500; ++$i) {
+            $a = Decimal::of(self::randomDecimal());
+            $b = Decimal::of(self::randomDecimal());
+
+            self::assertTrue($a->add($b)->subtract($b)->equals($a), "($a + $b) - $b");
+            self::assertTrue($a->add($b)->equals($b->add($a)));
+            self::assertTrue($a->multiply($b)->equals($b->multiply($a)));
+            self::assertSame(0, $a->compare($a->negate()->negate()));
+            self::assertSame($a->toString(), Decimal::of($a->toString())->toString(), 'toString() round-trips');
+            self::assertSame($a->isNegative() ? -1 : ($a->isZero() ? 0 : 1), $a->compare(Decimal::zero()));
+            self::assertMatchesRegularExpression('/^-?\d+(\.\d+)?$/D', $a->multiply($b)->toString(2));
+        }
+    }
+
+    private static function randomDecimal(): string
+    {
+        $integer = (string) mt_rand(0, 9_999);
+        $scale = mt_rand(0, 4);
+        $fraction = $scale === 0 ? '' : '.' . str_pad((string) mt_rand(0, 10 ** $scale - 1), $scale, '0', STR_PAD_LEFT);
+
+        return (mt_rand(0, 1) === 1 ? '-' : '') . $integer . $fraction;
+    }
 }

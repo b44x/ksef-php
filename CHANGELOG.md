@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `KsefClient::sendInvoice()` no longer throws when KSeF has already accepted the invoice and only closing the one-shot session fails (timeout, 5xx): the submission is returned with the new `InvoiceSubmission::$sessionCloseFailed` flag instead of an exception that suggested the invoice had not been sent. The session expires on its own.
+- `Support\Decimal` rejects `PHP_INT_MIN` (and results landing on it) with a `ValidationException`; before, `toString()` printed exponent notation and negation/rounding failed with a `TypeError`.
+
 ## [0.12.0] - 2026-10-11
 
 ### Added

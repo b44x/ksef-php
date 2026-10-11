@@ -343,6 +343,62 @@ final class InvoiceSubmissionFlowTest extends KsefTestCase
         $this->client()->sendInvoice(Fixtures::standardInvoice());
     }
 
+    public function testClosingFailureAfterAnAcceptedInvoiceDoesNotTurnTheSendIntoAFailure(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->routesReset('POST', '/sessions/online/sess-1/close');
+        $this->ksef->on('POST', '/sessions/online/sess-1/close', static fn() => throw Http::networkError('read timeout'));
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('sess-1', $submission->sessionReference);
+        self::assertSame('inv-1', $submission->invoiceReference);
+        self::assertTrue($submission->sessionCloseFailed);
+        self::assertFalse($submission->recovered);
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'The accepted invoice is never sent again.');
+    }
+
+    public function testClosingFailureWithServerErrorAfterAnAcceptedInvoiceKeepsTheReferences(): void
+    {
+        $this->routeSession();
+        $this->ksef->json('POST', '/sessions/online/sess-1/invoices', 202, ['referenceNumber' => 'inv-1']);
+        $this->ksef->routesReset('POST', '/sessions/online/sess-1/close');
+        $this->ksef->json('POST', '/sessions/online/sess-1/close', 500, ['title' => 'boom']);
+
+        $submission = $this->client()->sendInvoice(Fixtures::standardInvoice());
+
+        self::assertSame('inv-1', $submission->invoiceReference);
+        self::assertTrue($submission->sessionCloseFailed);
+    }
+
+    public function testUnknownOutcomeKeepsTheSessionReferenceEvenWhenClosingFailsToo(): void
+    {
+        $this->routeSession();
+        $this->ksef->on('POST', '/sessions/online/sess-1/invoices', static fn() => throw Http::networkError('connection reset'));
+        $this->ksef->routesReset('POST', '/sessions/online/sess-1/close');
+        $this->ksef->on('POST', '/sessions/online/sess-1/close', static fn() => throw Http::networkError('read timeout'));
+
+        try {
+            $this->client(null, SubmissionRecoveryPolicy::disabled())->sendInvoice(Fixtures::standardInvoice());
+            self::fail('Expected SubmissionOutcomeUnknownException');
+        } catch (SubmissionOutcomeUnknownException $e) {
+            self::assertSame('sess-1', $e->sessionReference);
+            self::assertNotSame('', $e->invoiceHash);
+            self::assertStringContainsString('connection reset', $e->getMessage());
+        }
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/sessions/online/sess-1/invoices'), 'An ambiguous send is not repeated blindly when recovery is disabled.');
+    }
+
+    public function testRecoveredSubmissionKeepsTheCloseFailureFlag(): void
+    {
+        $submission = new \B4x\Ksef\Status\InvoiceSubmission('s', 'i', 'h', false, true);
+
+        self::assertTrue($submission->markRecovered()->sessionCloseFailed);
+        self::assertTrue($submission->markRecovered()->recovered);
+        self::assertTrue((new \B4x\Ksef\Status\InvoiceSubmission('s', 'i', 'h', true))->withSessionCloseFailed()->recovered);
+    }
+
     public function testSessionCannotBeUsedAfterClosingOrExpiry(): void
     {
         $this->routeSession();

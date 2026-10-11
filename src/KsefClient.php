@@ -247,6 +247,9 @@ final class KsefClient
      * The returned submission means "accepted for processing". Wait for the verdict with
      * {@see self::waitForInvoice()}. For many invoices open a session yourself and reuse it.
      *
+     * Once KSeF has accepted the invoice, a failure to close the session is not an error: the submission is returned
+     * with {@see InvoiceSubmission::$sessionCloseFailed} set (the session expires on its own; the aggregate UPO is not requested).
+     *
      * @param Invoice|RrInvoice|InvoiceDocument|string $invoice typed invoice, verified document or raw FA(3) / FA_RR (1) XML
      * @param SendOptions|null $options offline mode / technical correction flags
      *
@@ -267,7 +270,19 @@ final class KsefClient
             throw $failure;
         }
 
-        $session->close();
+        // The invoice is already accepted at this point, so a failing close() must not turn the call into a failure:
+        // the caller would regenerate or re-send a document KSeF holds. The session expires on its own.
+        try {
+            $session->close();
+        } catch (KsefException $closeFailure) {
+            $this->logger->warning('The invoice was accepted but the KSeF session could not be closed.', [
+                'session' => $session->referenceNumber,
+                'invoice_reference' => $submission->invoiceReference,
+                'error' => $closeFailure::class,
+            ]);
+
+            return $submission->withSessionCloseFailed();
+        }
 
         return $submission;
     }

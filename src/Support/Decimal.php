@@ -20,7 +20,12 @@ final readonly class Decimal
     private function __construct(
         private int $unscaled,
         private int $scale,
-    ) {}
+    ) {
+        // abs() and negation of PHP_INT_MIN leave the integer range (they yield a float), so the value is not representable.
+        if ($unscaled === PHP_INT_MIN) {
+            throw new ValidationException('The decimal value is out of range.');
+        }
+    }
 
     /**
      * @param string|int $value for example "12.50", "-3", 7
