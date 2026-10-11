@@ -163,6 +163,38 @@ final class AuthenticatorTest extends TestCase
         self::assertCount(2, $this->ksef->requestsTo('POST', '/auth/ksef-token'));
     }
 
+    public function testTokensAreSharedThroughTheStoreSoANewProcessDoesNotAuthenticate(): void
+    {
+        $this->routeAuthSuccess('/auth/ksef-token');
+        $store = new \B4x\Ksef\Auth\InMemoryTokenStore($this->clock);
+        $make = fn(): AccessTokenProvider => new AccessTokenProvider($this->authenticator(), new AuthApi($this->transport()), ContextIdentifier::nip(self::NIP), new KsefTokenCredentials('t'), $this->clock, store: $store, storeKey: str_repeat('a', 64));
+
+        self::assertSame('access-1', $make()->accessToken());
+        self::assertSame('access-1', $make()->accessToken(), 'A second provider (another request) reuses the stored tokens.');
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/auth/ksef-token'));
+
+        $make()->invalidate();
+        self::assertNull($store->get(str_repeat('a', 64)), 'invalidate() also clears the store.');
+        self::assertSame('access-1', $make()->accessToken());
+        self::assertCount(2, $this->ksef->requestsTo('POST', '/auth/ksef-token'));
+    }
+
+    public function testUnreadableOrExpiredStoredTokensAreIgnored(): void
+    {
+        $this->routeAuthSuccess('/auth/ksef-token');
+        $store = new \B4x\Ksef\Auth\InMemoryTokenStore($this->clock);
+        $key = str_repeat('b', 64);
+        $store->set($key, 'not json', 3600);
+        $provider = new AccessTokenProvider($this->authenticator(), new AuthApi($this->transport()), ContextIdentifier::nip(self::NIP), new KsefTokenCredentials('t'), $this->clock, store: $store, storeKey: $key);
+
+        self::assertSame('access-1', $provider->accessToken());
+        self::assertCount(1, $this->ksef->requestsTo('POST', '/auth/ksef-token'));
+        self::assertNotNull($store->get($key), 'The fresh tokens replaced the garbage.');
+
+        $this->clock->set('2026-06-09T10:00:00+00:00'); // the refresh token (valid until 2026-06-08) has expired
+        self::assertNull($store->get($key), 'The store drops the tokens when the refresh token expires.');
+    }
+
     private function routeAuthSuccess(string $submitPath): void
     {
         $this->ksef->json('POST', $submitPath, 202, ['referenceNumber' => 'ref-1', 'authenticationToken' => ['token' => 'temp-token', 'validUntil' => '2026-06-01T10:10:00+00:00']]);

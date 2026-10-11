@@ -12,8 +12,11 @@ use B4x\Ksef\Auth\AllowedIps;
 use B4x\Ksef\Auth\AuthApi;
 use B4x\Ksef\Auth\Authenticator;
 use B4x\Ksef\Auth\AuthSessionsApi;
+use B4x\Ksef\Auth\CertificateCredentials;
 use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Auth\Credentials;
+use B4x\Ksef\Auth\KsefTokenCredentials;
+use B4x\Ksef\Auth\TokenStore;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
@@ -28,6 +31,7 @@ use B4x\Ksef\Http\NativeSleeper;
 use B4x\Ksef\Http\RetryPolicy;
 use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Http\Transport;
+use B4x\Ksef\Latarnia\LatarniaApi;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Peppol\PeppolApi;
 use B4x\Ksef\Permissions\PermissionsApi;
@@ -62,6 +66,8 @@ final class KsefClientBuilder
     private PollingPolicy $pollingPolicy;
     private PollingPolicy $authenticationPolling;
     private ?AllowedIps $allowedIps = null;
+    private ?TokenStore $tokenStore = null;
+    private ?string $latarniaUrl = null;
     private ?PublicKeyProvider $keyProvider = null;
     private SubmissionRecoveryPolicy $recovery;
     private string $userAgent = 'ksef-php';
@@ -163,6 +169,25 @@ final class KsefClientBuilder
     }
 
     /** Restricts the issued access token to the given client IP addresses. */
+    /**
+     * Shares access and refresh tokens between requests (and processes) so that not every PHP request authenticates
+     * again. The stored tokens are secrets: see {@see TokenStore}.
+     */
+    public function tokenStore(TokenStore $store): self
+    {
+        $this->tokenStore = $store;
+
+        return $this;
+    }
+
+    /** Base URL of the availability service ("Latarnia") for a custom setup; the environment sets it otherwise. */
+    public function latarniaUrl(string $url): self
+    {
+        $this->latarniaUrl = rtrim($url, '/');
+
+        return $this;
+    }
+
     public function allowedIps(AllowedIps $allowedIps): self
     {
         $this->allowedIps = $allowedIps;
@@ -227,11 +252,13 @@ final class KsefClientBuilder
         $keys = $this->keyProvider ?? new ApiPublicKeyProvider($transport, $clock);
         $authApi = new AuthApi($transport);
         $authenticator = new Authenticator($authApi, new KsefTokenEncryptor($keys), $poller, $this->authenticationPolling, logger: $logger);
-        $tokens = new AccessTokenProvider($authenticator, $authApi, $this->context, $this->credentials, $clock, $this->allowedIps, logger: $logger);
+        $tokens = new AccessTokenProvider($authenticator, $authApi, $this->context, $this->credentials, $clock, $this->allowedIps, logger: $logger, store: $this->tokenStore, storeKey: $this->tokenStoreKey());
         $authorized = new AuthorizedClient($transport, $tokens);
 
         $sessionApi = new SessionApi($authorized);
         $invoiceApi = new InvoiceApi($authorized);
+
+        $latarniaUrl = $this->latarniaUrl ?? $this->environment?->latarniaUrl();
 
         return new KsefClient(
             $sessionApi,
@@ -255,6 +282,19 @@ final class KsefClientBuilder
             $this->context,
             new CollectiveIdentifierApi($authorized),
             new PeppolApi($authorized),
+            $latarniaUrl === null ? null : new LatarniaApi(new Transport($latarniaUrl, $this->httpClient, $this->requestFactory, $this->streamFactory, $this->retryPolicy, $sleeper, $logger, $this->userAgent)),
         );
+    }
+
+    /** An opaque key: the same environment, context and credentials share tokens, anything else does not. */
+    private function tokenStoreKey(): string
+    {
+        $identity = match (true) {
+            $this->credentials instanceof KsefTokenCredentials => 'token:' . $this->credentials->token,
+            $this->credentials instanceof CertificateCredentials => 'certificate:' . $this->credentials->signer->certificateFingerprint(),
+            default => 'other:' . bin2hex(random_bytes(16)), // unknown credentials never share tokens
+        };
+
+        return hash('sha256', implode("\n", [$this->baseUrl ?? '', $this->context->type->value ?? '', $this->context->value ?? '', hash('sha256', $identity)]));
     }
 }

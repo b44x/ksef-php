@@ -30,6 +30,18 @@ enum Environment: string
         };
     }
 
+    /**
+     * Host of the Ministry's public availability service ("Latarnia"), or null where none is published (Demo).
+     */
+    public function latarniaUrl(): ?string
+    {
+        return match ($this) {
+            self::Test => 'https://api-latarnia-test.ksef.mf.gov.pl',
+            self::Demo => null,
+            self::Production => 'https://api-latarnia.ksef.mf.gov.pl',
+        };
+    }
+
     public function isProduction(): bool
     {
         return $this === self::Production;

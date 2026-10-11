@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `KsefClientBuilder::tokenStore()` with `Auth\TokenStore`, `FileTokenStore` (owner-only files), `Psr16TokenStore` and `InMemoryTokenStore`: access and refresh tokens are shared between PHP requests and processes instead of authenticating on every request. Keys are hashes of the environment, context and credentials, so different credentials never share tokens; unreadable or expired entries are ignored; a failing store never breaks a request.
+- `KsefClient::availability()` and `availabilityMessages()`: the Ministry's public availability service ("Latarnia", no authentication) tells whether KSeF is available, in maintenance or failing, and why. `AvailabilityReport::isFailure()` is the cue to issue offline invoices.
+
 ## [0.9.0] - 2026-10-11
 
 ### Added

@@ -45,6 +45,9 @@ use B4x\Ksef\Http\Sleeper;
 use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\Invoice;
 use B4x\Ksef\Invoice\InvoiceDocument;
+use B4x\Ksef\Latarnia\AvailabilityMessage;
+use B4x\Ksef\Latarnia\AvailabilityReport;
+use B4x\Ksef\Latarnia\LatarniaApi;
 use B4x\Ksef\Limits\ContextLimits;
 use B4x\Ksef\Limits\LimitsApi;
 use B4x\Ksef\Limits\RateLimit;
@@ -145,7 +148,37 @@ final class KsefClient
         private readonly ContextIdentifier $context,
         private readonly CollectiveIdentifierApi $collective,
         private readonly PeppolApi $peppol,
+        private readonly ?LatarniaApi $latarnia = null,
     ) {}
+
+    /**
+     * Whether KSeF is up, from the Ministry's public availability service ("Latarnia"; no authentication, separate from
+     * the API). Call it to decide between sending online and issuing offline invoices (docs/OFFLINE.md), or to explain
+     * a failure to your users. Not available for the Demo environment.
+     *
+     * @throws ConfigurationException when no availability service is known for this client
+     */
+    public function availability(): AvailabilityReport
+    {
+        return $this->latarnia()->status();
+    }
+
+    /**
+     * The failure and maintenance announcements currently published, newest first.
+     *
+     * @return list<AvailabilityMessage>
+     *
+     * @throws ConfigurationException when no availability service is known for this client
+     */
+    public function availabilityMessages(): array
+    {
+        return $this->latarnia()->messages();
+    }
+
+    private function latarnia(): LatarniaApi
+    {
+        return $this->latarnia ?? throw new ConfigurationException('No availability service is configured for this client (the Demo environment has none); set one with the builder\'s latarniaUrl().');
+    }
 
     public static function builder(): KsefClientBuilder
     {
