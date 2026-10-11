@@ -60,6 +60,7 @@ use B4x\Ksef\Permissions\AuthorizationGrant;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
 use B4x\Ksef\Permissions\EntityPermissionType;
 use B4x\Ksef\Permissions\EntityRole;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Permissions\EuEntity;
 use B4x\Ksef\Permissions\EuEntityPermission;
 use B4x\Ksef\Permissions\EuEntityPermissionType;
@@ -474,10 +475,13 @@ final class KsefClient
      *
      * @throws PermissionOperationException when KSeF refuses the grant
      */
-    public function grantEntityPermissions(Nip $entityNip, string $entityName, array $permissions, string $description, ?PollingPolicy $policy = null): void
+    public function grantEntityPermissions(EntitySubject $entity, array $permissions, string $description, ?PollingPolicy $policy = null): void
     {
+        if (!$entity->identifier instanceof Nip) {
+            throw new Exception\ValidationException('Permissions can be granted to entities identified by NIP only.', ['The entity must be identified by NIP.']);
+        }
         $api = $this->permissions;
-        $this->awaitPermissionOperation($api, $api->grantToEntity($entityNip, $entityName, $permissions, $description), $policy);
+        $this->awaitPermissionOperation($api, $api->grantToEntity($entity->identifier, $entity->fullName, $permissions, $description), $policy);
     }
 
     /**
@@ -525,14 +529,14 @@ final class KsefClient
      * Authorises another entity to act for you in a special way (self-billing, RR invoices, tax
      * representative, Peppol) and waits until KSeF applied it.
      *
-     * @param Nip|string $subject the authorised entity: a NIP, or a Peppol ID given as a string
+     * @param EntitySubject $subject the authorised entity: by NIP, or a Peppol provider by its Peppol ID
      *
      * @throws PermissionOperationException when KSeF refuses the grant
      */
-    public function grantAuthorization(Nip|string $subject, EntityAuthorizationType $type, string $fullName, string $description, ?PollingPolicy $policy = null): void
+    public function grantAuthorization(EntitySubject $subject, EntityAuthorizationType $type, string $description, ?PollingPolicy $policy = null): void
     {
         $api = $this->permissions;
-        $this->awaitPermissionOperation($api, $api->grantAuthorization($subject, $type, $fullName, $description), $policy);
+        $this->awaitPermissionOperation($api, $api->grantAuthorization($subject->identifier, $type, $subject->fullName, $description), $policy);
     }
 
     /**

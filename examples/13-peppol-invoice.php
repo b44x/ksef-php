@@ -19,6 +19,7 @@ use B4x\Ksef\Invoice\FormCode;
 use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\KsefClient;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Testing\TestEnvironment;
 
@@ -42,7 +43,7 @@ $providerClient->openOnlineSession(FormCode::pef())->close();
 say('  provider ' . $provider->id . ' is registered');
 
 step('2. The company authorises the provider to issue PEF invoices for it (needs the step above first)');
-$company->ksef->grantAuthorization($provider->id, EntityAuthorizationType::PefInvoicing, 'Test Peppol provider', 'PEF invoicing');
+$company->ksef->grantAuthorization(EntitySubject::peppolProvider($provider->id, 'Test Peppol provider'), EntityAuthorizationType::PefInvoicing, 'PEF invoicing');
 say(sprintf('  company %s -> provider %s: PefInvoicing granted', $company->nip->value, $provider->id));
 
 step('3. The provider sends the UBL invoice of the company');

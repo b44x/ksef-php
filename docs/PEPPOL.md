@@ -36,7 +36,7 @@ NIP (taken from the UBL document), not the provider's.
 After the provider has signed in once (a company cannot authorise an unknown provider):
 
 ```php
-$company->grantAuthorization('PPL123456', EntityAuthorizationType::PefInvoicing, 'Provider name', 'PEF invoicing');
+$company->grantAuthorization(EntitySubject::peppolProvider('PPL123456', 'Provider name'), EntityAuthorizationType::PefInvoicing, 'PEF invoicing');
 $company->listPeppolProviders();       // the providers registered in KSeF
 ```
 

@@ -15,6 +15,7 @@ use B4x\Ksef\Environment;
 use B4x\Ksef\Exception\PermissionOperationException;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Permissions\Permission;
 use B4x\Ksef\Permissions\PersonSubject;
 use B4x\Ksef\Testing\TestEnvironment;
@@ -57,7 +58,7 @@ if ($example->environment !== Environment::Test) {
     say('  (skipped: this step creates a second company, which is only possible on the TEST environment)');
 } else {
     $partner = TestEnvironment::createTaxpayer($example->http, $example->factory, $example->factory);   // TEST only: a second company
-    $ksef->grantAuthorization($partner->nip, EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing agreement');
+    $ksef->grantAuthorization(EntitySubject::nip($partner->nip, 'Partner sp. z o.o.'), EntityAuthorizationType::SelfInvoicing, 'self-billing agreement');
     foreach ($ksef->listAuthorizations(AuthorizationDirection::Granted)->items as $authorization) {
         say(sprintf('  %-18s -> %s %s (id %s)', $authorization->scope, $authorization->authorized->type, $authorization->authorized->value, $authorization->id));
         $ksef->revokeAuthorization($authorization->id);   // authorisations have their own revoke call
@@ -66,7 +67,7 @@ if ($example->environment !== Environment::Test) {
 }
 
 step('Other recipes (not run here)');
-say("  \$ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);");
+say("  \$ksef->grantEntityPermissions(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), ['InvoiceRead' => true]);");
 say('  // accounting office: let a person work in the contexts of ALL your customers');
 say('  $ksef->grantIndirectPermissions($accountant, [EntityPermissionType::InvoiceRead], \'office staff\', IndirectTarget::allPartners());');
 say('  // administrators of subordinate units, EU entities: grantSubunitAdministrator(), grantEuEntityAdministrator(), ...');

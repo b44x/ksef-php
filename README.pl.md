@@ -258,7 +258,7 @@ $page = $ksef->listSessionInvoices($batch->sessionReference);     // per faktura
 
 ```php
 $ksef->grantPersonPermissions(PersonSubject::byPesel($pesel, 'Anna', 'Nowak'), [Permission::InvoiceRead, Permission::InvoiceWrite], 'accountant');
-$ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);   // może delegować: true
+$ksef->grantEntityPermissions(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), ['InvoiceRead' => true]);   // może delegować: true
 foreach ($ksef->listPersonPermissions(grantedByMe: true)->items as $grant) { /* $grant->id, ->scope, ->holder */ }
 $ksef->revokePermission($grant->id);
 ```
@@ -271,7 +271,7 @@ Szczególne ustalenia mają własne wywołania, wszystkie asynchroniczne w KSeF 
 
 ```php
 // Uprawnienia na poziomie podmiotu: samofakturowanie, RR, przedstawiciel podatkowy, Peppol
-$ksef->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing');
+$ksef->grantAuthorization(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), EntityAuthorizationType::SelfInvoicing, 'self-billing');
 $ksef->listAuthorizations(AuthorizationDirection::Granted);   // ...::Received
 $ksef->revokeAuthorization($authorization->id);           // nie revokePermission(): inny endpoint
 

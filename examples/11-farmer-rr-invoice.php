@@ -17,6 +17,7 @@ use B4x\Ksef\Invoice\Address;
 use B4x\Ksef\Invoice\CorrectedInvoice;
 use B4x\Ksef\KsefClient;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Rr\RrCorrection;
 use B4x\Ksef\Rr\RrInvoice;
@@ -39,7 +40,7 @@ $farmerClient = KsefClient::builder()
     ->context(ContextIdentifier::nip($farmer->nip->value))
     ->credentials($farmer->credentials())
     ->build();
-$farmerClient->grantAuthorization($buyerCompany->nip, EntityAuthorizationType::RrInvoicing, 'Skup Zbóż sp. z o.o.', 'RR invoices');
+$farmerClient->grantAuthorization(EntitySubject::nip($buyerCompany->nip, 'Skup Zbóż sp. z o.o.'), EntityAuthorizationType::RrInvoicing, 'RR invoices');
 say('  farmer ' . $farmer->nip->value . ' -> buyer ' . $buyerCompany->nip->value . ': RRInvoicing granted');
 
 step('2. The buyer issues the RR invoice');

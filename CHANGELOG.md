@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `grantEntityPermissions()` and `grantAuthorization()` take an `EntitySubject` (`EntitySubject::nip($nip, $fullName)`, `EntitySubject::peppolProvider($peppolId, $fullName)`) instead of an identifier plus loose name and description strings that were easy to swap.
+- GitHub Actions moved to `checkout@v7` and `cache@v6`; Guzzle 8 is allowed for development; Dependabot now targets `develop`.
+
 ## [0.8.0] - 2026-10-10
 
 ### Changed

@@ -256,7 +256,7 @@ $page = $ksef->listSessionInvoices($batch->sessionReference);     // per invoice
 
 ```php
 $ksef->grantPersonPermissions(PersonSubject::byPesel($pesel, 'Anna', 'Nowak'), [Permission::InvoiceRead, Permission::InvoiceWrite], 'accountant');
-$ksef->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true]);   // may delegate: true
+$ksef->grantEntityPermissions(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), ['InvoiceRead' => true]);   // may delegate: true
 foreach ($ksef->listPersonPermissions(grantedByMe: true)->items as $grant) { /* $grant->id, ->scope, ->holder */ }
 $ksef->revokePermission($grant->id);
 ```
@@ -269,7 +269,7 @@ Special arrangements have their own calls, all asynchronous in KSeF and awaited 
 
 ```php
 // Entity-level authorisations: self-invoicing, RR, tax representative, Peppol
-$ksef->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self-billing');
+$ksef->grantAuthorization(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), EntityAuthorizationType::SelfInvoicing, 'self-billing');
 $ksef->listAuthorizations(AuthorizationDirection::Granted);   // ...::Received
 $ksef->revokeAuthorization($authorization->id);           // not revokePermission(): different endpoint
 

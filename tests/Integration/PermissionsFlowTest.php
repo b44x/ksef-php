@@ -9,6 +9,7 @@ use B4x\Ksef\Exception\ValidationException;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
 use B4x\Ksef\Permissions\EntityPermissionType;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Permissions\EuEntity;
 use B4x\Ksef\Permissions\EuEntityPermissionType;
 use B4x\Ksef\Permissions\EuEntitySubject;
@@ -44,7 +45,7 @@ final class PermissionsFlowTest extends KsefTestCase
         $this->ksef->json('GET', '/permissions/operations/op-2', 200, ['status' => ['code' => 420, 'description' => 'No right to do this']]);
 
         try {
-            $this->client()->grantEntityPermissions(Nip::of('5265877635'), 'Partner sp. z o.o.', ['InvoiceRead' => true], 'partner');
+            $this->client()->grantEntityPermissions(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), ['InvoiceRead' => true], 'partner');
             self::fail('Expected PermissionOperationException');
         } catch (PermissionOperationException $e) {
             self::assertSame(420, $e->status->code);
@@ -93,8 +94,8 @@ final class PermissionsFlowTest extends KsefTestCase
         $this->done('a-3');
         $client = $this->client();
 
-        $client->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Partner sp. z o.o.', 'self billing');
-        $client->grantAuthorization('PL-PEPPOL-1', EntityAuthorizationType::PefInvoicing, 'Peppol partner', 'peppol');
+        $client->grantAuthorization(EntitySubject::nip(Nip::of('5265877635'), 'Partner sp. z o.o.'), EntityAuthorizationType::SelfInvoicing, 'self billing');
+        $client->grantAuthorization(EntitySubject::peppolProvider('PL-PEPPOL-1', 'Peppol partner'), EntityAuthorizationType::PefInvoicing, 'peppol');
         $page = $client->listAuthorizations(AuthorizationDirection::Granted);
         $client->revokeAuthorization($page->items[0]->id);
 
@@ -191,8 +192,8 @@ final class PermissionsFlowTest extends KsefTestCase
         $client = $this->client();
         foreach ([
             'short description' => fn() => $client->grantPersonPermissions(PersonSubject::byPesel('90010112345', 'A', 'B'), [Permission::InvoiceRead], 'abc'),
-            'short entity name' => fn() => $client->grantEntityPermissions(Nip::of('5265877635'), 'Ab', ['InvoiceRead' => true], 'a valid description'),
-            'short authorisation name' => fn() => $client->grantAuthorization(Nip::of('5265877635'), EntityAuthorizationType::SelfInvoicing, 'Ab', 'a valid description'),
+            'short entity name' => fn() => $client->grantEntityPermissions(EntitySubject::nip(Nip::of('5265877635'), 'Ab'), ['InvoiceRead' => true], 'a valid description'),
+            'short authorisation name' => fn() => $client->grantAuthorization(EntitySubject::nip(Nip::of('5265877635'), 'Ab'), EntityAuthorizationType::SelfInvoicing, 'a valid description'),
         ] as $label => $call) {
             try {
                 $call();

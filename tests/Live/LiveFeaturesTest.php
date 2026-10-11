@@ -28,6 +28,7 @@ use B4x\Ksef\Invoice\VatRate;
 use B4x\Ksef\KsefClient;
 use B4x\Ksef\Permissions\AuthorizationDirection;
 use B4x\Ksef\Permissions\EntityAuthorizationType;
+use B4x\Ksef\Permissions\EntitySubject;
 use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Rr\RrCorrection;
 use B4x\Ksef\Rr\RrInvoice;
@@ -90,7 +91,7 @@ final class LiveFeaturesTest extends TestCase
         [$buyerTaxpayer, $buyerClient] = $this->taxpayer();
         [$farmer, $farmerClient] = $this->taxpayer();
 
-        $farmerClient->grantAuthorization($buyerTaxpayer->nip, EntityAuthorizationType::RrInvoicing, 'Buyer', 'RR invoices', $this->policy);
+        $farmerClient->grantAuthorization(EntitySubject::nip($buyerTaxpayer->nip, 'Buyer'), EntityAuthorizationType::RrInvoicing, 'RR invoices', $this->policy);
         $granted = $farmerClient->listAuthorizations(AuthorizationDirection::Granted)->items;
         self::assertSame('RRInvoicing', $granted[0]->scope);
 
@@ -210,7 +211,7 @@ final class LiveFeaturesTest extends TestCase
             ->build();
 
         $providerClient->openOnlineSession(FormCode::pef())->close(); // first sign-in registers the provider
-        $companyClient->grantAuthorization($provider->id, EntityAuthorizationType::PefInvoicing, 'Test Peppol provider', 'PEF invoicing', $this->policy);
+        $companyClient->grantAuthorization(EntitySubject::peppolProvider($provider->id, 'Test Peppol provider'), EntityAuthorizationType::PefInvoicing, 'PEF invoicing', $this->policy);
 
         $xml = strtr((string) file_get_contents(__DIR__ . '/../../examples/fixtures/pef-invoice.xml'), [
             '{{NUMBER}}' => 'PEF/' . random_int(1000, 999_999),
