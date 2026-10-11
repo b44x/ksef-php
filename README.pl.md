@@ -399,6 +399,9 @@ $report->isFailure();                       // true, gdy nie da się wysyłać f
 $ksef->availabilityMessages();              // komunikaty: tytuł, treść, początek, koniec (null, gdy nieznany)
 ```
 
+Ministerstwo udostępnia usługę tylko dla TEST i produkcji; na Demo te wywołania rzucają `ConfigurationException`, chyba że
+wskażesz serwis w builderze przez `->latarniaUrl()`.
+
 ### Tokeny między żądaniami
 
 PHP zaczyna każde żądanie z pustą pamięcią, więc domyślnie każde żądanie uwierzytelnia się od nowa. Daj klientowi
@@ -547,6 +550,19 @@ composer analyse     # PHPStan, poziom max + reguły strict
 composer lint        # php-cs-fixer (composer fix poprawia)
 composer check       # wszystko powyższe plus composer validate
 composer bench       # mikro-benchmarki (czas i pamięć), bez sieci
+```
+
+**Przygotowanie sytuacji testowych** (tylko środowisko TEST; gdzie indziej odmowa): `Testing\TestData` obejmuje operacje
+`/testdata` niewymagające logowania (podmioty z jednostkami podrzędnymi, osoby, uprawnienia, zgoda na załączniki,
+zablokowane konteksty), a `$ksef->testData()` operacje na własnym kontekście:
+
+```php
+$data = new TestData($http, $factory, $factory);
+$data->grantPermissions($contextNip, TestIdentifierType::Pesel, $pesel, [Permission::InvoiceRead], 'księgowy do testów');
+$data->blockContext(ContextIdentifier::nip('5265877635'));         // zobacz, jak integracja reaguje na odmowę logowania
+$ksef->testData()->setRateLimits(['invoiceSend' => new RateLimit(1, 10, 100)]);   // wywołaj odpowiedzi 429
+$ksef->testData()->setSessionLimits(new SessionLimits(5, 1, 2), new SessionLimits(7, 1, 2));   // malutkie sesje
+$ksef->testData()->resetRateLimits();  $ksef->testData()->resetSessionLimits();
 ```
 
 **Testy na żywo** (opcjonalne) przeprowadzają pełny cykl na publicznym środowisku TEST KSeF: tworzą jednorazowego

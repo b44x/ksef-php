@@ -76,6 +76,14 @@ final readonly class ApiRequest
         return new self('POST', $path, $query, $body, $bearerToken, $retry, $contentType);
     }
 
+    /**
+     * @param array<array-key, mixed>|null $body
+     */
+    public static function put(string $path, ?array $body = null, #[SensitiveParameter] ?string $bearerToken = null): self
+    {
+        return new self('PUT', $path, [], $body, $bearerToken, RetryMode::Never);
+    }
+
     public static function delete(string $path, #[SensitiveParameter] ?string $bearerToken = null): self
     {
         return new self('DELETE', $path, [], null, $bearerToken, RetryMode::Never);

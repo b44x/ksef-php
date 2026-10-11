@@ -96,6 +96,7 @@ use B4x\Ksef\Status\SessionStatus;
 use B4x\Ksef\Status\Upo;
 use B4x\Ksef\Support\KsefNumber;
 use B4x\Ksef\Support\Nip;
+use B4x\Ksef\Testing\ContextTestData;
 use DateTimeInterface;
 use Generator;
 use Psr\Clock\ClockInterface;
@@ -153,6 +154,7 @@ final class KsefClient
         private readonly PeppolApi $peppol,
         private readonly ?LatarniaApi $latarnia,
         private readonly AccessTokenProvider $accessTokens,
+        private readonly ?ContextTestData $testData,
     ) {}
 
     /**
@@ -177,6 +179,17 @@ final class KsefClient
     public function authenticateWithSignedRequest(string $signedXml): void
     {
         $this->accessTokens->authenticateWithSignedRequest($signedXml);
+    }
+
+    /**
+     * The TEST-only operations on this context (limits, rate limits, certificate validity) for checking how your
+     * integration copes with them.
+     *
+     * @throws ConfigurationException unless the client works against the TEST environment
+     */
+    public function testData(): ContextTestData
+    {
+        return $this->testData ?? throw new ConfigurationException('The test data API exists on the TEST environment only.');
     }
 
     /**

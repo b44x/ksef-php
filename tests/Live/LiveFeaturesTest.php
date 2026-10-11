@@ -145,6 +145,38 @@ final class LiveFeaturesTest extends TestCase
         self::assertGreaterThan(0, $client->contextLimits()->onlineSession->maxInvoices, 'The login works: an authenticated call succeeds.');
     }
 
+    public function testTheTestDataApiBlocksAContextAndChangesItsLimits(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $data = new \B4x\Ksef\Testing\TestData($this->http, $this->factory, $this->factory);
+
+        // Limits on the context: shrink, observe, restore.
+        $client->testData()->setSessionLimits(new \B4x\Ksef\Limits\SessionLimits(5, 1, 2), new \B4x\Ksef\Limits\SessionLimits(7, 1, 2), 10);
+        self::assertSame(5, $client->contextLimits()->onlineSession->maxInvoices);
+        $client->testData()->resetSessionLimits();
+        self::assertSame(10000, $client->contextLimits()->onlineSession->maxInvoices);
+
+        $client->testData()->setRateLimits(['invoiceSend' => new \B4x\Ksef\Limits\RateLimit(1, 2, 3)]);
+        self::assertSame(3, $client->rateLimits()['invoiceSend']->perHour);
+        $client->testData()->resetRateLimits();
+
+        // A blocked context cannot log in; unblocked, it can again.
+        $context = ContextIdentifier::nip($taxpayer->nip->value);
+        $data->blockContext($context);
+        $blocked = KsefClient::builder()->environment(Environment::Test)->httpClient($this->http, $this->factory, $this->factory)
+            ->context($context)->credentials($taxpayer->credentials())->build();
+        try {
+            $blocked->contextLimits();
+            self::fail('A blocked context must not log in.');
+        } catch (\B4x\Ksef\Exception\ApiException) {
+            self::addToAssertionCount(1);
+        }
+        $data->unblockContext($context);
+        $unblocked = KsefClient::builder()->environment(Environment::Test)->httpClient($this->http, $this->factory, $this->factory)
+            ->context($context)->credentials($taxpayer->credentials())->build();
+        self::assertGreaterThan(0, $unblocked->contextLimits()->onlineSession->maxInvoices);
+    }
+
     public function testADownloadedInvoiceIsReadBackAsIssued(): void
     {
         [$taxpayer, $client] = $this->taxpayer();

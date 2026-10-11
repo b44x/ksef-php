@@ -397,6 +397,9 @@ $report->isFailure();                       // true when invoices cannot be sent
 $ksef->availabilityMessages();              // announcements: title, text, start, end (null while unknown)
 ```
 
+The Ministry publishes the service for TEST and production only; on Demo these calls throw a `ConfigurationException`
+unless you point the builder at one with `->latarniaUrl()`.
+
 ### Tokens between requests
 
 PHP starts every request with an empty memory, so by default every request authenticates again. Give the client a store
@@ -545,6 +548,19 @@ composer analyse     # PHPStan, level max + strict rules
 composer lint        # php-cs-fixer (composer fix applies)
 composer check       # all of the above plus composer validate
 composer bench       # micro benchmarks (time and memory), no network
+```
+
+**Setting up test situations** (TEST environment only; refused anywhere else): `Testing\TestData` covers the
+`/testdata` operations that need no login (entities with subunits, people, permissions, the attachment consent, blocked
+contexts), and `$ksef->testData()` the ones on your own context:
+
+```php
+$data = new TestData($http, $factory, $factory);
+$data->grantPermissions($contextNip, TestIdentifierType::Pesel, $pesel, [Permission::InvoiceRead], 'accountant for tests');
+$data->blockContext(ContextIdentifier::nip('5265877635'));         // see how your integration reacts to a refused login
+$ksef->testData()->setRateLimits(['invoiceSend' => new RateLimit(1, 10, 100)]);   // provoke 429 answers
+$ksef->testData()->setSessionLimits(new SessionLimits(5, 1, 2), new SessionLimits(7, 1, 2));   // tiny sessions
+$ksef->testData()->resetRateLimits();  $ksef->testData()->resetSessionLimits();
 ```
 
 **Live tests** (opt-in) run the complete lifecycle against the public KSeF TEST environment: they create a

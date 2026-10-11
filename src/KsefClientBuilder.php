@@ -41,6 +41,7 @@ use B4x\Ksef\Polling\PollingPolicy;
 use B4x\Ksef\Session\InvoiceFactory;
 use B4x\Ksef\Session\SubmissionRecoveryPolicy;
 use B4x\Ksef\Support\SystemClock;
+use B4x\Ksef\Testing\ContextTestData;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -256,6 +257,7 @@ final class KsefClientBuilder
         $tokens = new AccessTokenProvider($authenticator, $authApi, $this->context, $this->credentials, $clock, $this->allowedIps, logger: $logger, store: $this->tokenStore, storeKey: $this->tokenStoreKey());
         $authorized = new AuthorizedClient($transport, $tokens);
 
+        $limitsApi = new LimitsApi($authorized);
         $sessionApi = new SessionApi($authorized);
         $invoiceApi = new InvoiceApi($authorized);
 
@@ -276,7 +278,7 @@ final class KsefClientBuilder
             new BatchSender($sessionApi, $transport, $keys, new BatchPackager(), $logger),
             new CertificateApi($authorized),
             new InvoiceExporter($invoiceApi, $transport, $keys, $poller),
-            new LimitsApi($authorized),
+            $limitsApi,
             new AuthSessionsApi($authorized),
             new PermissionsApi($authorized),
             $this->environment,
@@ -285,6 +287,7 @@ final class KsefClientBuilder
             new PeppolApi($authorized),
             $latarniaUrl === null ? null : new LatarniaApi(new Transport($latarniaUrl, $this->httpClient, $this->requestFactory, $this->streamFactory, $this->retryPolicy, $sleeper, $logger, $this->userAgent)),
             $tokens,
+            $this->environment === Environment::Test ? new ContextTestData($authorized, $limitsApi) : null,
         );
     }
 
