@@ -336,8 +336,8 @@ $ksef->certificateLimits();  $ksef->searchCertificates(CertificateType::Offline)
 
 Fakturowanie offline (wystawienie bez KSeF, dostarczenie później, korekta techniczna) ma własny przewodnik: [docs/OFFLINE.md](docs/OFFLINE.md).
 
-`VerificationLinks` buduje linki do kodów QR na wizualizacji faktury (SDK nie rysuje obrazka; podaj link dowolnej
-bibliotece ISO/IEC 18004, np. `bacon/bacon-qr-code`):
+`VerificationLinks` buduje linki do kodów QR na wizualizacji faktury, a `QrCodeRenderer` rysuje je jako SVG z podpisem
+pod kodem (wymaga `composer require bacon/bacon-qr-code`):
 
 ```php
 $links = new VerificationLinks(Environment::Production);
@@ -345,7 +345,48 @@ $url = $links->invoiceUrl($sellerNip, $issueDate, $document);            // KOD 
 $label = $links->label($ksefNumber);                                      // numer KSeF albo "OFFLINE"
 $url2 = $links->certificateUrl($context, $sellerNip, $document->hash(),   // KOD II, tylko faktury offline
     new OfflineCertificate($certPem, $keyPem));                           // certyfikat KSeF typu "Offline"
+
+$renderer = new QrCodeRenderer(300);
+$svg = $renderer->svg($url, $links->label($ksefNumber));                  // obrazek z numerem KSeF albo "OFFLINE" pod kodem
+$svg2 = $renderer->svg($url2, $links->certificateLabel());                // KOD II ma podpis "CERTYFIKAT"
 ```
+
+Gdy KSeF nie działa, mówi o tym `$ksef->availability()->isFailure()`, a `new OfflineDeadline()` podaje termin dosłania
+faktur offline ([docs/OFFLINE.md](docs/OFFLINE.md)).
+
+### Czy KSeF działa?
+
+```php
+$report = $ksef->availability();            // publiczna usługa dostępności Ministerstwa („Latarnia”), bez uwierzytelniania
+$report->status;                            // AvailabilityStatus: Available | Maintenance | Failure | TotalFailure
+$report->isFailure();                       // true, gdy nie da się wysyłać faktur: wystawiaj faktury offline
+$ksef->availabilityMessages();              // komunikaty: tytuł, treść, początek, koniec (null, gdy nieznany)
+```
+
+### Tokeny między żądaniami
+
+PHP zaczyna każde żądanie z pustą pamięcią, więc domyślnie każde żądanie uwierzytelnia się od nowa. Daj klientowi
+magazyn, a żądania będą współdzielić tokeny dostępu i odświeżania do ich wygaśnięcia:
+
+```php
+->tokenStore(new FileTokenStore('/var/lib/myapp/ksef'))              // pliki tylko dla właściciela, w prywatnym katalogu
+->tokenStore(new Psr16TokenStore($privateCache))                     // dowolny cache PSR-16 (composer require psr/simple-cache)
+```
+
+Zapisane tokeny są sekretami: katalog lub cache ma być prywatny dla aplikacji. Różne poświadczenia i konteksty nigdy
+nie współdzielą wpisów.
+
+### Weryfikacja UPO
+
+```php
+$upo = $ksef->invoiceUpo($submission);
+$upo->verifyHash();                                  // skrót zapowiedziany przez KSeF zgadza się z dokumentem
+$check = $upo->verifySignature();                    // podpis XML Ministerstwa: ważny, podpisujący, daty certyfikatu
+$check = $upo->verifySignature($ministryCertificatePem);   // ... a `$check->trusted`, gdy podpisujący to (lub wydany przez) ten certyfikat
+```
+
+Bez certyfikatu, któremu ufasz, ważny podpis dowodzi, że dokument nie został zmieniony, ale nie kto go podpisał;
+certyfikat weź z oficjalnej publikacji Ministerstwa.
 
 ### Niezawodność: timeouty, ponowienia i duplikaty
 

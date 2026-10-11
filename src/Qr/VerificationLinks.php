@@ -83,6 +83,12 @@ final class VerificationLinks
         return $ksefNumber;
     }
 
+    /** Text printed under KOD II, the code that proves the issuer's identity. */
+    public function certificateLabel(): string
+    {
+        return 'CERTYFIKAT';
+    }
+
     private static function toBase64Url(string $base64): string
     {
         if (base64_decode($base64, true) === false) {

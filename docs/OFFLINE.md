@@ -12,6 +12,17 @@ KSeF later. The SDK covers the technical side; the legal modes and deadlines are
 
 Always check the current rules and announcements; deadlines move when a failure is announced.
 
+The SDK computes the dates for you (Polish business days, public holidays including Christmas Eve from 2025):
+
+```php
+$deadline = new OfflineDeadline();                                       // or new OfflineDeadline(new PolishCalendar(['2026-06-02']))
+$until = $deadline->for(OfflineMode::Offline24, $invoice->issueDate);    // end of the next business day, Europe/Warsaw
+$late = $deadline->isOverdue(OfflineMode::Emergency, $failureEndedOn, new DateTimeImmutable());
+```
+
+Whether KSeF is down right now is answered by `$ksef->availability()` (the Ministry's availability service), which is
+the cue to switch to offline invoicing.
+
 ## What you need
 
 A KSeF certificate of type **Offline** for the seller. It can only confirm the issuer for KOD II; it cannot log in.

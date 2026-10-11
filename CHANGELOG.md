@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Upo::verifySignature()`: verifies the Ministry's XML signature on a UPO (digests of every reference, the signature value, the embedded certificate) and, when you pass a certificate to trust, whether the signer is it or was issued by it. Checked against a real UPO from KSeF TEST; any change to the document is detected.
+- `Qr\QrCodeRenderer`: draws the verification links as SVG with the caption KSeF requires under the code (`VerificationLinks::certificateLabel()` gives `CERTYFIKAT` for KOD II). Needs `bacon/bacon-qr-code`.
+- `Offline\OfflineDeadline`, `OfflineMode` and `PolishCalendar`: the delivery deadline of offline invoices (end of the next business day, or 7 business days for emergencies) with Polish public holidays.
 - `KsefClientBuilder::tokenStore()` with `Auth\TokenStore`, `FileTokenStore` (owner-only files), `Psr16TokenStore` and `InMemoryTokenStore`: access and refresh tokens are shared between PHP requests and processes instead of authenticating on every request. Keys are hashes of the environment, context and credentials, so different credentials never share tokens; unreadable or expired entries are ignored; a failing store never breaks a request.
 - `KsefClient::availability()` and `availabilityMessages()`: the Ministry's public availability service ("Latarnia", no authentication) tells whether KSeF is available, in maintenance or failing, and why. `AvailabilityReport::isFailure()` is the cue to issue offline invoices.
 

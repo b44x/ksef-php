@@ -334,8 +334,8 @@ $ksef->certificateLimits();  $ksef->searchCertificates(CertificateType::Offline)
 
 Offline invoicing (issue without KSeF, deliver later, technical correction) has its own guide: [docs/OFFLINE.md](docs/OFFLINE.md).
 
-`VerificationLinks` builds the links for the QR codes of an invoice visualisation (the SDK does not draw the
-image; feed the link to any ISO/IEC 18004 library such as `bacon/bacon-qr-code`):
+`VerificationLinks` builds the links for the QR codes of an invoice visualisation, and `QrCodeRenderer` draws them
+as SVG with the caption underneath (needs `composer require bacon/bacon-qr-code`):
 
 ```php
 $links = new VerificationLinks(Environment::Production);
@@ -343,7 +343,48 @@ $url = $links->invoiceUrl($sellerNip, $issueDate, $document);            // KOD 
 $label = $links->label($ksefNumber);                                      // KSeF number, or "OFFLINE"
 $url2 = $links->certificateUrl($context, $sellerNip, $document->hash(),   // KOD II, offline invoices only
     new OfflineCertificate($certPem, $keyPem));                           // KSeF "Offline" certificate
+
+$renderer = new QrCodeRenderer(300);
+$svg = $renderer->svg($url, $links->label($ksefNumber));                  // image with "5265877635-20260601-..." or "OFFLINE" below
+$svg2 = $renderer->svg($url2, $links->certificateLabel());                // KOD II is captioned "CERTYFIKAT"
 ```
+
+When KSeF is down, `$ksef->availability()->isFailure()` says so, and `new OfflineDeadline()` tells you by when the
+offline invoices must be delivered ([docs/OFFLINE.md](docs/OFFLINE.md)).
+
+### Is KSeF up?
+
+```php
+$report = $ksef->availability();            // the Ministry's public availability service ("Latarnia"), no authentication
+$report->status;                            // AvailabilityStatus: Available | Maintenance | Failure | TotalFailure
+$report->isFailure();                       // true when invoices cannot be sent: issue offline invoices
+$ksef->availabilityMessages();              // announcements: title, text, start, end (null while unknown)
+```
+
+### Tokens between requests
+
+PHP starts every request with an empty memory, so by default every request authenticates again. Give the client a store
+and requests share the access and refresh tokens until they expire:
+
+```php
+->tokenStore(new FileTokenStore('/var/lib/myapp/ksef'))              // owner-only files in a private directory
+->tokenStore(new Psr16TokenStore($privateCache))                     // any PSR-16 cache (composer require psr/simple-cache)
+```
+
+The stored tokens are secrets: keep the directory or cache private to your application. Different credentials or
+contexts never share entries.
+
+### Verifying a UPO
+
+```php
+$upo = $ksef->invoiceUpo($submission);
+$upo->verifyHash();                                  // the hash KSeF announced matches the document
+$check = $upo->verifySignature();                    // the Ministry's XML signature: valid, signer, certificate dates
+$check = $upo->verifySignature($ministryCertificatePem);   // ... and `$check->trusted` when the signer is (or was issued by) that certificate
+```
+
+Without a certificate you trust, a valid signature proves the document was not changed, not who signed it; take the
+certificate from the Ministry's official publication.
 
 ### Reliability: timeouts, retries and duplicates
 

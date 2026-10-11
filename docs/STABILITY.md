@@ -22,6 +22,7 @@ Covered by the promise:
   They will not move before a major version.
 - `Export\ExportedPackage`, `Offline\OfflineIssuer`, `Auth\AllowedIps` / `AuthSession`, `Invoice\InvoiceBuilder`,
   `Rr\RrInvoiceBuilder`, `Peppol\PeppolProvider`, `Signing\OpenSslXadesSigner`, `Crypto\ApiPublicKeyProvider`.
+- `Latarnia\*` results (`AvailabilityReport`, `AvailabilityMessage` and the enums), `Auth\TokenStore` with its bundled stores, `Qr\QrCodeRenderer`, `Offline\OfflineDeadline` / `OfflineMode` / `PolishCalendar`, `Status\SignatureCheck`.
 - `Testing\*` helpers (TEST environment only).
 
 PSR interfaces that appear in signatures (`Psr\Http\Client`, `Psr\Http\Message`, `Psr\Log`, `Psr\Clock`) are part of the

@@ -10,8 +10,8 @@ declare(strict_types=1);
  * KOD I  (every invoice)       lets anyone check the invoice in KSeF.
  * KOD II (offline invoices)    proves the issuer's identity; signed with a KSeF *Offline* certificate.
  *
- * The SDK produces the links and the caption. Drawing the image is up to a QR library; `composer require
- * bacon/bacon-qr-code` is a good one (this example uses it automatically when it is installed).
+ * The SDK produces the links and the captions, and with `composer require bacon/bacon-qr-code` also draws the images
+ * (SVG). This example renders them automatically when the library is installed.
  */
 
 use B4x\Ksef\Auth\ContextIdentifier;
@@ -20,6 +20,7 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Invoice\InvoiceLine;
 use B4x\Ksef\Invoice\VatRate;
 use B4x\Ksef\Polling\PollingPolicy;
+use B4x\Ksef\Qr\QrCodeRenderer;
 use B4x\Ksef\Qr\VerificationLinks;
 
 require __DIR__ . '/bootstrap.php';
@@ -46,10 +47,10 @@ $ksef->revokeCertificate($offline->serialNumber);
 
 step('Rendering the image');
 if (class_exists(BaconQrCode\Writer::class)) {
-    $renderer = new BaconQrCode\Renderer\ImageRenderer(new BaconQrCode\Renderer\RendererStyle\RendererStyle(300), new BaconQrCode\Renderer\Image\SvgImageBackEnd());
-    $svg = (new BaconQrCode\Writer($renderer))->writeString($url);
-    file_put_contents(sys_get_temp_dir() . '/ksef-kod1.svg', $svg);
-    say('  saved ' . sys_get_temp_dir() . '/ksef-kod1.svg');
+    $renderer = new QrCodeRenderer(300);
+    file_put_contents(sys_get_temp_dir() . '/ksef-kod1.svg', $renderer->svg($url, $links->label($result->ksefNumber)));
+    file_put_contents(sys_get_temp_dir() . '/ksef-kod2.svg', $renderer->svg($url2, $links->certificateLabel()));
+    say('  saved ' . sys_get_temp_dir() . '/ksef-kod1.svg and ksef-kod2.svg (caption included)');
 } else {
-    say('  (install bacon/bacon-qr-code to render the link as an SVG image)');
+    say('  (install bacon/bacon-qr-code to render the links as SVG images)');
 }
