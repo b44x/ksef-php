@@ -25,6 +25,7 @@ Covered by the promise:
 - `Auth\ManualCredentials`, `Auth\AuthenticationRequest`, `Exception\ManualSignatureRequiredException`.
 - `Reader\InvoiceReader` and the `Reader\Received*` read model (properties; their constructors are for the SDK), `TaxSummaryRow`.
 - `Latarnia\*` results (`AvailabilityReport`, `AvailabilityMessage` and the enums), `Auth\TokenStore` with its bundled stores, `Qr\QrCodeRenderer`, `Offline\OfflineDeadline` / `OfflineMode` / `PolishCalendar`, `Status\SignatureCheck`.
+- The `vendor/bin/ksef-doctor` command: its options, environment variables and exit codes. (`Doctor\*` classes are internal.)
 - `Testing\*` helpers (TEST environment only), including `TestData`, `ContextTestData` and `KsefClient::testData()`.
 
 PSR interfaces that appear in signatures (`Psr\Http\Client`, `Psr\Http\Message`, `Psr\Log`, `Psr\Clock`) are part of the

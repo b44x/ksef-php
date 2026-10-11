@@ -402,6 +402,23 @@ $ksef->availabilityMessages();              // komunikaty: tytuł, treść, pocz
 Ministerstwo udostępnia usługę tylko dla TEST i produkcji; na Demo te wywołania rzucają `ConfigurationException`, chyba że
 wskażesz serwis w builderze przez `->latarniaUrl()`.
 
+### Sprawdzenie konfiguracji (`ksef-doctor`)
+
+Zanim wyślesz pierwszą prawdziwą fakturę, niech doktor sprawdzi, czy wszystko działa. Pracuje tylko do odczytu: loguje
+się (i kończy to logowanie), czyta limity, uprawnienia i faktury, niczego nie wysyła.
+
+```bash
+KSEF_NIP=5265877635 KSEF_TOKEN=... vendor/bin/ksef-doctor --env=production     # token, albo
+KSEF_NIP=5265877635 KSEF_CERT=cert.pem KSEF_KEY=key.pem vendor/bin/ksef-doctor --env=demo   # certyfikat (lub KSEF_P12 + KSEF_P12_PASSWORD)
+vendor/bin/ksef-doctor --env=test                                                 # bez poświadczeń: jednorazowy podatnik
+```
+
+Sprawdza PHP i rozszerzenia, certyfikat (ważność, samopodpisany na produkcji), czy KSeF jest osiągalny i czy zegar jest
+poprawny, dostępność KSeF, logowanie (z wyjaśnieniem od KSeF i numerem śladu przy odmowie), limity, uprawnienia i dostęp do
+odczytu faktur. Kod wyjścia `0` oznacza brak błędów, `1` nieudane sprawdzenie, `2` złe ustawienia; `--json` drukuje raport
+dla skryptów. Sekrety pochodzą ze zmiennych środowiskowych, nigdy z argumentów. Korzysta z Guzzle
+(`composer require guzzlehttp/guzzle`).
+
 ### Tokeny między żądaniami
 
 PHP zaczyna każde żądanie z pustą pamięcią, więc domyślnie każde żądanie uwierzytelnia się od nowa. Daj klientowi

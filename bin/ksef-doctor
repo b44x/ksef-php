@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use B4x\Ksef\Doctor\Cli;
+
+foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+
+        break;
+    }
+}
+if (!class_exists(Cli::class)) {
+    fwrite(STDERR, "Run `composer install` first.\n");
+    exit(2);
+}
+
+/** @var array<string, string> $environment */
+$environment = getenv();
+exit(Cli::run(array_slice($argv, 1), $environment, static function (string $text): void {
+    fwrite(STDOUT, $text);
+}));

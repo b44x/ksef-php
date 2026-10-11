@@ -400,6 +400,23 @@ $ksef->availabilityMessages();              // announcements: title, text, start
 The Ministry publishes the service for TEST and production only; on Demo these calls throw a `ConfigurationException`
 unless you point the builder at one with `->latarniaUrl()`.
 
+### Checking your setup (`ksef-doctor`)
+
+Before the first real invoice, let the doctor check that everything works. It is read-only: it logs in (and ends that
+login again), reads the limits, permissions and invoices, and sends nothing.
+
+```bash
+KSEF_NIP=5265877635 KSEF_TOKEN=... vendor/bin/ksef-doctor --env=production     # a token, or
+KSEF_NIP=5265877635 KSEF_CERT=cert.pem KSEF_KEY=key.pem vendor/bin/ksef-doctor --env=demo   # a certificate (or KSEF_P12 + KSEF_P12_PASSWORD)
+vendor/bin/ksef-doctor --env=test                                                 # no credentials: a throw-away taxpayer
+```
+
+It checks PHP and its extensions, the certificate (expiry, self-signed on production), that KSeF is reachable and that the
+clock is right, KSeF's availability, the login (with KSeF's own explanation and trace id when it is refused), the limits,
+the permissions and read access to invoices. Exit code `0` means nothing failed, `1` a check failed, `2` the settings are
+wrong; `--json` prints the report for scripts. Secrets come from environment variables, never from arguments. It uses
+Guzzle (`composer require guzzlehttp/guzzle`).
+
 ### Tokens between requests
 
 PHP starts every request with an empty memory, so by default every request authenticates again. Give the client a store

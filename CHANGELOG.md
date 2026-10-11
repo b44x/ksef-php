@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vendor/bin/ksef-doctor`** (`composer doctor`): a read-only readiness check for TEST, Demo and production. It checks PHP and its extensions, the certificate (expiry, self-signed on production), reachability and clock skew, KSeF's availability, the login (with KSeF's explanation and trace id), the limits, the permissions and read access to invoices, and ends the login it created. Settings come from environment variables (`KSEF_NIP`, `KSEF_TOKEN` or `KSEF_CERT` + `KSEF_KEY` or `KSEF_P12`); `--json` for scripts; exit codes 0/1/2.
+
 ## [0.11.0] - 2026-10-11
 
 ### Added

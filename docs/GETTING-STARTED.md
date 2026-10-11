@@ -58,6 +58,7 @@ See example 09 for the exceptions you will meet.
 ## 5. Move to production checklist
 
 - [ ] Run your flow on TEST, then on DEMO (`Environment::Demo`) with real-looking data.
+- [ ] Run `vendor/bin/ksef-doctor --env=production` (read-only) with the production credentials: it checks the certificate, the clock, the login, the limits and the permissions without sending anything.
 - [ ] Credentials for production issued and stored as secrets; permissions limited to what you need.
 - [ ] `->environment(Environment::Production)` – there is no default environment on purpose.
 - [ ] TLS verification enabled; timeouts configured on your HTTP client.
@@ -65,6 +66,7 @@ See example 09 for the exceptions you will meet.
 - [ ] Invoice numbers are unique per seller (they are your idempotency key).
 - [ ] UPO and the invoice XML are archived after the invoice is stored.
 - [ ] Alerting on authentication, rate-limit and server errors.
+- [ ] Tokens shared between requests (`->tokenStore()`), so that not every PHP request logs in again.
 - [ ] Optional: live tests against TEST in CI (`KSEF_LIVE=1`, see the README).
 
 ## Where next

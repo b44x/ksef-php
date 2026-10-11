@@ -42,6 +42,11 @@ enum Environment: string
         };
     }
 
+    public function isTest(): bool
+    {
+        return $this === self::Test;
+    }
+
     public function isProduction(): bool
     {
         return $this === self::Production;
