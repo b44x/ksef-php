@@ -35,4 +35,21 @@ final class EcdsaSignature
 
         return $parts[0] . $parts[1];
     }
+
+    /** Converts the fixed-width `R||S` form used by XML-DSig back to the DER structure OpenSSL verifies. */
+    public static function fixedToDer(string $fixed): string
+    {
+        $half = intdiv(\strlen($fixed), 2);
+        $encode = static function (string $integer): string {
+            $integer = ltrim($integer, "\x00");
+            if ($integer === '' || (\ord($integer[0]) & 0x80) !== 0) {
+                $integer = "\x00" . $integer;
+            }
+
+            return "\x02" . \chr(\strlen($integer)) . $integer;
+        };
+        $body = $encode(substr($fixed, 0, $half)) . $encode(substr($fixed, $half));
+
+        return "\x30" . \chr(\strlen($body)) . $body;
+    }
 }
