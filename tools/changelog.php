@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Prints the CHANGELOG.md section of a version, for the release notes.
  *
  *   php tools/changelog.php 0.12.0        the notes of 0.12.0 (a leading "v" is accepted)
- *   php tools/changelog.php --prerelease 0.12.0   prints "true" for 0.x versions, "false" from 1.0 on
+ *   php tools/changelog.php --prerelease 0.12.0   prints "true" for 0.x versions (the API is not stable yet), "false" from 1.0 on
  *
  * Exits with 1 when the version has no section or the section is empty, so a release cannot go out without notes.
  */

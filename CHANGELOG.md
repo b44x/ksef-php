@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-11
+
+### Changed
+
+- The release workflow marks releases as the latest one (no longer as pre-releases) and adds a "Pre-1.0: the public API may still change" note below 1.0.0, so a release needs no manual editing.
+
 ### Fixed
 
 - `KsefClient::sendInvoice()` no longer throws when KSeF has already accepted the invoice and only closing the one-shot session fails (timeout, 5xx): the submission is returned with the new `InvoiceSubmission::$sessionCloseFailed` flag instead of an exception that suggested the invoice had not been sent. The session expires on its own.
@@ -176,7 +182,8 @@ Findings of an independent review of the sources:
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/b44x/ksef-php/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/b44x/ksef-php/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/b44x/ksef-php/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/b44x/ksef-php/compare/v0.9.0...v0.10.0

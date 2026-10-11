@@ -3,6 +3,10 @@
 Before 1.0 the API could still change between minor versions; every breaking change is listed here with the fix.
 From 1.0 on, only major versions break the [public API](STABILITY.md).
 
+## 0.12.0 to 0.12.1
+
+No breaking changes. `sendInvoice()` returns instead of throwing when only closing the one-shot session fails after KSeF accepted the invoice; check `InvoiceSubmission::$sessionCloseFailed` if you care.
+
 ## 0.11 to 0.12
 
 No breaking changes: `ksef-doctor` and the release automation are additive.

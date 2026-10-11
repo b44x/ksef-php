@@ -43,8 +43,9 @@ never run by default (`KSEF_LIVE=1 composer test:live`).
 2. Fast-forward `main` to `develop` once CI is green, and run the live tests (`KSEF_LIVE=1 composer test:live`).
 3. Tag and push: `git tag -a vX.Y.Z origin/main -m "vX.Y.Z" && git push origin vX.Y.Z`.
 
-The `Release` workflow then publishes the GitHub release from the changelog section (a pre-release below 1.0.0). It refuses
-a tag that is not on `main` or has no notes. `php tools/changelog.php X.Y.Z` shows what it will publish.
+The `Release` workflow then publishes the GitHub release from the changelog section, marked as the latest release, with
+the install command and, below 1.0.0, a note that the API may still change. It refuses a tag that is not on `main` or has no
+notes. `php tools/changelog.php X.Y.Z` shows what it will publish.
 
 ## Following the KSeF specification
 
