@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Reading invoices**: `Reader\InvoiceReader` (and `DownloadedInvoice::read()`) turns an FA(3) invoice XML into a typed `ReceivedInvoice`: header, seller, buyer, additional parties, lines (net- and gross-priced), tax summary per rate group, payment, correction data (including collective corrections), advance and settlement references, annotations, remarks, footer. The XML is verified against the schema first and the figures are the issuer's, never recalculated; the original document stays available. Checked against a real invoice downloaded from KSeF TEST. FA_RR and Peppol documents are not read yet.
+
 ## [0.10.0] - 2026-10-11
 
 ### Added

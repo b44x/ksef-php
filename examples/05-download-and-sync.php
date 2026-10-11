@@ -44,6 +44,17 @@ $first = $page->invoices[0] ?? null;
 if ($first !== null) {
     $document = $ksef->downloadInvoice($first->ksefNumber);
     say(sprintf('  %s: %d bytes, hash ok: %s', $document->ksefNumber, strlen($document->xml), $document->verifyHash() ? 'yes' : 'NO'));
+
+    step('Read it as typed data (FA(3) invoices)');
+    try {
+        $invoice = $document->read();
+        say(sprintf('  %s from %s (%s) to %s: %s %s, %d line(s)', $invoice->number, $invoice->seller->name, $invoice->seller->taxId(), $invoice->buyer->name, $invoice->total, $invoice->currency, count($invoice->lines)));
+        foreach ($invoice->taxSummary as $row) {
+            say(sprintf('    group %-4s net %s, tax %s', $row->group, $row->net, $row->tax ?? '-'));
+        }
+    } catch (B4x\Ksef\Exception\ValidationException $e) {
+        say('  (not an FA(3) invoice: ' . $e->getMessage() . ')');
+    }
 }
 
 step('Incremental synchronisation with an export (ZIP of {ksefNumber}.xml + _metadata.json)');

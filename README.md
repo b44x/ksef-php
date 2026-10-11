@@ -352,6 +352,25 @@ $svg2 = $renderer->svg($url2, $links->certificateLabel());                // KOD
 When KSeF is down, `$ksef->availability()->isFailure()` says so, and `new OfflineDeadline()` tells you by when the
 offline invoices must be delivered ([docs/OFFLINE.md](docs/OFFLINE.md)).
 
+### Reading invoices
+
+An invoice downloaded from KSeF (a purchase invoice, an export, a stored document) becomes typed data with `read()`:
+
+```php
+$invoice = $ksef->downloadInvoice($ksefNumber)->read();       // or (new InvoiceReader())->read($xmlOrDocument)
+
+$invoice->number;  $invoice->issueDate;  $invoice->currency;  $invoice->type;            // InvoiceType
+$invoice->seller->name;  $invoice->seller->taxId();  $invoice->buyer->address?->line1;
+foreach ($invoice->lines as $line) { $line->name; $line->quantity; $line->netAmount; $line->vatRate; }
+foreach ($invoice->taxSummary as $row) { $row->group; $row->net; $row->tax; }          // P_13_x / P_14_x
+$invoice->total;  $invoice->payment?->dueDates;  $invoice->payment?->bankAccounts;
+$invoice->correction?->correctedInvoices;  $invoice->advanceInvoices;  $invoice->hasAttachment;
+$invoice->document->xml;                                                              // the original, untouched
+```
+
+The XML is verified against the FA(3) schema first, and every figure is the issuer's own: nothing is recalculated.
+This is a read model, separate from the `Invoice` you issue with. FA_RR and Peppol documents are not read yet.
+
 ### Is KSeF up?
 
 ```php

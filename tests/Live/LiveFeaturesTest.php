@@ -127,6 +127,24 @@ final class LiveFeaturesTest extends TestCase
             ->build());
     }
 
+    public function testADownloadedInvoiceIsReadBackAsIssued(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $invoice = $this->builder($taxpayer, 'FV')
+            ->addLine(InvoiceLine::of('Software', '2', 'szt.', '100.00', VatRate::Rate23))
+            ->addLine(InvoiceLine::of('Manual', '1', 'szt.', '50.00', VatRate::Rate8))
+            ->build();
+        $number = $this->accept($client, $invoice);
+
+        $read = $client->downloadInvoice($number, $this->policy)->read();
+
+        self::assertSame($invoice->number, $read->number);
+        self::assertSame($taxpayer->nip->value, $read->seller->nip);
+        self::assertCount(2, $read->lines);
+        self::assertSame($invoice->totals()->gross()->toString(2), $read->total->toString(2));
+        self::assertSame($invoice->totals()->vat()->toString(2), $read->totalTax()->toString(2));
+    }
+
     public function testFarmerInvoicesNeedTheFarmersAuthorisationAndAreAccepted(): void
     {
         [$buyerTaxpayer, $buyerClient] = $this->taxpayer();

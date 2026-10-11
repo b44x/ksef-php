@@ -22,6 +22,7 @@ Covered by the promise:
   They will not move before a major version.
 - `Export\ExportedPackage`, `Offline\OfflineIssuer`, `Auth\AllowedIps` / `AuthSession`, `Invoice\InvoiceBuilder`,
   `Rr\RrInvoiceBuilder`, `Peppol\PeppolProvider`, `Signing\OpenSslXadesSigner`, `Crypto\ApiPublicKeyProvider`.
+- `Reader\InvoiceReader` and the `Reader\Received*` read model (properties; their constructors are for the SDK), `TaxSummaryRow`.
 - `Latarnia\*` results (`AvailabilityReport`, `AvailabilityMessage` and the enums), `Auth\TokenStore` with its bundled stores, `Qr\QrCodeRenderer`, `Offline\OfflineDeadline` / `OfflineMode` / `PolishCalendar`, `Status\SignatureCheck`.
 - `Testing\*` helpers (TEST environment only).
 

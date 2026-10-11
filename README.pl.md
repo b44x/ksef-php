@@ -354,6 +354,25 @@ $svg2 = $renderer->svg($url2, $links->certificateLabel());                // KOD
 Gdy KSeF nie działa, mówi o tym `$ksef->availability()->isFailure()`, a `new OfflineDeadline()` podaje termin dosłania
 faktur offline ([docs/OFFLINE.md](docs/OFFLINE.md)).
 
+### Odczyt faktur
+
+Faktura pobrana z KSeF (zakupowa, z eksportu, zapisana) staje się typowanymi danymi dzięki `read()`:
+
+```php
+$invoice = $ksef->downloadInvoice($ksefNumber)->read();       // albo (new InvoiceReader())->read($xmlOrDocument)
+
+$invoice->number;  $invoice->issueDate;  $invoice->currency;  $invoice->type;            // InvoiceType
+$invoice->seller->name;  $invoice->seller->taxId();  $invoice->buyer->address?->line1;
+foreach ($invoice->lines as $line) { $line->name; $line->quantity; $line->netAmount; $line->vatRate; }
+foreach ($invoice->taxSummary as $row) { $row->group; $row->net; $row->tax; }          // P_13_x / P_14_x
+$invoice->total;  $invoice->payment?->dueDates;  $invoice->payment?->bankAccounts;
+$invoice->correction?->correctedInvoices;  $invoice->advanceInvoices;  $invoice->hasAttachment;
+$invoice->document->xml;                                                              // oryginał, nietknięty
+```
+
+XML jest najpierw sprawdzany ze schematem FA(3), a każda kwota pochodzi od wystawcy: nic nie jest przeliczane.
+To model do odczytu, odrębny od `Invoice`, którym wystawiasz. Dokumenty FA_RR i Peppol nie są jeszcze czytane.
+
 ### Czy KSeF działa?
 
 ```php
