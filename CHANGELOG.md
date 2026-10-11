@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-11
+
 ### Added
 
 - **Test data API** (TEST environment only): `Testing\TestData` for the operations that need no login (`createSubject()` with subunits, `removeSubject()`, `removePerson()`, `grantPermissions()` / `revokePermissions()`, `allowAttachments()` / `revokeAttachments()`, `blockContext()` / `unblockContext()`) and `KsefClient::testData()` for the ones on your own context (session limits, certificate limits, API rate limits with `setRateLimits()` merging your overrides into the current values, `useProductionRateLimits()`, `setCertificateValidity()` and the matching resets). All of it was verified on KSeF TEST. The `/testdata` API is not part of the OpenAPI snapshot that `tools/spec.php` checks.
@@ -162,7 +164,8 @@ Findings of an independent review of the sources:
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/b44x/ksef-php/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/b44x/ksef-php/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/b44x/ksef-php/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/b44x/ksef-php/compare/v0.7.0...v0.8.0
