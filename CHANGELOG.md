@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-11
+
 ### Added
 
 - `Upo::verifySignature()`: verifies the Ministry's XML signature on a UPO (digests of every reference, the signature value, the embedded certificate) and, when you pass a certificate to trust, whether the signer is it or was issued by it. Checked against a real UPO from KSeF TEST; any change to the document is detected.
@@ -154,7 +156,8 @@ Findings of an independent review of the sources:
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/b44x/ksef-php/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/b44x/ksef-php/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/b44x/ksef-php/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/b44x/ksef-php/compare/v0.6.0...v0.7.0
