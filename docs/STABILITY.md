@@ -44,6 +44,11 @@ arguments, because new optional parameters are added at the end and are not a br
 **Not** covered: anything marked `@internal` (the `*Api` endpoint wrappers, `Http\Transport` and friends, serializers,
 validators, XML helpers, the poller, the batch packager). They may change in any release; use `KsefClient` instead.
 
+## Dependencies
+
+The SDK requires `phpseclib/phpseclib` ^3.0 and the PSR interfaces. A new major version of phpseclib (4.x renames the
+namespace) is adopted in a deliberate release with its own migration notes, not by a routine dependency bump.
+
 ## What does not count as a breaking change
 
 - New methods, classes, enum cases and optional parameters. (If you implement our interfaces or `match` exhaustively

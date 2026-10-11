@@ -446,6 +446,7 @@ KsefClient (fasada)
  ├─ Auth\            Authenticator, AccessTokenProvider, poświadczenia, AuthApi
  ├─ Session\         OnlineSession (szyfrowanie, wysyłka, odpytywanie, zamknięcie)
  ├─ Api\             SessionApi, InvoiceApi, TokenApi  – cienkie, typowane opakowania endpointów
+ ├─ Pagination\      Page – wynik każdego listingu
  ├─ Invoice\         Model domenowy, walidator, Fa3Serializer, InvoiceDocument (sprawdzony XSD)
  ├─ Crypto\          Dostawca kluczy publicznych, RSA-OAEP, AES-256-CBC, skróty
  ├─ Signing\         Interfejs XadesSigner + implementacja OpenSSL
@@ -495,7 +496,7 @@ kilka bajtów na skrót, a ZIP i szyfrowanie działają strumieniowo, po jednej 
 
 ## Stabilność
 
-Publiczne API podlega wersjonowaniu semantycznemu; co jest publiczne (a co `@internal`) opisuje [docs/STABILITY.md](docs/STABILITY.md).
+Publiczne API podlega wersjonowaniu semantycznemu; co jest publiczne (a co `@internal`) opisuje [docs/STABILITY.md](docs/STABILITY.md). Zmiany łamiące przed 1.0 wraz z poprawkami są w [docs/UPGRADING.md](docs/UPGRADING.md).
 
 ## Współtworzenie
 

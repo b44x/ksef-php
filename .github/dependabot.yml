@@ -3,6 +3,10 @@ updates:
   - package-ecosystem: composer
     directory: /
     target-branch: develop
+    ignore:
+      # phpseclib 4 renames the namespace; the SDK stays on 3.x (still maintained) until a deliberate migration.
+      - dependency-name: phpseclib/phpseclib
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

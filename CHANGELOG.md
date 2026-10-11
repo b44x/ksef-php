@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docs/UPGRADING.md`: every breaking change before 1.0 with its fix.
+
 ### Changed
 
 - **Breaking:** `grantEntityPermissions()` and `grantAuthorization()` take an `EntitySubject` (`EntitySubject::nip($nip, $fullName)`, `EntitySubject::peppolProvider($peppolId, $fullName)`) instead of an identifier plus loose name and description strings that were easy to swap.
