@@ -3,6 +3,13 @@
 Before 1.0 the API could still change between minor versions; every breaking change is listed here with the fix.
 From 1.0 on, only major versions break the [public API](STABILITY.md).
 
+## 0.8 to 0.9
+
+| Before | After |
+| --- | --- |
+| `grantEntityPermissions($nip, $name, $permissions, $description)` | `grantEntityPermissions(EntitySubject::nip($nip, $name), $permissions, $description)` |
+| `grantAuthorization($nipOrPeppolId, $type, $name, $description)` | `grantAuthorization(EntitySubject::nip($nip, $name), $type, $description)` or `EntitySubject::peppolProvider($peppolId, $name)` |
+
 ## 0.7 to 0.8
 
 | Before | After |
@@ -17,8 +24,6 @@ From 1.0 on, only major versions break the [public API](STABILITY.md).
 | `generateToken()` | `createToken()` |
 | `sendBatch($invoices, 4_000, $formCode, true)` | `sendBatch($invoices, new BatchOptions(maxPartBytes: 4_000, formCode: $formCode, offline: true))`, or `BatchOptions::offline()` |
 | `grantEuEntityAdministrator($admin, $vatUe, $name, $address, $description)` | `grantEuEntityAdministrator($admin, new EuEntity($vatUe, $name, $address), $description)` |
-| `grantEntityPermissions($nip, $name, $permissions, $description)` | `grantEntityPermissions(EntitySubject::nip($nip, $name), $permissions, $description)` |
-| `grantAuthorization($nipOrPeppolId, $type, $name, $description)` | `grantAuthorization(EntitySubject::nip($nip, $name), $type, $description)` or `EntitySubject::peppolProvider($peppolId, $name)` |
 | `CertificateInfo::$status` (string), `searchCertificates(status: 'Active')` | `CertificateStatus` enum |
 | `ApiException::$cause` | `getPrevious()` |
 
