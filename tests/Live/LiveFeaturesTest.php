@@ -21,6 +21,7 @@ use B4x\Ksef\Invoice\InvoiceBuilder;
 use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Invoice\InvoiceLine;
 use B4x\Ksef\Invoice\Money;
+use B4x\Ksef\Invoice\PriorPayment;
 use B4x\Ksef\Invoice\Settlement;
 use B4x\Ksef\Invoice\ThirdParty;
 use B4x\Ksef\Invoice\ThirdPartyRole;
@@ -83,6 +84,46 @@ final class LiveFeaturesTest extends TestCase
             ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceNumber)], Money::pln('0.00')))
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23)->asBefore())
             ->addLine(InvoiceLine::of('Software', '1', 'szt.', '4000.00', VatRate::Rate23))
+            ->build());
+    }
+
+    public function testSettlementWithPriorPaymentsAndForeignCurrencyCorrectionsAreAccepted(): void
+    {
+        [$taxpayer, $client] = $this->taxpayer();
+        $today = new DateTimeImmutable('today');
+        $base = fn(string $prefix): InvoiceBuilder => $this->builder($taxpayer, $prefix);
+
+        // A final invoice that also documents two payments received before delivery (ZaliczkaCzesciowa).
+        $advance = $base('ZAL')->advance(new AdvancePayment(Money::pln('1230.00'), VatRate::Rate23, $today))->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23))->build();
+        $advanceNumber = $this->accept($client, $advance);
+        $this->accept($client, $base('ROZ')->saleDate($today)
+            ->settlement(new Settlement([AdvanceInvoiceReference::ksef($advanceNumber)], Money::pln('1230.00')))
+            ->addLine(InvoiceLine::of('Software', '1', 'szt.', '5000.00', VatRate::Rate23))
+            ->addPriorPayment(new PriorPayment($today, Money::pln('500.00')))
+            ->addPriorPayment(new PriorPayment($today, Money::pln('250.00')))
+            ->build());
+
+        // Foreign currency: a plain correction and a correction of an advance invoice, both in EUR.
+        $eur = fn(string $prefix): InvoiceBuilder => $base($prefix)->currency('EUR')->exchangeRate('4.3210');
+        $original = $eur('FV')->addLine(InvoiceLine::of('Licence', '1', 'szt.', '1000.00', VatRate::Rate23, 'EUR'))->build();
+        $originalNumber = $this->accept($client, $original);
+        $this->accept($client, $eur('KOR')
+            ->correction(new Correction([new CorrectedInvoice($original->issueDate, $original->number, $originalNumber)], reason: 'Price change'))
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '1000.00', VatRate::Rate23, 'EUR')->asBefore())
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '900.00', VatRate::Rate23, 'EUR'))
+            ->build());
+
+        $eurAdvance = $eur('ZAL')->advance(new AdvancePayment(Money::of('1230.00', 'EUR'), VatRate::Rate23, $today))->addLine(InvoiceLine::of('Licence', '1', 'szt.', '5000.00', VatRate::Rate23, 'EUR'))->build();
+        $eurAdvanceNumber = $this->accept($client, $eurAdvance);
+        $this->accept($client, $eur('KZAL')
+            ->correction(new Correction(
+                [new CorrectedInvoice($eurAdvance->issueDate, $eurAdvance->number, $eurAdvanceNumber)],
+                amountBefore: Money::of('1230.00', 'EUR'),
+                exchangeRateBefore: \B4x\Ksef\Support\Decimal::of('4.2800'),
+            ))
+            ->advance(new AdvancePayment(Money::of('-615.00', 'EUR'), VatRate::Rate23, $today))
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '5000.00', VatRate::Rate23, 'EUR')->asBefore())
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '4500.00', VatRate::Rate23, 'EUR'))
             ->build());
     }
 

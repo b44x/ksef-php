@@ -212,6 +212,9 @@ Invoice::builder()->...->correction($correction)->advance(new AdvancePayment(Mon
 // Korekta faktury końcowej (KOR_ROZ): połącz correction() i settlement(); pozycje przed/po.
 Invoice::builder()->...->correction($correction)->settlement($settlement)->addLine($line->asBefore())->addLine($newLine)->build();
 
+// Wpłaty otrzymane przed dostawą, pokazane na fakturze końcowej (ZaliczkaCzesciowa); P_15 zostaje sumą.
+Invoice::builder()->...->settlement($settlement)->addPriorPayment(new PriorPayment($receivedOn, Money::pln('500.00')))->addLine(...)->build();
+
 // Korekta zbiorcza za okres (art. 106j ust. 3): bez pozycji, różnice per stawka.
 Invoice::builder()->...->correction(new Correction($corrected, period: '2026-04-01 - 2026-06-30', amounts: [CorrectionAmount::of(VatRate::Rate23, '-100.00', '-23.00')]))->build();
 

@@ -248,6 +248,14 @@ final class Fa3Serializer
             $this->correction($d, $fa, $invoice->correction);
         }
 
+        foreach ($invoice->priorPayments as $payment) {
+            $node = $this->el($d, $fa, 'ZaliczkaCzesciowa');
+            $this->el($d, $node, 'P_6Z', $payment->receivedOn->format('Y-m-d'));
+            $this->el($d, $node, 'P_15Z', $payment->amount->amount->roundTo(2)->toString(2));
+            if ($payment->exchangeRate !== null) {
+                $this->el($d, $node, 'KursWalutyZW', $payment->exchangeRate->toTrimmedString(2));
+            }
+        }
         if ($invoice->annotations->invoiceUnderArt109) {
             $this->el($d, $fa, 'FP', '1');
         }

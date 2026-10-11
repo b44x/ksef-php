@@ -38,7 +38,11 @@ against the original. Settlement invoices show only the remaining amount in `P_1
 
 1. Collective corrections for a period (art. 106j(3)) are modelled (`Correction::$period` and `$amounts`, no lines) and
    pass the schema and were accepted by KSeF TEST.
-2. A `ROZ` that also documents a part payment received before delivery (`ZaliczkaCzesciowa` with `P_6Z` / `P_15Z`) is
-   not modelled.
-3. Foreign-currency corrections: `Correction::$exchangeRateBefore` (`KursWalutyZK`) is written, but only PLN
-   scenarios were exercised.
+2. A `ROZ` (or any non-advance invoice) that also documents payments received before delivery: add them with
+   `InvoiceBuilder::addPriorPayment(new PriorPayment($receivedOn, Money::pln('500.00')))` (`ZaliczkaCzesciowa`, `P_6Z` /
+   `P_15Z`, up to 31). `P_15` stays the total; `Invoice::amountRemaining()` is the difference. Accepted by KSeF TEST.
+3. Foreign-currency corrections (`KursWalutyZ`, `KursWalutyZK`, the PLN tax in `P_14_xW`) are accepted by KSeF TEST for
+   `KOR` and `KOR_ZAL`; `KOR_ROZ` in a foreign currency follows the same rules but was not sent separately.
+
+KSeF TEST checks the structure, not the accounting. Have your accountant confirm that the amounts and exchange rates
+match how you account for these cases.

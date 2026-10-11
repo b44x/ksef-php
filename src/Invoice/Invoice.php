@@ -33,11 +33,15 @@ final readonly class Invoice
     /** @var list<string> */
     public array $warehouseDocuments;
 
+    /** @var list<PriorPayment> */
+    public array $priorPayments;
+
     /**
      * @param list<InvoiceLine> $lines
      * @param list<ThirdParty> $thirdParties additional parties (`Podmiot3`), up to 100
      * @param list<AdditionalInfo> $additionalInfo free key/value remarks (`DodatkowyOpis`)
      * @param list<string> $warehouseDocuments numbers of the warehouse issue documents (`WZ`)
+     * @param list<PriorPayment> $priorPayments payments received before the sale, documented on this invoice (`ZaliczkaCzesciowa`)
      * @param Decimal|null $exchangeRate rate to PLN for foreign-currency invoices (`KursWalutyZ`)
      *
      * @throws ValidationException
@@ -66,11 +70,13 @@ final readonly class Invoice
         public ?AdditionalSettlement $additionalSettlement = null,
         public ?TransactionTerms $terms = null,
         public ?Attachment $attachment = null,
+        array $priorPayments = [],
     ) {
         $this->lines = array_values($lines);
         $this->thirdParties = array_values($thirdParties);
         $this->additionalInfo = array_values($additionalInfo);
         $this->warehouseDocuments = array_values($warehouseDocuments);
+        $this->priorPayments = array_values($priorPayments);
 
         $violations = InvoiceValidator::violations($this);
         if ($violations !== []) {
@@ -166,6 +172,17 @@ final readonly class Invoice
             InvoiceType::Advance, InvoiceType::AdvanceCorrection => $this->advance?->paid->amount->roundTo(2) ?? $this->totals()->gross(),
             default => $this->totals()->gross(),
         };
+    }
+
+    /** What remains to be paid after the {@see self::$priorPayments} received before the sale. */
+    public function amountRemaining(): Decimal
+    {
+        $remaining = $this->amountDue();
+        foreach ($this->priorPayments as $payment) {
+            $remaining = $remaining->subtract($payment->amount->amount);
+        }
+
+        return $remaining->roundTo(2);
     }
 
     public function hasLinesWith(VatRate $rate): bool

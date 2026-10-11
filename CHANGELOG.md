@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `PriorPayment` and `InvoiceBuilder::addPriorPayment()`: payments received before the sale that a (final) invoice also documents (`ZaliczkaCzesciowa`, `P_6Z` / `P_15Z` / `KursWalutyZW`, up to 31), with `Invoice::amountRemaining()`.
+- Foreign-currency corrections (`KOR`, `KOR_ZAL` with `KursWalutyZ` / `KursWalutyZK`) are covered by tests and accepted by KSeF TEST.
 - `docs/UPGRADING.md`: every breaking change before 1.0 with its fix.
 
 ### Changed

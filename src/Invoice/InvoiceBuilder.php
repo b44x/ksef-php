@@ -31,6 +31,9 @@ final class InvoiceBuilder
 
     /** @var list<string> */
     private array $warehouseDocuments = [];
+
+    /** @var list<PriorPayment> */
+    private array $priorPayments = [];
     private ?AdditionalSettlement $additionalSettlement = null;
     private ?TransactionTerms $terms = null;
     private ?Attachment $attachment = null;
@@ -130,6 +133,17 @@ final class InvoiceBuilder
     public function addWarehouseDocument(string $number): self
     {
         $this->warehouseDocuments[] = $number;
+
+        return $this;
+    }
+
+    /**
+     * A payment received before the sale that this (typically final) invoice also documents (`ZaliczkaCzesciowa`,
+     * up to 31). The invoice total is unchanged; the payments are shown beside it.
+     */
+    public function addPriorPayment(PriorPayment $payment): self
+    {
+        $this->priorPayments[] = $payment;
 
         return $this;
     }
@@ -277,6 +291,7 @@ final class InvoiceBuilder
             $this->additionalSettlement,
             $this->terms,
             $this->attachment,
+            $this->priorPayments,
         );
     }
 

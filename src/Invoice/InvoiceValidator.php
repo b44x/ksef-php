@@ -74,6 +74,7 @@ final class InvoiceValidator
         $this->payment();
         $this->correction();
         $this->kindSpecificRules();
+        $this->priorPayments();
         $this->amounts();
     }
 
@@ -408,6 +409,50 @@ final class InvoiceValidator
         }
     }
 
+    private function priorPayments(): void
+    {
+        $i = $this->invoice;
+        if ($i->priorPayments === []) {
+            return;
+        }
+        if ($i->type->isAdvance()) {
+            $this->add('An advance invoice documents its own payment; prior payments belong to other invoices.');
+        }
+        if (\count($i->priorPayments) > 31) {
+            $this->add('An invoice can document at most 31 prior payments.');
+        }
+
+        $sum = Decimal::zero();
+        foreach ($i->priorPayments as $index => $payment) {
+            $label = \sprintf('Prior payment %d', $index + 1);
+            $this->date($label . ' date', $payment->receivedOn);
+            if ($payment->receivedOn > $i->issueDate) {
+                $this->add($label . ' was received after the invoice was issued.');
+            }
+            if ($payment->amount->currency !== $i->currency) {
+                $this->add($label . ' currency differs from the invoice currency.');
+            }
+            if ($i->type->isCorrection()) {
+                if ($payment->amount->amount->isZero()) {
+                    $this->add($label . ' must not be zero; give the correction of the amount (negative when it decreases).');
+                }
+            } elseif (!$payment->amount->amount->isPositive()) {
+                $this->add($label . ' must be positive.');
+            }
+            if ($payment->exchangeRate !== null) {
+                if ($i->currency === 'PLN') {
+                    $this->add($label . ' has an exchange rate, but the invoice is in PLN.');
+                } elseif (!$payment->exchangeRate->isPositive()) {
+                    $this->add($label . ' exchange rate must be positive.');
+                }
+            }
+            $sum = $sum->add($payment->amount->amount);
+        }
+        if (!$i->type->isCorrection() && $sum->compare($i->amountDue()) > 0) {
+            $this->add('The prior payments exceed the invoice total.');
+        }
+    }
+
     private function amounts(): void
     {
         $limit = Decimal::of('9999999999999999.99');
@@ -546,9 +591,9 @@ final class InvoiceValidator
                 $this->add('At most 100 partial payments are allowed.');
             }
             foreach ($payment->partialPayments as $index => $part) {
-                $this->date(\sprintf('Partial payment %d date', $index + 1), $part->paidOn, '2016-07-01');
+                $this->date(\sprintf('Prior payment %d date', $index + 1), $part->paidOn, '2016-07-01');
                 if ($part->amount->currency !== $i->currency || !$part->amount->amount->isPositive()) {
-                    $this->add(\sprintf('Partial payment %d must be a positive amount in the invoice currency.', $index + 1));
+                    $this->add(\sprintf('Prior payment %d must be a positive amount in the invoice currency.', $index + 1));
                 }
             }
             if ($payment->method !== null && $payment->otherMethod !== null) {

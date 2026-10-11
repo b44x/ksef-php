@@ -19,6 +19,7 @@ use B4x\Ksef\Invoice\InvoiceDocument;
 use B4x\Ksef\Invoice\InvoiceLine;
 use B4x\Ksef\Invoice\InvoiceType;
 use B4x\Ksef\Invoice\Money;
+use B4x\Ksef\Invoice\PriorPayment;
 use B4x\Ksef\Invoice\Settlement;
 use B4x\Ksef\Invoice\VatRate;
 use B4x\Ksef\Tests\Support\Fixtures;
@@ -257,6 +258,80 @@ final class InvoiceKindsTest extends TestCase
                 self::assertStringContainsStringIgnoringCase($needle, implode(' ', $e->violations), $label);
             }
         }
+    }
+
+    public function testSettlementInvoiceCanAlsoDocumentPaymentsReceivedBeforeTheSale(): void
+    {
+        $invoice = Fixtures::builder()
+            ->settlement(new Settlement([AdvanceInvoiceReference::ksef(self::KSEF_NUMBER)], Money::pln('1230.00')))
+            ->addLine(InvoiceLine::of('Custom software', '1', 'szt.', '5000.00', VatRate::Rate23))
+            ->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-10'), Money::pln('500.00')))
+            ->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-20'), Money::pln('250.00')))
+            ->build();
+
+        self::assertSame('4920.00', $invoice->amountDue()->toString(2), 'P_15 is unchanged');
+        self::assertSame('4170.00', $invoice->amountRemaining()->toString(2));
+
+        $xpath = $this->xpath($invoice);
+        self::assertSame(2.0, $xpath->evaluate('count(//f:ZaliczkaCzesciowa)'));
+        self::assertSame('2026-05-10', $xpath->evaluate('string(//f:ZaliczkaCzesciowa[1]/f:P_6Z)'));
+        self::assertSame('250.00', $xpath->evaluate('string(//f:ZaliczkaCzesciowa[2]/f:P_15Z)'));
+        self::assertSame('4920.00', $xpath->evaluate('string(//f:P_15)'));
+    }
+
+    public function testPriorPaymentRulesAreChecked(): void
+    {
+        $line = InvoiceLine::of('A', '1', null, '100.00', VatRate::Rate23);
+        $cases = [
+            'exceeds the total' => [fn() => Fixtures::builder()->addLine($line)->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-10'), Money::pln('999.00')))->build(), 'exceed'],
+            'after issue' => [fn() => Fixtures::builder()->addLine($line)->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-07-01'), Money::pln('10.00')))->build(), 'after the invoice was issued'],
+            'foreign currency' => [fn() => Fixtures::builder()->addLine($line)->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-10'), Money::of('10.00', 'EUR')))->build(), 'currency'],
+            'rate in PLN' => [fn() => Fixtures::builder()->addLine($line)->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-10'), Money::pln('10.00'), \B4x\Ksef\Support\Decimal::of('4.30')))->build(), 'PLN'],
+            'negative' => [fn() => Fixtures::builder()->addLine($line)->addPriorPayment(new PriorPayment(new DateTimeImmutable('2026-05-10'), Money::pln('-10.00')))->build(), 'positive'],
+        ];
+        foreach ($cases as $label => [$build, $needle]) {
+            try {
+                $build();
+                self::fail('Expected a ValidationException for: ' . $label);
+            } catch (ValidationException $e) {
+                self::assertStringContainsString($needle, implode(' ', $e->violations), $label);
+            }
+        }
+    }
+
+    public function testForeignCurrencyCorrectionsCarryTheExchangeRates(): void
+    {
+        $kor = Invoice::builder()
+            ->number('KOR/EUR/1')->issueDate('2026-06-10')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
+            ->currency('EUR')->exchangeRate('4.3210')
+            ->correction(new Correction([new CorrectedInvoice(new DateTimeImmutable('2026-05-20'), 'FV/EUR/1')], reason: 'Price change'))
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '1000.00', VatRate::Rate23, 'EUR')->asBefore())
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '900.00', VatRate::Rate23, 'EUR'))
+            ->build();
+        $xpath = $this->xpath($kor);
+        self::assertSame('-100.00', $xpath->evaluate('string(//f:P_13_1)'));
+        self::assertSame('-23.00', $xpath->evaluate('string(//f:P_14_1)'));
+        self::assertSame('-99.38', $xpath->evaluate('string(//f:P_14_1W)'), '-23.00 EUR at 4.3210');
+        self::assertSame('4.321', $xpath->evaluate('string(//f:KursWalutyZ)'));
+
+        $korZal = Invoice::builder()
+            ->number('KZAL/EUR/1')->issueDate('2026-06-10')->seller(Fixtures::seller())->buyer(Fixtures::buyer())
+            ->currency('EUR')->exchangeRate('4.3210')
+            ->correction(new Correction(
+                [new CorrectedInvoice(new DateTimeImmutable('2026-05-20'), 'ZAL/EUR/1')],
+                reason: 'Smaller order',
+                amountBefore: Money::of('1230.00', 'EUR'),
+                exchangeRateBefore: \B4x\Ksef\Support\Decimal::of('4.2800'),
+            ))
+            ->advance(new AdvancePayment(Money::of('-615.00', 'EUR'), VatRate::Rate23, new DateTimeImmutable('2026-05-20')))
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '1000.00', VatRate::Rate23, 'EUR')->asBefore())
+            ->addLine(InvoiceLine::of('Licence', '1', 'szt.', '500.00', VatRate::Rate23, 'EUR'))
+            ->build();
+        $xpath = $this->xpath($korZal);
+        self::assertSame('1230.00', $xpath->evaluate('string(//f:P_15ZK)'));
+        self::assertSame('4.28', $xpath->evaluate('string(//f:KursWalutyZK)'));
+        self::assertSame('4.321', $xpath->evaluate('string(//f:KursWalutyZ)'));
+        self::assertSame('-615.00', $xpath->evaluate('string(//f:P_15)'));
     }
 
     private function xpath(Invoice $invoice): DOMXPath
