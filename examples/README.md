@@ -34,6 +34,7 @@ can use any PSR-18 client.
 | 11 | `11-farmer-rr-invoice.php` | Flat-rate farmer purchase invoices (FA_RR) and their correction |
 | 12 | `12-rich-invoice.php` | Optional extras: discounts, remarks, partial payments, terms, attachment, third party |
 | 13 | `13-peppol-invoice.php` | Peppol (PEF): a provider sends a UBL invoice on behalf of a company |
+| 14 | `14-manual-signing.php` | Signing outside the SDK (trusted profile, signature app): sign once, tokens kept in a store |
 
 Start with 01, then 04 and 09: they cover what matters most in production.
 

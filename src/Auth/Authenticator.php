@@ -7,6 +7,7 @@ namespace B4x\Ksef\Auth;
 use B4x\Ksef\Crypto\KsefTokenEncryptor;
 use B4x\Ksef\Exception\AuthenticationException;
 use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\ManualSignatureRequiredException;
 use B4x\Ksef\Http\ApiError;
 use B4x\Ksef\Polling\Poller;
 use B4x\Ksef\Polling\PollingPolicy;
@@ -41,6 +42,10 @@ final class Authenticator
      */
     public function authenticate(ContextIdentifier $context, Credentials $credentials, ?AllowedIps $allowedIps = null): AuthTokens
     {
+        if ($credentials instanceof ManualCredentials) {
+            throw new ManualSignatureRequiredException('This client signs authentication requests manually: call createAuthenticationRequest(), have the request signed, then authenticateWithSignedRequest().', 401);
+        }
+
         $challenge = $this->api->challenge();
 
         $operation = match (true) {
@@ -51,6 +56,36 @@ final class Authenticator
             default => throw new ConfigurationException(\sprintf('Unsupported credentials type "%s".', $credentials::class)),
         };
 
+        return $this->finish($operation);
+    }
+
+    /**
+     * Step 1 of manual signing: a fresh challenge and the unsigned request to hand to the signer.
+     */
+    public function prepare(ContextIdentifier $context, ManualCredentials $credentials, ?AllowedIps $allowedIps = null): AuthenticationRequest
+    {
+        $challenge = $this->api->challenge();
+
+        return new AuthenticationRequest(
+            $this->requestXml->build($challenge->challenge, $context, $credentials->identifiedBy, $allowedIps),
+            $challenge->challenge,
+            $challenge->timestamp,
+            $challenge->timestamp->modify('+10 minutes'),
+        );
+    }
+
+    /**
+     * Step 2 of manual signing: submits the signed request, waits for KSeF to verify it and redeems the tokens.
+     *
+     * @throws AuthenticationException when KSeF refuses the signature or the identity
+     */
+    public function complete(string $signedXml): AuthTokens
+    {
+        return $this->finish($this->api->submitSignedRequest($signedXml));
+    }
+
+    private function finish(AuthOperation $operation): AuthTokens
+    {
         $this->logger->info('KSeF authentication started.', ['reference' => $operation->referenceNumber]);
 
         $status = $this->poller->poll(

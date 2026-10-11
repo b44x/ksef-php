@@ -16,6 +16,7 @@ use B4x\Ksef\Auth\CertificateCredentials;
 use B4x\Ksef\Auth\ContextIdentifier;
 use B4x\Ksef\Auth\Credentials;
 use B4x\Ksef\Auth\KsefTokenCredentials;
+use B4x\Ksef\Auth\ManualCredentials;
 use B4x\Ksef\Auth\TokenStore;
 use B4x\Ksef\Batch\BatchPackager;
 use B4x\Ksef\Batch\BatchSender;
@@ -283,6 +284,7 @@ final class KsefClientBuilder
             new CollectiveIdentifierApi($authorized),
             new PeppolApi($authorized),
             $latarniaUrl === null ? null : new LatarniaApi(new Transport($latarniaUrl, $this->httpClient, $this->requestFactory, $this->streamFactory, $this->retryPolicy, $sleeper, $logger, $this->userAgent)),
+            $tokens,
         );
     }
 
@@ -291,6 +293,7 @@ final class KsefClientBuilder
     {
         $identity = match (true) {
             $this->credentials instanceof KsefTokenCredentials => 'token:' . $this->credentials->token,
+            $this->credentials instanceof ManualCredentials => 'manual:' . $this->credentials->identifiedBy->value,
             $this->credentials instanceof CertificateCredentials => 'certificate:' . $this->credentials->signer->certificateFingerprint(),
             default => 'other:' . bin2hex(random_bytes(16)), // unknown credentials never share tokens
         };

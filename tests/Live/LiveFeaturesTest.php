@@ -127,6 +127,24 @@ final class LiveFeaturesTest extends TestCase
             ->build());
     }
 
+    public function testManualSigningCompletesALoginOnTest(): void
+    {
+        $taxpayer = TestEnvironment::createTaxpayer($this->http, $this->factory, $this->factory);
+        $client = KsefClient::builder()
+            ->environment(Environment::Test)
+            ->httpClient($this->http, $this->factory, $this->factory)
+            ->context(ContextIdentifier::nip($taxpayer->nip->value))
+            ->credentials(new \B4x\Ksef\Auth\ManualCredentials())
+            ->build();
+
+        $request = $client->createAuthenticationRequest();
+        // The external signer: here the test taxpayer's own certificate stands in for a trusted profile or a signature app.
+        $signed = $taxpayer->credentials()->signer->sign($request->xml);
+        $client->authenticateWithSignedRequest($signed);
+
+        self::assertGreaterThan(0, $client->contextLimits()->onlineSession->maxInvoices, 'The login works: an authenticated call succeeds.');
+    }
+
     public function testADownloadedInvoiceIsReadBackAsIssued(): void
     {
         [$taxpayer, $client] = $this->taxpayer();

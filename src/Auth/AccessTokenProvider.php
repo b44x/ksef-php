@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace B4x\Ksef\Auth;
 
 use B4x\Ksef\Exception\AuthenticationException;
+use B4x\Ksef\Exception\ConfigurationException;
+use B4x\Ksef\Exception\ValidationException;
+use B4x\Ksef\Xml\SafeXml;
+use DOMXPath;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -68,6 +72,69 @@ final class AccessTokenProvider
         $this->tokens = $tokens;
 
         return $tokens->accessToken->token;
+    }
+
+    /**
+     * Manual signing, step 1: the request to hand to the signer.
+     *
+     * @throws ConfigurationException when the client does not use {@see ManualCredentials}
+     */
+    public function createAuthenticationRequest(): AuthenticationRequest
+    {
+        if (!$this->credentials instanceof ManualCredentials) {
+            throw new ConfigurationException('Manual signing needs a client built with ManualCredentials.');
+        }
+
+        return $this->authenticator->prepare($this->context, $this->credentials, $this->allowedIps);
+    }
+
+    /**
+     * Manual signing, step 2: completes the login with the signed request; the tokens are kept (and stored).
+     *
+     * @throws ConfigurationException when the client does not use {@see ManualCredentials}
+     * @throws ValidationException when the document is not a signed request for this context
+     * @throws AuthenticationException when KSeF refuses the signature or the identity
+     */
+    public function authenticateWithSignedRequest(string $signedXml): void
+    {
+        if (!$this->credentials instanceof ManualCredentials) {
+            throw new ConfigurationException('Manual signing needs a client built with ManualCredentials.');
+        }
+        $this->assertSignedRequestFor($signedXml);
+
+        $tokens = $this->authenticator->complete($signedXml);
+        $this->tokens = $tokens;
+        $this->save($tokens);
+    }
+
+    private function assertSignedRequestFor(string $signedXml): void
+    {
+        $violation = null;
+        try {
+            $document = SafeXml::load($signedXml);
+            $xpath = new DOMXPath($document);
+            $xpath->registerNamespace('a', AuthTokenRequestXml::NAMESPACE);
+            $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+            if ($document->documentElement?->localName !== 'AuthTokenRequest' || $document->documentElement->namespaceURI !== AuthTokenRequestXml::NAMESPACE) {
+                $violation = 'The document is not an AuthTokenRequest.';
+            } elseif ($this->signatureCount($xpath) !== 1) {
+                $violation = 'The request carries no enveloped signature: it has not been signed.';
+            } elseif ($xpath->evaluate('string(/a:AuthTokenRequest/a:ContextIdentifier/*[1])') !== $this->context->value) {
+                $violation = 'The signed request is for another context than this client works in.';
+            }
+        } catch (Throwable) {
+            $violation = 'The signed request is not well-formed XML.';
+        }
+        if ($violation !== null) {
+            throw new ValidationException($violation, [$violation]);
+        }
+    }
+
+    private function signatureCount(DOMXPath $xpath): int
+    {
+        $found = $xpath->query('/a:AuthTokenRequest/ds:Signature');
+
+        return $found === false ? 0 : $found->length;
     }
 
     /** Drops cached tokens, for example after the API answered 401 to a request. */

@@ -13,9 +13,12 @@ use B4x\Ksef\Api\SessionApi;
 use B4x\Ksef\Api\TokenApi;
 use B4x\Ksef\Api\TokenPermission;
 use B4x\Ksef\Api\TokenStatus;
+use B4x\Ksef\Auth\AccessTokenProvider;
+use B4x\Ksef\Auth\AuthenticationRequest;
 use B4x\Ksef\Auth\AuthSession;
 use B4x\Ksef\Auth\AuthSessionsApi;
 use B4x\Ksef\Auth\ContextIdentifier;
+use B4x\Ksef\Auth\ManualCredentials;
 use B4x\Ksef\Batch\BatchOptions;
 use B4x\Ksef\Batch\BatchSender;
 use B4x\Ksef\Certificates\CertificateApi;
@@ -148,8 +151,33 @@ final class KsefClient
         private readonly ContextIdentifier $context,
         private readonly CollectiveIdentifierApi $collective,
         private readonly PeppolApi $peppol,
-        private readonly ?LatarniaApi $latarnia = null,
+        private readonly ?LatarniaApi $latarnia,
+        private readonly AccessTokenProvider $accessTokens,
     ) {}
+
+    /**
+     * Manual signing, step 1: the `AuthTokenRequest` for the person to sign outside the SDK (a trusted profile, a
+     * qualified signature app, ...). Needs a client built with {@see ManualCredentials}; see there for the whole flow.
+     *
+     * @throws ConfigurationException when the client does not use ManualCredentials
+     */
+    public function createAuthenticationRequest(): AuthenticationRequest
+    {
+        return $this->accessTokens->createAuthenticationRequest();
+    }
+
+    /**
+     * Manual signing, step 2: completes the login with the signed request. The tokens are kept in memory and, with a
+     * token store, shared with later requests, so the person signs once.
+     *
+     * @throws ConfigurationException when the client does not use ManualCredentials
+     * @throws Exception\ValidationException when the document is not a signed request for this client's context
+     * @throws Exception\AuthenticationException when KSeF refuses the signature or the identity
+     */
+    public function authenticateWithSignedRequest(string $signedXml): void
+    {
+        $this->accessTokens->authenticateWithSignedRequest($signedXml);
+    }
 
     /**
      * Whether KSeF is up, from the Ministry's public availability service ("Latarnia"; no authentication, separate from

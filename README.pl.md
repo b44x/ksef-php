@@ -39,7 +39,7 @@ php examples/01-send-invoice.php
 ```
 
 Nie potrzeba żadnego konta: przykład działa na publicznym środowisku TESTOWYM KSeF z jednorazowym podatnikiem
-(przykłady używają Guzzle, zależności deweloperskiej). Trzynaście przykładów krok po kroku jest w
+(przykłady używają Guzzle, zależności deweloperskiej). Czternaście przykładów krok po kroku jest w
 [examples/](examples/README.md), a drogę na produkcję opisuje [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).
 
 ## Szybki start
@@ -130,6 +130,23 @@ podpisu. Miejsca użycia tokenu dostępu ogranicza `->allowedIps(new AllowedIps(
 > Certyfikaty kwalifikowane są na PRE/PROD weryfikowane przez KSeF przez OCSP/CRL, więc „uwierzytelnianie w
 > toku” może chwilę potrwać. Czekanie jest ograniczone i konfigurowalne (`authenticationPolling()`).
 > KSeF zaleca na produkcji uwierzytelnianie *certyfikatem KSeF*.
+
+### Podpis poza SDK
+
+Brak certyfikatu? Wiele małych firm podpisuje profilem zaufanym (Profil Zaufany / ePUAP) albo aplikacją do podpisu
+kwalifikowanego. SDK nie podpisze za nich, więc logowanie jest podzielone na dwa kroki, a podpis powstaje gdzie indziej:
+
+```php
+$ksef = KsefClient::builder()->...->credentials(new ManualCredentials())->tokenStore($store)->build();
+
+$request = $ksef->createAuthenticationRequest();            // AuthTokenRequest do podpisu; ważny 10 minut
+// ... osoba podpisuje $request->xml (XAdES, enveloped) swoim narzędziem i dostajesz podpisany dokument ...
+$ksef->authenticateWithSignedRequest($signedXml);           // KSeF go weryfikuje; klient jest zalogowany
+```
+
+Wcześniej każde wywołanie rzuca `ManualSignatureRequiredException`. Z magazynem tokenów tokeny obsługują kolejne
+żądania do wygaśnięcia tokenu odświeżania, więc osoba podpisuje raz, a nie przy każdym żądaniu
+([examples/14-manual-signing.php](examples/14-manual-signing.php)).
 
 ### Opcje buildera
 

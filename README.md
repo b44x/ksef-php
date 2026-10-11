@@ -39,7 +39,7 @@ php examples/01-send-invoice.php
 ```
 
 This needs no account: it runs against the public KSeF TEST environment with a throw-away taxpayer (the examples
-use Guzzle, a dev dependency). See [examples/](examples/README.md) for the thirteen guided examples and
+use Guzzle, a dev dependency). See [examples/](examples/README.md) for the fourteen guided examples and
 [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for the path to production.
 
 ## Quick start
@@ -130,6 +130,23 @@ signing service. Restrict where an access token may be used with `->allowedIps(n
 > Qualified certificates are verified by KSeF through OCSP/CRL on PRE/PROD, so "authentication in
 > progress" can last a while. The wait is bounded and configurable (`authenticationPolling()`).
 > KSeF recommends authenticating with a *KSeF certificate* in production.
+
+### Signing outside the SDK
+
+No certificate? Many small businesses sign with a trusted profile (Profil Zaufany / ePUAP) or a qualified signature app.
+The SDK cannot sign for them, so the login is split in two and the signature is made elsewhere:
+
+```php
+$ksef = KsefClient::builder()->...->credentials(new ManualCredentials())->tokenStore($store)->build();
+
+$request = $ksef->createAuthenticationRequest();            // an AuthTokenRequest to sign; valid 10 minutes
+// ... the person signs $request->xml (XAdES, enveloped) with their tool and you get the signed document back ...
+$ksef->authenticateWithSignedRequest($signedXml);           // KSeF verifies it; the client is logged in
+```
+
+Before that, any call throws `ManualSignatureRequiredException`. With a token store the tokens serve the following
+requests until the refresh token expires, so the person signs once, not on every request
+([examples/14-manual-signing.php](examples/14-manual-signing.php)).
 
 ### Builder options
 
