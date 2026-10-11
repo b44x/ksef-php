@@ -37,6 +37,15 @@ never run by default (`KSEF_LIVE=1 composer test:live`).
 - `develop` is the integration branch; open pull requests against it.
 - Use short topic branches (`feat/...`, `fix/...`, `docs/...`).
 
+## Releasing
+
+1. On `develop`, turn `## [Unreleased]` in `CHANGELOG.md` into `## [X.Y.Z] - date` (a fresh empty `[Unreleased]` above it), add the version links at the end and a section to `docs/UPGRADING.md`. These notes become the release notes: write them for users.
+2. Fast-forward `main` to `develop` once CI is green, and run the live tests (`KSEF_LIVE=1 composer test:live`).
+3. Tag and push: `git tag -a vX.Y.Z origin/main -m "vX.Y.Z" && git push origin vX.Y.Z`.
+
+The `Release` workflow then publishes the GitHub release from the changelog section (a pre-release below 1.0.0). It refuses
+a tag that is not on `main` or has no notes. `php tools/changelog.php X.Y.Z` shows what it will publish.
+
 ## Following the KSeF specification
 
 KSeF changes its API from time to time. `composer spec:check` compares the published OpenAPI specification with

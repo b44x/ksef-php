@@ -1,0 +1,49 @@
+name: Release
+
+# Pushing a version tag (for example v0.12.0) publishes the GitHub release: its notes are the CHANGELOG.md section of
+# that version, and releases below 1.0.0 are marked as pre-releases. The tag must be on `main` and CI must have passed
+# there; the workflow refuses a tag without notes.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: The tag must be on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tag $GITHUB_REF_NAME is not on main; release from main only."
+            exit 1
+          fi
+      - name: Collect the release notes
+        run: |
+          php tools/changelog.php "$GITHUB_REF_NAME" > notes.md
+          {
+            echo
+            echo '```bash'
+            echo "composer require b44x/ksef-php:^${GITHUB_REF_NAME#v}"
+            echo '```'
+            echo
+            echo "Full changelog: https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/CHANGELOG.md"
+          } >> notes.md
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flag=""
+          if [ "$(php tools/changelog.php --prerelease "$GITHUB_REF_NAME")" = "true" ]; then flag="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md $flag --verify-tag

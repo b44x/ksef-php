@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-11
+
 ### Added
 
+- **Automatic GitHub releases**: pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which publishes the release from the version's `CHANGELOG.md` section (a pre-release below 1.0.0) and refuses a tag that is not on `main` or has no notes. `tools/changelog.php` extracts the section; `CONTRIBUTING.md` describes the release steps.
 - **`vendor/bin/ksef-doctor`** (`composer doctor`): a read-only readiness check for TEST, Demo and production. It checks PHP and its extensions, the certificate (expiry, self-signed on production), reachability and clock skew, KSeF's availability, the login (with KSeF's explanation and trace id), the limits, the permissions and read access to invoices, and ends the login it created. Settings come from environment variables (`KSEF_NIP`, `KSEF_TOKEN` or `KSEF_CERT` + `KSEF_KEY` or `KSEF_P12`); `--json` for scripts; exit codes 0/1/2.
 
 ## [0.11.0] - 2026-10-11
@@ -168,7 +171,8 @@ Findings of an independent review of the sources:
 - Unit and integration test suites, optional live tests against the KSeF TEST environment,
   PHPStan (max level, strict rules), PHP-CS-Fixer and GitHub Actions workflows.
 
-[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/b44x/ksef-php/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/b44x/ksef-php/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/b44x/ksef-php/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/b44x/ksef-php/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/b44x/ksef-php/compare/v0.8.0...v0.9.0

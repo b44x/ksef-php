@@ -8,6 +8,8 @@ parameters:
         - src
         - tests
         - examples
+    scanFiles:
+        - tools/changelog.php
     tmpDir: .phpstan.cache
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: true
